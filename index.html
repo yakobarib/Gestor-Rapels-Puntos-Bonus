@@ -175,10 +175,11 @@
   .loading-text{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text-dim)}
   @keyframes spin{to{transform:rotate(360deg)}}
 
-  /* Ayuda modal */
-  .help-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:300;display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)}
-  .help-overlay.open{display:flex}
-  .help-modal{background:var(--surface);border:1px solid var(--border);border-radius:12px;width:100%;max-width:660px;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 12px 40px rgba(0,0,0,.4)}
+  /* Ayuda panel derecho */
+  .help-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;display:none}
+  .help-overlay.open{display:block}
+  .help-modal{position:fixed;right:0;top:0;bottom:0;width:560px;max-width:96vw;background:var(--surface);border-left:1px solid var(--border);display:flex;flex-direction:column;transform:translateX(100%);transition:transform .25s ease;box-shadow:-8px 0 32px rgba(0,0,0,.35)}
+  .help-overlay.open .help-modal{transform:translateX(0)}
   .help-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0}
   .help-head-title{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:700}
   .help-tabs{display:flex;gap:2px;padding:8px 20px 0;border-bottom:1px solid var(--border);flex-shrink:0}
@@ -382,6 +383,10 @@
         <div class="sec-title">Histórico de Movimientos</div>
         <div class="sec-sub">Todos los movimientos de rapel y puntos</div>
       </div>
+      <button class="btn btn-ghost btn-sm" onclick="printHist()">
+        <svg width="13" height="13" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="2.5" y="1" width="7" height="5"/><path d="M2.5 7H1v4h10V7H9.5"/><rect x="3.5" y="8" width="5" height="2.5"/><circle cx="9.5" cy="8.5" r=".5" fill="currentColor"/></svg>
+        Imprimir
+      </button>
     </div>
     <div class="search-row">
       <select class="filt" id="filtHCliente" onchange="renderHist()" style="flex:1;min-width:160px">
@@ -394,10 +399,10 @@
       </select>
       <select class="filt" id="filtHMov" onchange="renderHist()">
         <option value="all">Todos los tipos</option>
-        <option value="INGRESO">Ingresos</option>
-        <option value="GASTO">Gastos</option>
-        <option value="GANADO">Ganados</option>
-        <option value="CANJEADO">Canjeados</option>
+        <option value="INGRESO">Rapel Ingresos</option>
+        <option value="GASTO">Rapel Gastos</option>
+        <option value="GANADO">Puntos Ganados</option>
+        <option value="CANJEADO">Puntos Canjeados</option>
       </select>
       <input class="search-input" id="searchH" placeholder="Buscar albarán, notas..." oninput="renderHist()" style="flex:1;min-width:140px">
     </div>
@@ -918,9 +923,9 @@ function onHistTypeChange() {
   const t=document.getElementById('filtHType').value;
   const m=document.getElementById('filtHMov');
   const all=`<option value="all">Todos los tipos</option>`;
-  if(t==='rapel')  m.innerHTML=all+`<option value="INGRESO">Ingresos</option><option value="GASTO">Gastos</option>`;
-  else if(t==='puntos') m.innerHTML=all+`<option value="GANADO">Ganados</option><option value="CANJEADO">Canjeados</option>`;
-  else m.innerHTML=all+`<option value="INGRESO">Ingresos</option><option value="GASTO">Gastos</option><option value="GANADO">Ganados</option><option value="CANJEADO">Canjeados</option>`;
+  if(t==='rapel')  m.innerHTML=all+`<option value="INGRESO">Rapel Ingresos</option><option value="GASTO">Rapel Gastos</option>`;
+  else if(t==='puntos') m.innerHTML=all+`<option value="GANADO">Puntos Ganados</option><option value="CANJEADO">Puntos Canjeados</option>`;
+  else m.innerHTML=all+`<option value="INGRESO">Rapel Ingresos</option><option value="GASTO">Rapel Gastos</option><option value="GANADO">Puntos Ganados</option><option value="CANJEADO">Puntos Canjeados</option>`;
   renderHist();
 }
 
@@ -965,7 +970,7 @@ function renderHist() {
     <div class="hist-item">
       <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-dim)">${(m.fecha||m.created_at||'—').slice(0,10)}</div>
       <div><strong style="font-size:12px">${m.cliente}</strong></div>
-      <div style="font-size:12px">${m.albaran||'—'}<br><span style="font-size:10px;color:var(--text-dim)">${m.notas||''}</span></div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:12px">${m.albaran||'—'}<br><span style="font-size:10px;color:var(--text-dim)">${m.notas||''}</span></div>
       <span class="tag ${tS[m.sistema]}">${m.sistema}</span>
       <span class="tag ${tM[m.tipo]||'tag-gray'}">${m.tipo}</span>
       <div style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;text-align:right;color:${m._color}">${m._qty}</div>
@@ -1281,6 +1286,42 @@ function printRMov(rid,mid,e){
   let h=printHeader(r.nombre,`${m.tipo} RAPEL · ${m.albaran||''}`,`Justificante de ${m.tipo}`);
   h+=`<table><thead><tr><th>Campo</th><th>Valor</th></tr></thead><tbody><tr><td>Tipo</td><td><strong>${m.tipo}</strong></td></tr><tr><td>Albarán</td><td>${m.albaran||'—'}</td></tr><tr><td>Fecha</td><td>${m.fecha||'—'}</td></tr><tr><td>Notas</td><td>${m.notas||'—'}</td></tr><tr class="total-row"><td>Importe</td><td style="color:${m.tipo==='GASTO'?'#E20613':'#2e7d32'};font-size:15px">${m.tipo==='GASTO'?'-':'+'} ${eur(m.importe)}</td></tr><tr><td>Saldo bolsa</td><td>${eur(saldo)}</td></tr></tbody></table>`;
   h+=`<div class="footer"><div class="firma-box">Firma cliente</div><div class="firma-box">Firma Recambios Ibiza</div></div></body></html>`;
+  printDoc(h);
+}
+
+function printHist(){
+  const fCli=document.getElementById('filtHCliente').value;
+  const fType=document.getElementById('filtHType').value;
+  const fMov=document.getElementById('filtHMov').value;
+  const q=document.getElementById('searchH').value.trim().toLowerCase();
+  let items=[];
+  if(fType!=='puntos'){
+    db.rapels.forEach(r=>{
+      if(fCli&&r.nombre!==fCli) return;
+      (r.movimientos||[]).forEach(m=>{
+        if(fMov!=='all'&&m.tipo!==fMov) return;
+        if(q&&!r.nombre.toLowerCase().includes(q)&&!(m.albaran||'').toLowerCase().includes(q)&&!(m.notas||'').toLowerCase().includes(q)) return;
+        items.push({sistema:'RAPEL',cliente:r.nombre,fecha:m.fecha,ref:m.albaran,notas:m.notas,tipo:m.tipo,qty:eur(m.importe),sign:m.tipo==='INGRESO'?'+':'-',color:m.tipo==='INGRESO'?'#2e7d32':'#E20613'});
+      });
+    });
+  }
+  if(fType!=='rapel'){
+    db.puntos.forEach(p=>{
+      if(fCli&&p.nombre!==fCli) return;
+      (p.movimientos||[]).forEach(m=>{
+        if(fMov!=='all'&&m.tipo!==fMov) return;
+        if(q&&!p.nombre.toLowerCase().includes(q)&&!(m.referencia||'').toLowerCase().includes(q)&&!(m.notas||'').toLowerCase().includes(q)) return;
+        items.push({sistema:'PUNTOS',cliente:p.nombre,fecha:m.fecha,ref:m.referencia,notas:m.notas,tipo:m.tipo,qty:pts(m.puntos),sign:m.tipo==='GANADO'?'+':'-',color:m.tipo==='GANADO'?'#b45309':'#1565c0'});
+      });
+    });
+  }
+  items.sort((a,b)=>(a.fecha||'').localeCompare(b.fecha||''));
+  const titulo=fCli?`Histórico · ${fCli}`:'Histórico de Movimientos';
+  const subtitulo=fCli?`Cliente: ${fCli}`:`Todos los clientes${fType!=='all'?' · '+(fType==='rapel'?'Solo Rapel':'Solo Puntos'):''}`;
+  let h=printHeader(fCli||'Todos los clientes',titulo,subtitulo);
+  h+=`<table><thead><tr><th>Fecha</th><th>Cliente</th><th>Sistema</th><th>Tipo</th><th>Referencia</th><th>Notas</th><th style="text-align:right">Importe</th></tr></thead><tbody>`;
+  for(const m of items) h+=`<tr><td>${m.fecha||'—'}</td><td>${m.cliente}</td><td>${m.sistema}</td><td>${m.tipo}</td><td>${m.ref||'—'}</td><td>${m.notas||''}</td><td style="text-align:right;font-weight:600;color:${m.color}">${m.sign} ${m.qty}</td></tr>`;
+  h+=`</tbody></table><p style="font-size:11px;color:#888;margin-top:8px">Total: ${items.length} movimientos · Impreso el ${new Date().toLocaleDateString('es-ES')}</p></body></html>`;
   printDoc(h);
 }
 
