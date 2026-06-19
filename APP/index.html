@@ -495,9 +495,20 @@
       <div class="help-section">
         <h3>Cómo registrar movimientos de rapel</h3>
         <ul>
-          <li><strong>Nuevo Rapel (verde)</strong> — carga la bolsa de un cliente (INGRESO). Usa esto al inicio de año o cuando se actualiza el rapel.</li>
+          <li><strong>Nuevo Rapel (verde)</strong> — carga la bolsa de un cliente (INGRESO). Úsalo al inicio de año o cuando se actualiza el rapel.</li>
+          <li><strong>Bloquear Rapel (naranja)</strong> — bloquea el acceso a la bolsa de un cliente. Ver sección de Bloqueo más abajo.</li>
           <li><strong>Venta Rapel (rojo)</strong> — registra un consumo de bolsa (GASTO). Introduce el nº de albarán y el importe.</li>
           <li>También puedes abrir cualquier cliente de la lista y añadir movimientos directamente desde su ficha.</li>
+        </ul>
+      </div>
+      <div class="help-section">
+        <h3>Bloqueo de rapel</h3>
+        <ul>
+          <li>El botón <strong>Bloquear Rapel (naranja)</strong> impide que se registren nuevos movimientos en la bolsa de un cliente hasta que se desbloquee manualmente.</li>
+          <li>Al bloquear se registra <strong>quién bloquea</strong> (obligatorio), la fecha automática y un motivo opcional (ej: pagos pendientes).</li>
+          <li>Los clientes bloqueados aparecen con el icono 🔒 en la lista y sus filas se muestran semitransparentes.</li>
+          <li>El Dashboard muestra una tarjeta naranja con el <strong>saldo total bloqueado</strong> cuando hay algún cliente en esa situación.</li>
+          <li>Para desbloquear, abre la ficha del cliente (clic en la fila) y pulsa <strong>Desbloquear</strong> en el banner naranja.</li>
         </ul>
       </div>
       <div class="help-section">
@@ -512,15 +523,24 @@
         <h3>Histórico</h3>
         <ul>
           <li>Filtra primero por <strong>cliente</strong>, luego por sistema (Rapel / Puntos) y por tipo de movimiento.</li>
-          <li>Los tipos disponibles se adaptan automáticamente al sistema seleccionado.</li>
+          <li>Los tipos disponibles se adaptan automáticamente al sistema seleccionado: <em>Rapel Ingresos, Rapel Gastos, Puntos Ganados, Puntos Canjeados</em>.</li>
           <li>Usa el buscador para encontrar por albarán o notas.</li>
+          <li>El botón <strong>Imprimir</strong> genera un PDF con todos los movimientos visibles según los filtros activos.</li>
         </ul>
       </div>
       <div class="help-section">
         <h3>Imprimir</h3>
         <ul>
-          <li>Desde la ficha de un cliente (drawer lateral) puedes imprimir el extracto completo.</li>
-          <li>Cada movimiento individual también tiene su botón de impresión para generar un justificante.</li>
+          <li>Desde la ficha de un cliente (drawer lateral) puedes imprimir el extracto completo con todas las columnas y saldo final.</li>
+          <li>Cada movimiento individual tiene su botón de impresión para generar un justificante unitario con firmas.</li>
+          <li>En la pestaña Histórico, el botón <strong>Imprimir</strong> imprime el listado filtrado completo.</li>
+        </ul>
+      </div>
+      <div class="help-section">
+        <h3>Tamaño de letra</h3>
+        <ul>
+          <li>Pulsa el icono de <strong>engranaje ⚙</strong> en la cabecera para cambiar el tamaño de texto: Pequeño, Normal o Grande.</li>
+          <li>La preferencia se guarda localmente en el navegador de cada usuario de forma independiente.</li>
         </ul>
       </div>
       <div class="help-section">
@@ -528,7 +548,7 @@
         <ul>
           <li>Todos los datos se guardan en <strong>Supabase</strong> en tiempo real.</li>
           <li>El indicador <em>Sincronizado</em> confirma que la conexión con la base de datos es correcta.</li>
-          <li>La app funciona igual desde el navegador o desde <strong>GitHub Pages</strong>.</li>
+          <li>La app funciona igual desde cualquier navegador o desde <strong>GitHub Pages</strong>.</li>
         </ul>
       </div>
     </div>
@@ -536,6 +556,24 @@
     <!-- VERSIONES -->
     <div class="help-body" id="help-versiones" style="display:none">
       <div class="help-ver">
+        <div class="help-ver-item">
+          <div class="help-ver-head">
+            <span class="help-ver-num">v4.2</span>
+            <span class="help-ver-date">Junio 2026</span>
+          </div>
+          <ul class="help-ver-list">
+            <li>Bloqueo de rapel por cliente — botón naranja con "Bloqueado por" y motivo</li>
+            <li>Dashboard muestra saldo total bloqueado cuando hay clientes bloqueados</li>
+            <li>Encabezado de tabla fijo al hacer scroll (thead sticky)</li>
+            <li>Opciones de tamaño de letra: Pequeño / Normal / Grande (guardado por usuario)</li>
+            <li>Tipos de movimiento ampliados: Rapel Ingresos, Rapel Gastos, Puntos Ganados, Puntos Canjeados</li>
+            <li>Botón Imprimir en Histórico — imprime los movimientos según filtros activos</li>
+            <li>Tipografía monospace en albaranes del Histórico</li>
+            <li>Renombrado "Total Bolsa" a "Total Rapel" en toda la app</li>
+            <li>Panel Ayuda como drawer lateral derecho</li>
+            <li>Logo AD Parts exacto en cabecera y modal Acerca de</li>
+          </ul>
+        </div>
         <div class="help-ver-item">
           <div class="help-ver-head">
             <span class="help-ver-num">v3.1</span>
