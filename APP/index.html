@@ -374,7 +374,7 @@
         </button>
         <button class="btn btn-blue btn-sm" onclick="openAjuste()">
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 1v10M1 6h10M2.5 3.5L6 1l3.5 2.5M2.5 8.5L6 11l3.5-2.5"/></svg>
-          Ajuste Manual
+          Ajuste Especial
         </button>
         <button class="btn btn-danger btn-sm" onclick="openQuickAction('rapel','GASTO')">
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 4v5M3.5 6.5L6 9l2.5-2.5"/><rect x="1.5" y="1.5" width="9" height="9" rx="1.5"/></svg>
@@ -744,7 +744,7 @@
 <!-- MODAL AJUSTE MANUAL -->
 <div class="overlay" id="ovlAjuste">
   <div class="modal">
-    <div class="modal-title">Ajuste Manual de Saldo</div>
+    <div class="modal-title">Ajuste Especial de Saldo</div>
     <div class="modal-sub">Modifica el saldo del rapel sin seguir fórmulas. Requiere autorización.</div>
     <div class="fg">
       <div class="fgr full">
@@ -753,14 +753,19 @@
       </div>
       <div class="fgr full">
         <label>Tipo de ajuste *</label>
-        <select id="ajTipo">
+        <select id="ajTipo" onchange="onAjTipoChange()">
           <option value="INCREMENTO">Incrementar saldo (añadir importe)</option>
           <option value="REDUCCION">Reducir saldo (restar importe)</option>
+          <option value="PONER_CERO">Poner a Cero (saldar el rapel)</option>
         </select>
       </div>
-      <div class="fgr">
+      <div class="fgr" id="ajImporteRow">
         <label>Importe (€) *</label>
         <input id="ajImporte" type="number" min="0.01" step="0.01" placeholder="0.00">
+      </div>
+      <div class="fgr" id="ajCeroInfo" style="display:none">
+        <label>Saldo actual</label>
+        <div id="ajCeroSaldo" style="padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;font-weight:700;font-size:14px"></div>
       </div>
       <div class="fgr">
         <label>Fecha</label>
@@ -1188,9 +1193,9 @@ function onHistTypeChange() {
   const t=document.getElementById('filtHType').value;
   const m=document.getElementById('filtHMov');
   const all=`<option value="all">Todos los tipos</option>`;
-  if(t==='rapel')  m.innerHTML=all+`<option value="INGRESO">Rapel Ingresos</option><option value="GASTO">Rapel Gastos</option><option value="AJUSTE">Ajuste Manual</option>`;
+  if(t==='rapel')  m.innerHTML=all+`<option value="INGRESO">Rapel Ingresos</option><option value="GASTO">Rapel Gastos</option><option value="AJUSTE">Ajuste Especial</option>`;
   else if(t==='puntos') m.innerHTML=all+`<option value="GANADO">Puntos Ganados</option><option value="CANJEADO">Puntos Canjeados</option>`;
-  else m.innerHTML=all+`<option value="INGRESO">Rapel Ingresos</option><option value="GASTO">Rapel Gastos</option><option value="AJUSTE">Ajuste Manual</option><option value="GANADO">Puntos Ganados</option><option value="CANJEADO">Puntos Canjeados</option>`;
+  else m.innerHTML=all+`<option value="INGRESO">Rapel Ingresos</option><option value="GASTO">Rapel Gastos</option><option value="AJUSTE">Ajuste Especial</option><option value="GANADO">Puntos Ganados</option><option value="CANJEADO">Puntos Canjeados</option>`;
   renderHist();
 }
 
@@ -1729,6 +1734,21 @@ async function desbloquear(id) {
   openDrawerR(id);
 }
 
+function onAjTipoChange() {
+  const tipo = document.getElementById('ajTipo').value;
+  const esCero = tipo === 'PONER_CERO';
+  document.getElementById('ajImporteRow').style.display = esCero ? 'none' : '';
+  document.getElementById('ajCeroInfo').style.display   = esCero ? '' : 'none';
+  if (esCero) {
+    const clienteId = document.getElementById('ajCliente').value;
+    const r = db.rapels.find(x=>x.id===clienteId);
+    const saldo = r ? rStats(r).saldo : 0;
+    const el = document.getElementById('ajCeroSaldo');
+    el.textContent = eur(saldo);
+    el.style.color = saldo < 0 ? 'var(--accent)' : saldo > 0 ? 'var(--green)' : 'var(--text)';
+  }
+}
+
 function openAjuste(preselId) {
   const sel = document.getElementById('ajCliente');
   sel.innerHTML = '<option value="">— Seleccionar cliente —</option>' + db.rapels.map(r=>`<option value="${r.id}">${r.nombre}</option>`).join('');
@@ -1739,6 +1759,9 @@ function openAjuste(preselId) {
   document.getElementById('ajPor').value = '';
   document.getElementById('ajMotivo').value = '';
   document.getElementById('ajNotas').value = '';
+  document.getElementById('ajImporteRow').style.display = '';
+  document.getElementById('ajCeroInfo').style.display = 'none';
+  sel.addEventListener('change', onAjTipoChange, {once:false});
   document.getElementById('ovlAjuste').classList.add('open');
   setTimeout(()=>sel.focus(),100);
 }
@@ -1746,21 +1769,27 @@ function openAjuste(preselId) {
 async function saveAjuste() {
   const clienteId = document.getElementById('ajCliente').value;
   const tipo      = document.getElementById('ajTipo').value;
-  const importe   = parseFloat(document.getElementById('ajImporte').value);
   const fecha     = document.getElementById('ajFecha').value || today();
   const por       = document.getElementById('ajPor').value.trim();
   const motivo    = document.getElementById('ajMotivo').value.trim();
   const notas     = document.getElementById('ajNotas').value.trim();
 
   if (!clienteId) { alert('Selecciona un cliente'); return; }
-  if (!importe || importe <= 0) { alert('El importe debe ser mayor que cero'); return; }
   if (!por) { alert('El campo "Autorizado por" es obligatorio'); return; }
   if (!motivo) { alert('El campo "Motivo" es obligatorio'); return; }
 
   const r = db.rapels.find(x=>x.id===clienteId); if (!r) return;
 
-  // Signed importe: positive=incremento, negative=reduccion
-  const importeSigned = tipo === 'REDUCCION' ? -Math.abs(importe) : Math.abs(importe);
+  let importeSigned;
+  if (tipo === 'PONER_CERO') {
+    const saldo = rStats(r).saldo;
+    if (saldo === 0) { alert('El saldo ya es cero, no hay nada que ajustar'); return; }
+    importeSigned = -saldo; // cancels current saldo exactly
+  } else {
+    const importe = parseFloat(document.getElementById('ajImporte').value);
+    if (!importe || importe <= 0) { alert('El importe debe ser mayor que cero'); return; }
+    importeSigned = tipo === 'REDUCCION' ? -Math.abs(importe) : Math.abs(importe);
+  }
   const notasCompletas = `Autorizado por: ${por} · ${motivo}` + (notas ? `\n${notas}` : '');
 
   const mov = { tipo:'AJUSTE', importe:importeSigned, fecha, albarán:'—', notas:notasCompletas };
