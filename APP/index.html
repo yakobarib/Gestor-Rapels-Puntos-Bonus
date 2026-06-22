@@ -95,6 +95,7 @@
   .tag-gray{background:var(--surface2);color:var(--text-dim);border:1px solid var(--border)}
   .tag-ingreso{background:rgba(76,175,125,.12);color:var(--green)}
   .tag-gasto{background:rgba(226,6,19,.12);color:#E20613}
+  .tag-ajuste{background:rgba(91,141,239,.12);color:var(--blue)}
   .tag-ganado{background:rgba(245,158,11,.12);color:var(--orange)}
   .tag-canjeado{background:rgba(91,141,239,.12);color:var(--blue)}
 
@@ -103,6 +104,7 @@
   .btn-ghost{background:var(--surface2);color:var(--text);border:1px solid var(--border)}.btn-ghost:hover{border-color:var(--accent);color:var(--accent)}
   .btn-green{background:rgba(76,175,125,.12);color:var(--green);border:1px solid rgba(76,175,125,.3)}.btn-green:hover{background:rgba(76,175,125,.22)}
   .btn-danger{background:rgba(226,6,19,.1);color:#E20613;border:1px solid rgba(226,6,19,.25)}.btn-danger:hover{background:rgba(226,6,19,.2)}
+  .btn-blue{background:rgba(91,141,239,.12);color:var(--blue);border:1px solid rgba(91,141,239,.35)}.btn-blue:hover{background:rgba(91,141,239,.22)}
   .btn-sm{padding:5px 12px;font-size:12px;border-radius:6px}
 
   .overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)}
@@ -369,6 +371,10 @@
         <button class="btn btn-sm" style="background:rgba(245,158,11,.12);color:var(--orange);border:1px solid rgba(245,158,11,.3)" onclick="openBloquear()">
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="2.5" y="5.5" width="7" height="5.5" rx="1"/><path d="M4 5.5V4a2 2 0 0 1 4 0v1.5"/></svg>
           Bloquear Rapel
+        </button>
+        <button class="btn btn-blue btn-sm" onclick="openAjuste()">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 1v10M1 6h10M2.5 3.5L6 1l3.5 2.5M2.5 8.5L6 11l3.5-2.5"/></svg>
+          Ajuste Manual
         </button>
         <button class="btn btn-danger btn-sm" onclick="openQuickAction('rapel','GASTO')">
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 4v5M3.5 6.5L6 9l2.5-2.5"/><rect x="1.5" y="1.5" width="9" height="9" rx="1.5"/></svg>
@@ -735,6 +741,54 @@
   </div>
 </div>
 
+<!-- MODAL AJUSTE MANUAL -->
+<div class="overlay" id="ovlAjuste">
+  <div class="modal">
+    <div class="modal-title">Ajuste Manual de Saldo</div>
+    <div class="modal-sub">Modifica el saldo del rapel sin seguir fórmulas. Requiere autorización.</div>
+    <div class="fg">
+      <div class="fgr full">
+        <label>Cliente *</label>
+        <select id="ajCliente"></select>
+      </div>
+      <div class="fgr full">
+        <label>Tipo de ajuste *</label>
+        <select id="ajTipo">
+          <option value="INCREMENTO">Incrementar saldo (añadir importe)</option>
+          <option value="REDUCCION">Reducir saldo (restar importe)</option>
+        </select>
+      </div>
+      <div class="fgr">
+        <label>Importe (€) *</label>
+        <input id="ajImporte" type="number" min="0.01" step="0.01" placeholder="0.00">
+      </div>
+      <div class="fgr">
+        <label>Fecha</label>
+        <input id="ajFecha" type="date">
+      </div>
+      <div class="fgr full">
+        <label>Autorizado por *</label>
+        <input id="ajPor" placeholder="Nombre de quien autoriza el ajuste">
+      </div>
+      <div class="fgr full">
+        <label>Motivo *</label>
+        <input id="ajMotivo" placeholder="Razón del ajuste manual...">
+      </div>
+      <div class="fgr full">
+        <label>Notas adicionales</label>
+        <textarea id="ajNotas" rows="2" placeholder="Observaciones opcionales..."></textarea>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeOverlay('ovlAjuste')">Cancelar</button>
+      <button class="btn btn-blue btn-sm" style="padding:9px 20px;font-size:13px" onclick="saveAjuste()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="margin-right:4px"><path d="M20 6L9 17l-5-5"/></svg>
+        Guardar Ajuste
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL QUICK ACTION -->
 <div class="overlay" id="ovlQuick">
   <div class="modal">
@@ -1017,9 +1071,10 @@ function rStats(r) {
   const m = r.movimientos||[];
   const ingreso = m.filter(x=>x.tipo==='INGRESO').reduce((a,x)=>a+Number(x.importe),0);
   const gasto   = m.filter(x=>x.tipo==='GASTO').reduce((a,x)=>a+Number(x.importe),0);
-  const saldo   = ingreso - gasto;
+  const ajuste  = m.filter(x=>x.tipo==='AJUSTE').reduce((a,x)=>a+Number(x.importe),0); // signed: positive=incremento, negative=reduccion
+  const saldo   = ingreso - gasto + ajuste;
   const pct     = ingreso>0 ? Math.min(gasto/ingreso*100,100) : 0;
-  return { ingreso, gasto, saldo, pct };
+  return { ingreso, gasto, ajuste, saldo, pct };
 }
 function pStats(p) {
   const m = p.movimientos||[];
@@ -1133,9 +1188,9 @@ function onHistTypeChange() {
   const t=document.getElementById('filtHType').value;
   const m=document.getElementById('filtHMov');
   const all=`<option value="all">Todos los tipos</option>`;
-  if(t==='rapel')  m.innerHTML=all+`<option value="INGRESO">Rapel Ingresos</option><option value="GASTO">Rapel Gastos</option>`;
+  if(t==='rapel')  m.innerHTML=all+`<option value="INGRESO">Rapel Ingresos</option><option value="GASTO">Rapel Gastos</option><option value="AJUSTE">Ajuste Manual</option>`;
   else if(t==='puntos') m.innerHTML=all+`<option value="GANADO">Puntos Ganados</option><option value="CANJEADO">Puntos Canjeados</option>`;
-  else m.innerHTML=all+`<option value="INGRESO">Rapel Ingresos</option><option value="GASTO">Rapel Gastos</option><option value="GANADO">Puntos Ganados</option><option value="CANJEADO">Puntos Canjeados</option>`;
+  else m.innerHTML=all+`<option value="INGRESO">Rapel Ingresos</option><option value="GASTO">Rapel Gastos</option><option value="AJUSTE">Ajuste Manual</option><option value="GANADO">Puntos Ganados</option><option value="CANJEADO">Puntos Canjeados</option>`;
   renderHist();
 }
 
@@ -1152,9 +1207,10 @@ function renderHist() {
       (r.movimientos||[]).forEach(m=>{
         if(fMov!=='all'&&m.tipo!==fMov) return;
         if(q&&!r.nombre.toLowerCase().includes(q)&&!(m.albaran||'').toLowerCase().includes(q)&&!(m.notas||'').toLowerCase().includes(q)) return;
-        const rv = m.tipo==='INGRESO' ? Number(m.importe) : -Number(m.importe);
+        const rv = m.tipo==='AJUSTE' ? Number(m.importe) : m.tipo==='INGRESO' ? Number(m.importe) : -Number(m.importe);
         const rc = rv>0?'var(--green)':rv<0?'var(--accent)':'var(--text)';
-        items.push({sistema:'RAPEL',cliente:r.nombre,cid:r.id,...m,_qty:eur(m.importe),_color:rc});
+        const sign = rv>=0?'+':'-';
+        items.push({sistema:'RAPEL',cliente:r.nombre,cid:r.id,...m,_qty:sign+' '+eur(Math.abs(m.importe)),_color:rc});
       });
     });
   }
@@ -1174,7 +1230,7 @@ function renderHist() {
   items.sort((a,b)=>(b.created_at||'').localeCompare(a.created_at||''));
   const el=document.getElementById('histList');
   if(!items.length){el.innerHTML=emptyState('Sin movimientos','No hay movimientos con los filtros seleccionados');return;}
-  const tM={INGRESO:'tag-ingreso',GASTO:'tag-gasto',GANADO:'tag-ganado',CANJEADO:'tag-canjeado'};
+  const tM={INGRESO:'tag-ingreso',GASTO:'tag-gasto',AJUSTE:'tag-ajuste',GANADO:'tag-ganado',CANJEADO:'tag-canjeado'};
   const tS={RAPEL:'tag-blue',PUNTOS:'tag-orange'};
   el.innerHTML=items.map(m=>`
     <div class="hist-item">
@@ -1230,14 +1286,16 @@ function renderRMovs(r) {
   const el=document.getElementById('drRMovs');
   const movs=[...(r.movimientos||[])].reverse();
   if(!movs.length){el.innerHTML=emptyState('Sin movimientos','Añade el primer movimiento');return;}
-  const tc={INGRESO:'tag-ingreso',GASTO:'tag-gasto'};
+  const tc={INGRESO:'tag-ingreso',GASTO:'tag-gasto',AJUSTE:'tag-ajuste'};
+  const amountColor=m=>m.tipo==='GASTO'?'var(--accent)':m.tipo==='AJUSTE'&&Number(m.importe)<0?'var(--accent)':'var(--green)';
+  const amountSign=m=>m.tipo==='GASTO'||Number(m.importe)<0?'-':'+';
   el.innerHTML=movs.map(m=>`
     <div class="mov-item">
       <div>
-        <div class="mov-ref"><span class="tag ${tc[m.tipo]}">${m.tipo}</span> ${m.albaran||'—'}</div>
+        <div class="mov-ref"><span class="tag ${tc[m.tipo]||'tag-ingreso'}">${m.tipo}</span> ${m.albaran||'—'}</div>
         <div class="mov-desc">${m.notas||''} ${m.fecha?'· '+m.fecha:''}</div>
       </div>
-      <div class="mov-amount" style="color:${m.tipo==='GASTO'?'var(--accent)':'var(--green)'}">${m.tipo==='GASTO'?'-':'+'} ${eur(m.importe)}</div>
+      <div class="mov-amount" style="color:${amountColor(m)}">${amountSign(m)} ${eur(Math.abs(m.importe))}</div>
       <div style="display:flex;gap:4px;align-items:center">
         <button class="btn btn-ghost btn-sm mov-del" onclick="printRMov('${r.id}','${m.id}',event)" title="Imprimir">
           <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><rect x="2" y="1" width="7" height="4.5"/><path d="M2 6H1v3.5h9V6H8"/><rect x="3" y="7" width="5" height="2.5"/></svg>
@@ -1498,7 +1556,7 @@ function printClientRapel(){
   const movs=[...(r.movimientos||[])].sort((a,b)=>(a.fecha||'').localeCompare(b.fecha||''));
   let h=printHeader(r.nombre,'EXTRACTO RAPEL DE HERRAMIENTA','Extracto de Total Rapel');
   h+=`<table><thead><tr><th>Fecha</th><th>Tipo</th><th>Albarán</th><th>Notas</th><th style="text-align:right">Importe</th></tr></thead><tbody>`;
-  for(const m of movs) h+=`<tr><td>${m.fecha||'—'}</td><td>${m.tipo}</td><td>${m.albaran||'—'}</td><td>${m.notas||''}</td><td style="text-align:right;font-weight:600;color:${m.tipo==='GASTO'?'#E20613':'#2e7d32'}">${m.tipo==='GASTO'?'-':'+'} ${eur(m.importe)}</td></tr>`;
+  for(const m of movs){const neg=m.tipo==='GASTO'||Number(m.importe)<0;h+=`<tr><td>${m.fecha||'—'}</td><td>${m.tipo}</td><td>${m.albaran||'—'}</td><td>${m.notas||''}</td><td style="text-align:right;font-weight:600;color:${neg?'#E20613':'#2e7d32'}">${neg?'-':'+'} ${eur(Math.abs(m.importe))}</td></tr>`;}
   h+=`<tr class="total-row"><td colspan="4"><strong>SALDO ACTUAL</strong></td><td style="text-align:right;color:${saldo<0?'#E20613':'#2e7d32'}">${eur(saldo)}</td></tr></tbody></table>`;
   h+=`<div class="footer"><div class="firma-box">Firma cliente</div><div class="firma-box">Firma Recambios Ibiza</div></div></body></html>`;
   printDoc(h);
@@ -1669,6 +1727,53 @@ async function desbloquear(id) {
   setSynced();
   renderAll();
   openDrawerR(id);
+}
+
+function openAjuste(preselId) {
+  const sel = document.getElementById('ajCliente');
+  sel.innerHTML = '<option value="">— Seleccionar cliente —</option>' + db.rapels.map(r=>`<option value="${r.id}">${r.nombre}</option>`).join('');
+  if (preselId) sel.value = preselId;
+  document.getElementById('ajTipo').value = 'INCREMENTO';
+  document.getElementById('ajImporte').value = '';
+  document.getElementById('ajFecha').value = today();
+  document.getElementById('ajPor').value = '';
+  document.getElementById('ajMotivo').value = '';
+  document.getElementById('ajNotas').value = '';
+  document.getElementById('ovlAjuste').classList.add('open');
+  setTimeout(()=>sel.focus(),100);
+}
+
+async function saveAjuste() {
+  const clienteId = document.getElementById('ajCliente').value;
+  const tipo      = document.getElementById('ajTipo').value;
+  const importe   = parseFloat(document.getElementById('ajImporte').value);
+  const fecha     = document.getElementById('ajFecha').value || today();
+  const por       = document.getElementById('ajPor').value.trim();
+  const motivo    = document.getElementById('ajMotivo').value.trim();
+  const notas     = document.getElementById('ajNotas').value.trim();
+
+  if (!clienteId) { alert('Selecciona un cliente'); return; }
+  if (!importe || importe <= 0) { alert('El importe debe ser mayor que cero'); return; }
+  if (!por) { alert('El campo "Autorizado por" es obligatorio'); return; }
+  if (!motivo) { alert('El campo "Motivo" es obligatorio'); return; }
+
+  const r = db.rapels.find(x=>x.id===clienteId); if (!r) return;
+
+  // Signed importe: positive=incremento, negative=reduccion
+  const importeSigned = tipo === 'REDUCCION' ? -Math.abs(importe) : Math.abs(importe);
+  const notasCompletas = `Autorizado por: ${por} · ${motivo}` + (notas ? `\n${notas}` : '');
+
+  const mov = { tipo:'AJUSTE', importe:importeSigned, fecha, albarán:'—', notas:notasCompletas };
+
+  setSaving();
+  const movs = [...(r.movimientos||[]), mov];
+  const {error} = await sb.from('clientes_rapel').update({movimientos:movs}).eq('id',clienteId);
+  if (error) { alert('Error: '+error.message); setError(); return; }
+  r.movimientos = movs;
+  setSynced();
+  closeOverlay('ovlAjuste');
+  renderAll();
+  openDrawerR(clienteId);
 }
 
 // ══ OPCIONES / TAMAÑO LETRA ══
