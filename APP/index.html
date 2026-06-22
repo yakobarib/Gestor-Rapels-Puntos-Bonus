@@ -533,6 +533,22 @@
           <li><strong>Bloquear Rapel (naranja)</strong> — bloquea el acceso a la bolsa de un cliente. Ver sección de Bloqueo más abajo.</li>
           <li><strong>Venta Rapel (rojo)</strong> — registra un consumo de bolsa (GASTO). Introduce el nº de albarán y el importe.</li>
           <li>También puedes abrir cualquier cliente de la lista y añadir movimientos directamente desde su ficha.</li>
+          <li><strong>Ajuste Especial (azul)</strong> — corrección manual del saldo sin seguir fórmulas. Ver sección más abajo.</li>
+        </ul>
+      </div>
+      <div class="help-section">
+        <h3>Ajuste Especial de saldo</h3>
+        <ul>
+          <li>El botón <strong>Ajuste Especial (azul)</strong> permite modificar el saldo de un cliente de forma excepcional, sin que el movimiento afecte a los contadores de Ingresos ni de Gastos.</li>
+          <li>Requiere obligatoriamente indicar <strong>quién autoriza</strong> el ajuste y el <strong>motivo</strong>, dejando trazabilidad completa.</li>
+          <li>Tipos de ajuste disponibles:
+            <ul>
+              <li><strong>Incrementar saldo</strong> — añade importe al saldo actual</li>
+              <li><strong>Reducir saldo</strong> — resta importe al saldo actual</li>
+              <li><strong>Poner a Cero</strong> — calcula automáticamente el importe exacto para saldar el rapel a 0 €, mostrando el saldo actual antes de confirmar</li>
+            </ul>
+          </li>
+          <li>Los movimientos de tipo AJUSTE aparecen con etiqueta azul en la ficha del cliente y en el Histórico.</li>
         </ul>
       </div>
       <div class="help-section">
@@ -571,7 +587,7 @@
         <h3>Histórico</h3>
         <ul>
           <li>Filtra primero por <strong>cliente</strong>, luego por sistema (Rapel / Puntos) y por tipo de movimiento.</li>
-          <li>Los tipos disponibles se adaptan automáticamente al sistema seleccionado: <em>Rapel Ingresos, Rapel Gastos, Puntos Ganados, Puntos Canjeados</em>.</li>
+          <li>Los tipos disponibles se adaptan automáticamente al sistema seleccionado: <em>Rapel Ingresos, Rapel Gastos, Ajuste Especial, Puntos Ganados, Puntos Canjeados</em>.</li>
           <li>Usa el buscador para encontrar por albarán o notas.</li>
           <li>El botón <strong>Imprimir</strong> genera un PDF con todos los movimientos visibles según los filtros activos.</li>
         </ul>
@@ -604,6 +620,18 @@
     <!-- VERSIONES -->
     <div class="help-body" id="help-versiones" style="display:none">
       <div class="help-ver">
+        <div class="help-ver-item">
+          <div class="help-ver-head">
+            <span class="help-ver-num">v4.4</span>
+            <span class="help-ver-date">Junio 2026</span>
+          </div>
+          <ul class="help-ver-list">
+            <li>Ajuste Especial — corrección manual de saldo con autorización obligatoria y trazabilidad completa</li>
+            <li>Tres modos de ajuste: Incrementar saldo, Reducir saldo y Poner a Cero (cálculo automático)</li>
+            <li>Etiqueta azul AJUSTE en ficha de cliente y en Histórico</li>
+            <li>Filtro "Ajuste Especial" disponible en el Histórico para tipo Rapel</li>
+          </ul>
+        </div>
         <div class="help-ver-item">
           <div class="help-ver-head">
             <span class="help-ver-num">v4.3</span>
@@ -698,7 +726,7 @@
             <path fill="#E63312" d="M1272.1,802.1c83.9,0,151.8-68,151.8-151.8c0-83.8-68-151.8-151.8-151.8c-83.8,0-151.8,68-151.8,151.8C1120.3,734.2,1188.3,802.1,1272.1,802.1z"/>
           </svg>
         </div>
-        <div class="help-about-ver">v4.3</div>
+        <div class="help-about-ver">v4.4</div>
         <div class="help-about-name">Gestor de Rapels y Puntos</div>
         <div class="help-about-sub">Recambios Ibiza · Herramienta de gestión interna</div>
         <div class="help-about-box">
