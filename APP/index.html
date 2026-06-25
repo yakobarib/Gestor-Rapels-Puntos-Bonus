@@ -2408,13 +2408,17 @@ async function saveAjuste() {
   }
   const notasCompletas = `Autorizado por: ${por} · ${motivo}` + (notas ? `\n${notas}` : '');
 
-  const mov = { tipo:'AJUSTE', importe:importeSigned, fecha, albarán:'—', notas:notasCompletas };
-
   setSaving();
-  const movs = [...(r.movimientos||[]), mov];
-  const {error} = await sb.from('clientes_rapel').update({movimientos:movs}).eq('id',clienteId);
+  const {data, error} = await sb.from('movimientos_rapel').insert({
+    cliente_id: clienteId,
+    tipo: 'AJUSTE',
+    importe: importeSigned,
+    fecha,
+    albaran: '—',
+    notas: notasCompletas
+  }).select();
   if (error) { alert('Error: '+error.message); setError(); return; }
-  r.movimientos = movs;
+  r.movimientos.push(data[0]);
   setSynced();
   closeOverlay('ovlAjuste');
   renderAll();
