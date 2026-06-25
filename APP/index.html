@@ -2452,7 +2452,7 @@ document.querySelectorAll('.tab-scroll').forEach(el => {
   el.addEventListener('wheel', function(e) {
     if (Math.abs(e.deltaY) < 5) return; // touchpad: dejar pasar eventos pequeños
     e.preventDefault();
-    this.scrollBy({ top: e.deltaY > 0 ? 44 : -44, behavior: 'smooth' });
+    this.scrollBy({ top: e.deltaY > 0 ? 80 : -80, behavior: 'smooth' });
   }, { passive: false });
 });
 
