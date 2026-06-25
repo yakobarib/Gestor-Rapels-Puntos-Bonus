@@ -953,6 +953,11 @@
         <label id="qaImpLabel">Importe (€)</label>
         <input id="qaImp" type="number" min="0.01" step="0.01" placeholder="0.00">
       </div>
+      <!-- Campo exclusivo Rapel GASTO -->
+      <div class="fgr full" id="qaRapelGestRow" style="display:none">
+        <label>Gestionado por *</label>
+        <input id="qaRapelGest" placeholder="TU NOMBRE (OBLIGATORIO)">
+      </div>
       <!-- Campos exclusivos Bonus GANADO -->
       <div class="fgr" id="qaBonusAlbRow" style="display:none">
         <label>Nº Albarán *</label>
@@ -1884,6 +1889,7 @@ function openQuickAction(tipo, subtipo) {
   const isBonus=tipo==='bonus';
   const isGanado=subtipo==='GANADO';
   show('qaAlbRow',isRapel);
+  show('qaRapelGestRow', isRapel && subtipo==='GASTO');
   show('qaImpRow',isRapel||isBonus);
   document.getElementById('qaImpLabel').textContent = isBonus ? 'Importe Bonus (€)' : 'Importe (€)';
   show('qaBonusAlbRow', isBonus && isGanado);
@@ -1907,6 +1913,7 @@ function openQuickAction(tipo, subtipo) {
   document.getElementById('qaImp').value='';
   document.getElementById('qaPts').value='';
   document.getElementById('qaRef').value='';
+  document.getElementById('qaRapelGest').value='';
   document.getElementById('qaBonusAlb').value='';
   document.getElementById('qaIntrod').value='';
   document.getElementById('qaConcepto').value='';
@@ -1981,7 +1988,13 @@ async function saveQuickAction() {
     if(!alb||isNaN(imp)||imp===0){alert('Introduce albarán e importe válidos');return;}
     const r=db.rapels.find(x=>x.id===clienteId);
     if(!(await checkBloqAndProceed(r))) return;
-    const{data,error}=await sb.from('movimientos_rapel').insert({cliente_id:clienteId,tipo:subtipo,albaran:alb,importe:imp,fecha,notas}).select();
+    let notasRapel=notas;
+    if(subtipo==='GASTO'){
+      const gest=document.getElementById('qaRapelGest').value.trim();
+      if(!gest){alert('El campo "Gestionado por" es obligatorio');return;}
+      notasRapel=`GESTIONA: ${gest}`+(notas?` · ${notas}`:'');
+    }
+    const{data,error}=await sb.from('movimientos_rapel').insert({cliente_id:clienteId,tipo:subtipo,albaran:alb,importe:imp,fecha,notas:notasRapel}).select();
     if(error){alert('Error: '+error.message);setError();return;}
     if(r) r.movimientos.push(data[0]);
   } else if(tipo==='bonus') {
