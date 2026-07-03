@@ -98,6 +98,15 @@
   .tag-ingreso{background:rgba(76,175,125,.12);color:var(--green)}
   .tag-gasto{background:rgba(226,6,19,.12);color:#E20613}
   .tag-ajuste{background:rgba(91,141,239,.12);color:var(--blue)}
+  .cierre-section{margin-bottom:18px}
+  .cierre-sec-head{display:flex;align-items:center;gap:8px;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+  .cierre-sec-head span:last-of-type{margin-left:auto}
+  .cierre-row{display:flex;align-items:center;gap:10px;padding:8px 4px;border-bottom:1px solid var(--border);cursor:pointer;font-size:13px}
+  .cierre-row:last-child{border-bottom:none}
+  .cierre-nombre{flex:1}
+  .cierre-saldo{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:var(--green)}
+  .cierre-toggle{font-size:11px;color:var(--blue);text-decoration:none;opacity:.7}
+  .cierre-toggle:hover{opacity:1}
   .tag-ganado{background:rgba(245,158,11,.12);color:var(--orange)}
   .tag-canjeado{background:rgba(91,141,239,.12);color:var(--blue)}
   .tag-bonus-g{background:rgba(76,175,125,.12);color:var(--green)}
@@ -301,6 +310,10 @@
       Solo lectura
     </div>
     <div class="save-badge" id="saveBadge">Conectando...</div>
+    <button class="icon-btn" onclick="openCierre()" title="Cierre de Año" style="gap:5px;width:auto;padding:0 10px;font-family:'Syne',sans-serif;font-size:12px;font-weight:600;color:var(--blue)">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="1" y="2" width="12" height="11" rx="1.5"/><path d="M1 5.5h12M4 1v2M10 1v2"/></svg>
+      Cierre Año
+    </button>
     <button class="icon-btn" onclick="openHelp()" title="Ayuda" style="gap:5px;width:auto;padding:0 10px;font-family:'Syne',sans-serif;font-size:12px;font-weight:600">
       <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="7" cy="7" r="5.5"/><path d="M5.5 5.5a1.5 1.5 0 0 1 3 .5c0 1-1.5 1.5-1.5 2.5"/><circle cx="7" cy="10.5" r=".5" fill="currentColor" stroke="none"/></svg>
       Ayuda
@@ -876,6 +889,25 @@
   </div>
 </div>
 
+<!-- MODAL CIERRE DE AÑO -->
+<div class="overlay" id="ovlCierre">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-title">Cierre de Ejercicio <span id="cierreYear"></span></div>
+    <div class="modal-sub">Marca los clientes a poner a cero. Los desmarcados conservan su saldo pero quedan registrados igualmente en el histórico.</div>
+    <div class="form-row" style="margin-top:16px">
+      <div class="form-group">
+        <label>Fecha de cierre</label>
+        <input type="date" id="cierreFecha">
+      </div>
+    </div>
+    <div id="cierreBody" style="margin-top:16px;max-height:55vh;overflow-y:auto"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeOverlay('ovlCierre')">Cancelar</button>
+      <button class="btn btn-primary" onclick="executeCierre()">✓ Ejecutar Cierre</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL AJUSTE MANUAL -->
 <div class="overlay" id="ovlAjuste">
   <div class="modal">
@@ -1361,13 +1393,15 @@ function pStats(p) {
   const m = p.movimientos||[];
   const ganado   = m.filter(x=>x.tipo==='GANADO').reduce((a,x)=>a+Number(x.puntos),0);
   const canjeado = m.filter(x=>x.tipo==='CANJEADO').reduce((a,x)=>a+Number(x.puntos),0);
-  return { ganado, canjeado, saldo: ganado-canjeado };
+  const ajuste   = m.filter(x=>x.tipo==='AJUSTE').reduce((a,x)=>a+Number(x.puntos),0);
+  return { ganado, canjeado, saldo: ganado-canjeado+ajuste };
 }
 function bStats(b) {
   const m = b.movimientos||[];
   const ganado   = m.filter(x=>x.tipo==='GANADO').reduce((a,x)=>a+Number(x.importe),0);
   const canjeado = m.filter(x=>x.tipo==='CANJEADO').reduce((a,x)=>a+Number(x.importe),0);
-  return { ganado, canjeado, saldo: ganado-canjeado };
+  const ajuste   = m.filter(x=>x.tipo==='AJUSTE').reduce((a,x)=>a+Number(x.importe),0);
+  return { ganado, canjeado, saldo: ganado-canjeado+ajuste };
 }
 
 // ══ BADGES ══
@@ -1514,9 +1548,9 @@ function onHistTypeChange() {
   const m=document.getElementById('filtHMov');
   const all=`<option value="all">Todos los tipos</option>`;
   if(t==='rapel')  m.innerHTML=all+`<option value="INGRESO">Rapel Ingresos</option><option value="GASTO">Rapel Gastos</option><option value="AJUSTE">Ajuste Especial</option>`;
-  else if(t==='puntos') m.innerHTML=all+`<option value="GANADO">Puntos Ganados</option><option value="CANJEADO">Puntos Canjeados</option>`;
+  else if(t==='puntos') m.innerHTML=all+`<option value="GANADO">Puntos Ganados</option><option value="CANJEADO">Puntos Canjeados</option><option value="AJUSTE">Cierre de Año</option>`;
   else if(t==='bonus') m.innerHTML=all+`<option value="GANADO">Bonus Ganado</option><option value="CANJEADO">Bonus Canjeado</option>`;
-  else m.innerHTML=all+`<option value="RAPEL_INGRESO">Rapel Ingresos</option><option value="RAPEL_GASTO">Rapel Gastos</option><option value="RAPEL_AJUSTE">Ajuste Especial</option><option value="PUNTOS_GANADO">Puntos Ganados</option><option value="PUNTOS_CANJEADO">Puntos Canjeados</option><option value="BONUS_GANADO">Bonus Ganado</option><option value="BONUS_CANJEADO">Bonus Canjeado</option>`;
+  else m.innerHTML=all+`<option value="RAPEL_INGRESO">Rapel Ingresos</option><option value="RAPEL_GASTO">Rapel Gastos</option><option value="RAPEL_AJUSTE">Rapel Ajuste Especial</option><option value="PUNTOS_GANADO">Puntos Ganados</option><option value="PUNTOS_CANJEADO">Puntos Canjeados</option><option value="PUNTOS_AJUSTE">Puntos Cierre Año</option><option value="BONUS_GANADO">Bonus Ganado</option><option value="BONUS_CANJEADO">Bonus Canjeado</option><option value="BONUS_AJUSTE">Bonus Cierre Año</option>`;
   renderHist();
 }
 
@@ -1553,9 +1587,10 @@ function renderHist() {
       (p.movimientos||[]).forEach(m=>{
         if(!passFilter(fMov,'PUNTOS',m.tipo)) return;
         if(q&&!p.nombre.toLowerCase().includes(q)&&!(m.referencia||'').toLowerCase().includes(q)&&!(m.notas||'').toLowerCase().includes(q)) return;
-        const pv = m.tipo==='GANADO' ? Number(m.puntos) : -Number(m.puntos);
-        const pc = pv>0?'var(--orange)':pv<0?'var(--accent)':'var(--text)';
-        items.push({sistema:'PUNTOS',cliente:p.nombre,cid:p.id,...m,albaran:m.referencia,_qty:pts(m.puntos),_color:pc});
+        const pv = m.tipo==='GANADO' ? Number(m.puntos) : m.tipo==='AJUSTE' ? Number(m.puntos) : -Number(m.puntos);
+        const pc = pv>0?'var(--orange)':pv<0?'var(--accent)':'var(--text-dim)';
+        const pSign = pv>=0?'+':'';
+        items.push({sistema:'PUNTOS',cliente:p.nombre,cid:p.id,...m,albaran:m.referencia,_qty:pSign+pts(Math.abs(Number(m.puntos))),_color:pc});
       });
     });
   }
@@ -1566,10 +1601,10 @@ function renderHist() {
       (b.movimientos||[]).forEach(m=>{
         if(!passFilter(fMov,'BONUS',m.tipo)) return;
         if(q&&!b.nombre.toLowerCase().includes(q)&&!(m.notas||'').toLowerCase().includes(q)) return;
-        const bv = m.tipo==='GANADO' ? Number(m.importe) : -Number(m.importe);
-        const bc = bv>0?'var(--green)':'var(--accent)';
-        const sign = bv>=0?'+':'-';
-        items.push({sistema:'BONUS',cliente:b.nombre,cid:b.id,...m,albaran:'—',_qty:sign+' '+eur(Math.abs(m.importe)),_color:bc});
+        const bv = m.tipo==='GANADO' ? Number(m.importe) : m.tipo==='AJUSTE' ? Number(m.importe) : -Number(m.importe);
+        const bc = bv>0?'var(--green)':bv<0?'var(--accent)':'var(--text-dim)';
+        const sign = bv>=0?'+':'';
+        items.push({sistema:'BONUS',cliente:b.nombre,cid:b.id,...m,albaran:'—',_qty:sign+eur(Math.abs(Number(m.importe))),_color:bc});
       });
     });
   }
@@ -1581,7 +1616,7 @@ function renderHist() {
   const tS={RAPEL:'tag-blue',PUNTOS:'tag-orange',BONUS:'tag-ok'};
   el.innerHTML=items.map(m=>{
     const tagTipo = m.sistema==='BONUS'
-      ? (m.tipo==='GANADO'?'tag-bonus-g':'tag-bonus-c')
+      ? (m.tipo==='GANADO'?'tag-bonus-g':m.tipo==='AJUSTE'?'tag-ajuste':'tag-bonus-c')
       : (tM[m.tipo]||'tag-gray');
     return`<div class="hist-item">
       <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-dim)">${(m.fecha||m.created_at||'—').slice(0,10)}</div>
@@ -2446,6 +2481,97 @@ document.addEventListener('click', e => {
   const pop = document.getElementById('optsPop');
   if (pop && pop.classList.contains('open') && !pop.closest('.opts-wrap').contains(e.target)) pop.classList.remove('open');
 });
+
+// ══ CIERRE DE AÑO ══
+function openCierre() {
+  const year = new Date().getFullYear();
+  document.getElementById('cierreYear').textContent = year;
+  document.getElementById('cierreFecha').value = `${year}-12-31`;
+
+  const rapelsCon = db.rapels.filter(r => rStats(r).saldo !== 0);
+  const puntosCon = db.puntos.filter(p => pStats(p).saldo !== 0);
+  const bonusCon  = db.bonus.filter(b => bStats(b).saldo !== 0);
+
+  let html = '';
+
+  function seccion(sistema, tag, clientes, fmtSaldo) {
+    if (!clientes.length) return '';
+    return `<div class="cierre-section">
+      <div class="cierre-sec-head">
+        <span class="tag ${tag}">${sistema}</span>
+        <span style="color:var(--text-dim);font-size:12px">${clientes.length} cliente${clientes.length>1?'s':''} con saldo</span>
+        <span style="margin-left:auto;display:flex;gap:8px">
+          <a href="#" class="cierre-toggle" onclick="cierreToggleAll('${sistema.toLowerCase()}',true);return false">Todos</a>
+          <a href="#" class="cierre-toggle" onclick="cierreToggleAll('${sistema.toLowerCase()}',false);return false">Ninguno</a>
+        </span>
+      </div>
+      ${clientes.map(c=>`<label class="cierre-row">
+        <input type="checkbox" class="cierre-chk-${sistema.toLowerCase()}" data-id="${c.id}" data-saldo="${fmtSaldo(c)}" checked>
+        <span class="cierre-nombre">${c.nombre}</span>
+        <span class="cierre-saldo">${fmtSaldo(c)}</span>
+      </label>`).join('')}
+    </div>`;
+  }
+
+  html += seccion('RAPEL',  'tag-blue',   rapelsCon, r => eur(rStats(r).saldo));
+  html += seccion('PUNTOS', 'tag-orange', puntosCon, p => pts(pStats(p).saldo));
+  html += seccion('BONUS',  'tag-ok',     bonusCon,  b => eur(bStats(b).saldo));
+
+  if (!html) html = '<p style="color:var(--text-dim);text-align:center;padding:24px 0">Todos los saldos ya están a cero. No hay nada que cerrar.</p>';
+
+  document.getElementById('cierreBody').innerHTML = html;
+  document.getElementById('ovlCierre').classList.add('open');
+}
+
+function cierreToggleAll(sistema, checked) {
+  document.querySelectorAll(`.cierre-chk-${sistema}`).forEach(c => c.checked = checked);
+}
+
+async function executeCierre() {
+  const fecha  = document.getElementById('cierreFecha').value || today();
+  const year   = document.getElementById('cierreYear').textContent;
+  const nota   = `CIERRE EJERCICIO ${year}`;
+  const total  = document.querySelectorAll('.cierre-chk-rapel, .cierre-chk-puntos, .cierre-chk-bonus').length;
+  if (!total) { closeOverlay('ovlCierre'); return; }
+  if (!confirm(`¿Ejecutar el cierre de ejercicio ${year}?\n\nEsta acción registrará movimientos de cierre en el histórico de todos los clientes listados.`)) return;
+
+  setSaving();
+
+  for (const chk of document.querySelectorAll('.cierre-chk-rapel')) {
+    const r = db.rapels.find(x=>x.id===chk.dataset.id); if (!r) continue;
+    const saldo = rStats(r).saldo;
+    const importe = chk.checked ? -saldo : 0;
+    const notas = chk.checked ? nota : `${nota} · SALDO TRASPASADO: ${eur(saldo)}`;
+    const {data,error} = await sb.from('movimientos_rapel').insert({cliente_id:r.id,tipo:'AJUSTE',importe,fecha,albaran:'—',notas}).select();
+    if (error) { alert('Error rapel '+r.nombre+': '+error.message); setError(); return; }
+    r.movimientos.push(data[0]);
+  }
+
+  for (const chk of document.querySelectorAll('.cierre-chk-puntos')) {
+    const p = db.puntos.find(x=>x.id===chk.dataset.id); if (!p) continue;
+    const saldo = pStats(p).saldo;
+    const puntos = chk.checked ? -saldo : 0;
+    const notas = chk.checked ? nota : `${nota} · SALDO TRASPASADO: ${pts(saldo)}`;
+    const {data,error} = await sb.from('movimientos_puntos').insert({cliente_id:p.id,tipo:'AJUSTE',puntos,fecha,notas}).select();
+    if (error) { alert('Error puntos '+p.nombre+': '+error.message); setError(); return; }
+    p.movimientos.push(data[0]);
+  }
+
+  for (const chk of document.querySelectorAll('.cierre-chk-bonus')) {
+    const b = db.bonus.find(x=>x.id===chk.dataset.id); if (!b) continue;
+    const saldo = bStats(b).saldo;
+    const importe = chk.checked ? -saldo : 0;
+    const notas = chk.checked ? nota : `${nota} · SALDO TRASPASADO: ${eur(saldo)}`;
+    const {data,error} = await sb.from('movimientos_bonus').insert({cliente_id:b.id,tipo:'AJUSTE',importe,fecha,notas}).select();
+    if (error) { alert('Error bonus '+b.nombre+': '+error.message); setError(); return; }
+    b.movimientos.push(data[0]);
+  }
+
+  setSynced();
+  closeOverlay('ovlCierre');
+  renderAll();
+  alert(`✓ Cierre de ejercicio ${year} completado.`);
+}
 
 // ══ AYUDA ══
 function openHelp() { document.getElementById('ovlHelp').classList.add('open'); }
