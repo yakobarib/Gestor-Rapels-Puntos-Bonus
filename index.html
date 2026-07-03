@@ -1643,7 +1643,7 @@ function renderHist() {
       ? (m.tipo==='GANADO'?'tag-bonus-g':m.tipo==='AJUSTE'?'tag-ajuste':'tag-bonus-c')
       : (tM[m.tipo]||'tag-gray');
     return`<div class="hist-item">
-      <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-dim)">${(m.fecha||m.created_at||'—').slice(0,10)}</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-dim)">${fmtFecha(m.fecha||m.created_at)}</div>
       <div><strong style="font-size:12px">${m.cliente}</strong></div>
       <div style="font-family:'JetBrains Mono',monospace;font-size:12px">${m.albaran||'—'}<br><span style="font-size:10px;color:var(--text-dim)">${m.notas||''}</span></div>
       <span class="tag ${tS[m.sistema]}">${m.sistema}</span>
@@ -1703,7 +1703,7 @@ function renderRMovs(r) {
     <div class="mov-item">
       <div>
         <div class="mov-ref"><span class="tag ${tc[m.tipo]||'tag-ingreso'}">${m.tipo}</span> ${m.albaran||'—'}</div>
-        <div class="mov-desc">${m.notas||''} ${m.fecha?'· '+m.fecha:''}</div>
+        <div class="mov-desc">${m.notas||''} ${m.fecha?'· '+fmtFecha(m.fecha):''}</div>
       </div>
       <div class="mov-amount" style="color:${amountColor(m)}">${amountSign(m)} ${eur(Math.abs(m.importe))}</div>
       <div style="display:flex;gap:4px;align-items:center">
@@ -1782,7 +1782,7 @@ function renderPMovs(p) {
     <div class="mov-item">
       <div>
         <div class="mov-ref"><span class="tag ${tc[m.tipo]}">${m.tipo}</span> ${m.referencia||'—'}</div>
-        <div class="mov-desc">${m.notas||''} ${m.fecha?'· '+m.fecha:''}</div>
+        <div class="mov-desc">${m.notas||''} ${m.fecha?'· '+fmtFecha(m.fecha):''}</div>
       </div>
       <div class="mov-amount" style="color:${m.tipo==='CANJEADO'?'var(--blue)':'var(--orange)'}">${m.tipo==='CANJEADO'?'-':'+'} ${pts(m.puntos)}</div>
       <div style="display:flex;gap:4px;align-items:center">
@@ -1853,7 +1853,7 @@ function renderBMovs(b) {
     <div class="mov-item">
       <div>
         <div class="mov-ref"><span class="tag ${tc[m.tipo]||'tag-gray'}">${m.tipo}</span></div>
-        <div class="mov-desc">${m.notas||''} ${m.fecha?'· '+m.fecha:''}</div>
+        <div class="mov-desc">${m.notas||''} ${m.fecha?'· '+fmtFecha(m.fecha):''}</div>
       </div>
       <div class="mov-amount" style="color:${m.tipo==='CANJEADO'?'var(--accent)':'var(--green)'}">${m.tipo==='CANJEADO'?'-':'+'} ${eur(m.importe)}</div>
       <div style="display:flex;gap:4px;align-items:center">
@@ -1899,7 +1899,7 @@ function printClientBonus(){
   const movs=[...(b.movimientos||[])].sort((a,c)=>(a.fecha||'').localeCompare(c.fecha||''));
   let h=printHeader(b.nombre,'EXTRACTO DE BONUS','Extracto Bonus de Fidelización');
   h+=`<table><thead><tr><th>Fecha</th><th>Tipo</th><th>Notas</th><th style="text-align:right">Importe</th></tr></thead><tbody>`;
-  for(const m of movs) h+=`<tr><td>${m.fecha||'—'}</td><td>${m.tipo}</td><td>${m.notas||''}</td><td style="text-align:right;font-weight:600;color:${m.tipo==='CANJEADO'?'#E20613':'#2e7d32'}">${m.tipo==='CANJEADO'?'-':'+'} ${eur(m.importe)}</td></tr>`;
+  for(const m of movs) h+=`<tr><td>${fmtFecha(m.fecha)}</td><td>${m.tipo}</td><td>${m.notas||''}</td><td style="text-align:right;font-weight:600;color:${m.tipo==='CANJEADO'?'#E20613':'#2e7d32'}">${m.tipo==='CANJEADO'?'-':'+'} ${eur(m.importe)}</td></tr>`;
   h+=`<tr class="total-row"><td colspan="3"><strong>SALDO ACTUAL</strong></td><td style="text-align:right;color:${saldo>=0?'#2e7d32':'#E20613'}">${eur(saldo)}</td></tr></tbody></table>`;
   h+=`<div class="footer"><div class="firma-box">Firma cliente</div><div class="firma-box">Firma Recambios Ibiza</div></div></body></html>`;
   printDoc(h);
@@ -2139,7 +2139,7 @@ function onEmClienteChange() {
     <div onclick="selectEditMov('${m.id}')" style="padding:10px 14px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:10px" id="emm-${m.id}">
       <div>
         <span class="tag ${tc[m.tipo]||'tag-gray'}" style="margin-right:6px">${m.tipo}</span>
-        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-dim)">${m.fecha||'—'}</span>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-dim)">${fmtFecha(m.fecha)}</span>
       </div>
       <div style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700">
         ${sistema==='puntos'?pts(m.puntos):eur(m.importe)}
@@ -2209,7 +2209,7 @@ function printClientRapel(){
   const movs=[...(r.movimientos||[])].sort((a,b)=>(a.fecha||'').localeCompare(b.fecha||''));
   let h=printHeader(r.nombre,'EXTRACTO RAPEL DE HERRAMIENTA','Extracto de Total Rapel');
   h+=`<table><thead><tr><th>Fecha</th><th>Tipo</th><th>Albarán</th><th>Notas</th><th style="text-align:right">Importe</th></tr></thead><tbody>`;
-  for(const m of movs){const neg=m.tipo==='GASTO'||Number(m.importe)<0;h+=`<tr><td>${m.fecha||'—'}</td><td>${m.tipo}</td><td>${m.albaran||'—'}</td><td>${m.notas||''}</td><td style="text-align:right;font-weight:600;color:${neg?'#E20613':'#2e7d32'}">${neg?'-':'+'} ${eur(Math.abs(m.importe))}</td></tr>`;}
+  for(const m of movs){const neg=m.tipo==='GASTO'||Number(m.importe)<0;h+=`<tr><td>${fmtFecha(m.fecha)}</td><td>${m.tipo}</td><td>${m.albaran||'—'}</td><td>${m.notas||''}</td><td style="text-align:right;font-weight:600;color:${neg?'#E20613':'#2e7d32'}">${neg?'-':'+'} ${eur(Math.abs(m.importe))}</td></tr>`;}
   h+=`<tr class="total-row"><td colspan="4"><strong>SALDO ACTUAL</strong></td><td style="text-align:right;color:${saldo<0?'#E20613':'#2e7d32'}">${eur(saldo)}</td></tr></tbody></table>`;
   h+=`<div class="footer"><div class="firma-box">Firma cliente</div><div class="firma-box">Firma Recambios Ibiza</div></div></body></html>`;
   printDoc(h);
@@ -2221,7 +2221,7 @@ function printClientPuntos(){
   const movs=[...(p.movimientos||[])].sort((a,b)=>(a.fecha||'').localeCompare(b.fecha||''));
   let h=printHeader(p.nombre,'EXTRACTO DE PUNTOS','Extracto Puntos de Fidelización');
   h+=`<table><thead><tr><th>Fecha</th><th>Tipo</th><th>Referencia</th><th>Descripción</th><th style="text-align:right">Puntos</th></tr></thead><tbody>`;
-  for(const m of movs) h+=`<tr><td>${m.fecha||'—'}</td><td>${m.tipo}</td><td>${m.referencia||'—'}</td><td>${m.notas||''}</td><td style="text-align:right;font-weight:600;color:${m.tipo==='CANJEADO'?'#1565c0':'#b45309'}">${m.tipo==='CANJEADO'?'-':'+'} ${pts(m.puntos)}</td></tr>`;
+  for(const m of movs) h+=`<tr><td>${fmtFecha(m.fecha)}</td><td>${m.tipo}</td><td>${m.referencia||'—'}</td><td>${m.notas||''}</td><td style="text-align:right;font-weight:600;color:${m.tipo==='CANJEADO'?'#1565c0':'#b45309'}">${m.tipo==='CANJEADO'?'-':'+'} ${pts(m.puntos)}</td></tr>`;
   h+=`<tr class="total-row"><td colspan="4"><strong>SALDO ACTUAL</strong></td><td style="text-align:right">${pts(saldo)} (${ptsEur(saldo)})</td></tr></tbody></table>`;
   h+=`<div class="footer"><div class="firma-box">Firma cliente</div><div class="firma-box">Firma Recambios Ibiza</div></div></body></html>`;
   printDoc(h);
@@ -2233,7 +2233,7 @@ function printRMov(rid,mid,e){
   const m=r?.movimientos.find(x=>x.id===mid); if(!r||!m) return;
   const{saldo}=rStats(r);
   let h=printHeader(r.nombre,`${m.tipo} RAPEL · ${m.albaran||''}`,`Justificante de ${m.tipo}`);
-  h+=`<table><thead><tr><th>Campo</th><th>Valor</th></tr></thead><tbody><tr><td>Tipo</td><td><strong>${m.tipo}</strong></td></tr><tr><td>Albarán</td><td>${m.albaran||'—'}</td></tr><tr><td>Fecha</td><td>${m.fecha||'—'}</td></tr><tr><td>Notas</td><td>${m.notas||'—'}</td></tr><tr class="total-row"><td>Importe</td><td style="color:${m.tipo==='GASTO'?'#E20613':'#2e7d32'};font-size:15px">${m.tipo==='GASTO'?'-':'+'} ${eur(m.importe)}</td></tr><tr><td>Saldo bolsa</td><td>${eur(saldo)}</td></tr></tbody></table>`;
+  h+=`<table><thead><tr><th>Campo</th><th>Valor</th></tr></thead><tbody><tr><td>Tipo</td><td><strong>${m.tipo}</strong></td></tr><tr><td>Albarán</td><td>${m.albaran||'—'}</td></tr><tr><td>Fecha</td><td>${fmtFecha(m.fecha)}</td></tr><tr><td>Notas</td><td>${m.notas||'—'}</td></tr><tr class="total-row"><td>Importe</td><td style="color:${m.tipo==='GASTO'?'#E20613':'#2e7d32'};font-size:15px">${m.tipo==='GASTO'?'-':'+'} ${eur(m.importe)}</td></tr><tr><td>Saldo bolsa</td><td>${eur(saldo)}</td></tr></tbody></table>`;
   h+=`<div class="footer"><div class="firma-box">Firma cliente</div><div class="firma-box">Firma Recambios Ibiza</div></div></body></html>`;
   printDoc(h);
 }
@@ -2280,7 +2280,7 @@ function printHist(){
   const subtitulo=fCli?`Cliente: ${fCli}`:`Todos los clientes${fType!=='all'?' · '+(tipoLabel[fType]||''):''}`;
   let h=printHeader(fCli||'Todos los clientes',titulo,subtitulo);
   h+=`<table><thead><tr><th>Fecha</th><th>Cliente</th><th>Sistema</th><th>Tipo</th><th>Referencia</th><th>Notas</th><th style="text-align:right">Importe</th></tr></thead><tbody>`;
-  for(const m of items) h+=`<tr><td>${m.fecha||'—'}</td><td>${m.cliente}</td><td>${m.sistema}</td><td>${m.tipo}</td><td>${m.ref||'—'}</td><td>${m.notas||''}</td><td style="text-align:right;font-weight:600;color:${m.color}">${m.sign} ${m.qty}</td></tr>`;
+  for(const m of items) h+=`<tr><td>${fmtFecha(m.fecha)}</td><td>${m.cliente}</td><td>${m.sistema}</td><td>${m.tipo}</td><td>${m.ref||'—'}</td><td>${m.notas||''}</td><td style="text-align:right;font-weight:600;color:${m.color}">${m.sign} ${m.qty}</td></tr>`;
   h+=`</tbody></table><p style="font-size:11px;color:#888;margin-top:8px">Total: ${items.length} movimientos · Impreso el ${new Date().toLocaleDateString('es-ES')}</p></body></html>`;
   printDoc(h);
 }
@@ -2291,7 +2291,7 @@ function printPMov(pid,mid,e){
   const m=p?.movimientos.find(x=>x.id===mid); if(!p||!m) return;
   const{saldo}=pStats(p);
   let h=printHeader(p.nombre,`${m.tipo} PUNTOS · ${m.referencia||''}`,`Justificante de ${m.tipo}`);
-  h+=`<table><thead><tr><th>Campo</th><th>Valor</th></tr></thead><tbody><tr><td>Tipo</td><td><strong>${m.tipo}</strong></td></tr><tr><td>Referencia</td><td>${m.referencia||'—'}</td></tr><tr><td>Fecha</td><td>${m.fecha||'—'}</td></tr><tr><td>Descripción</td><td>${m.notas||'—'}</td></tr><tr class="total-row"><td>Puntos</td><td style="font-size:15px">${m.tipo==='CANJEADO'?'-':'+'} ${pts(m.puntos)} (${ptsEur(m.puntos)})</td></tr><tr><td>Saldo</td><td>${pts(saldo)} · ${ptsEur(saldo)}</td></tr></tbody></table>`;
+  h+=`<table><thead><tr><th>Campo</th><th>Valor</th></tr></thead><tbody><tr><td>Tipo</td><td><strong>${m.tipo}</strong></td></tr><tr><td>Referencia</td><td>${m.referencia||'—'}</td></tr><tr><td>Fecha</td><td>${fmtFecha(m.fecha)}</td></tr><tr><td>Descripción</td><td>${m.notas||'—'}</td></tr><tr class="total-row"><td>Puntos</td><td style="font-size:15px">${m.tipo==='CANJEADO'?'-':'+'} ${pts(m.puntos)} (${ptsEur(m.puntos)})</td></tr><tr><td>Saldo</td><td>${pts(saldo)} · ${ptsEur(saldo)}</td></tr></tbody></table>`;
   h+=`<div class="footer"><div class="firma-box">Firma cliente</div><div class="firma-box">Firma Recambios Ibiza</div></div></body></html>`;
   printDoc(h);
 }
@@ -2625,6 +2625,7 @@ function switchHelp(tab, btn) {
 
 // ══ UTILS ══
 function today(){return new Date().toISOString().slice(0,10);}
+function fmtFecha(s){if(!s||s==='—')return'—';const d=(s||'').slice(0,10).split('-');return d.length===3?`${d[2]}/${d[1]}/${d[0]}`:s;}
 function closeOverlay(id){document.getElementById(id).classList.remove('open');}
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape'){
