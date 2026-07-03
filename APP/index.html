@@ -2505,11 +2505,15 @@ function openCierre() {
           <a href="#" class="cierre-toggle" onclick="cierreToggleAll('${sistema.toLowerCase()}',false);return false">Ninguno</a>
         </span>
       </div>
-      ${clientes.map(c=>`<label class="cierre-row">
-        <input type="checkbox" class="cierre-chk-${sistema.toLowerCase()}" data-id="${c.id}" data-saldo="${fmtSaldo(c)}" checked>
-        <span class="cierre-nombre">${c.nombre}</span>
-        <span class="cierre-saldo">${fmtSaldo(c)}</span>
-      </label>`).join('')}
+      ${clientes.map(c=>{
+        const s = sistema==='PUNTOS' ? pStats(c).saldo : sistema==='BONUS' ? bStats(c).saldo : rStats(c).saldo;
+        const col = s < 0 ? 'var(--accent)' : 'var(--green)';
+        return `<label class="cierre-row">
+          <input type="checkbox" class="cierre-chk-${sistema.toLowerCase()}" data-id="${c.id}" data-saldo-num="${s}" checked>
+          <span class="cierre-nombre">${c.nombre}</span>
+          <span class="cierre-saldo" style="color:${col}">${fmtSaldo(c)}</span>
+        </label>`;
+      }).join('')}
     </div>`;
   }
 
@@ -2533,6 +2537,17 @@ async function executeCierre() {
   const nota   = `CIERRE EJERCICIO ${year}`;
   const total  = document.querySelectorAll('.cierre-chk-rapel, .cierre-chk-puntos, .cierre-chk-bonus').length;
   if (!total) { closeOverlay('ovlCierre'); return; }
+  // Aviso si hay clientes con saldo negativo marcados para cerrar
+  const negativosMarcados = [...document.querySelectorAll('.cierre-chk-rapel:checked, .cierre-chk-puntos:checked, .cierre-chk-bonus:checked')]
+    .filter(c => Number(c.dataset.saldoNum) < 0);
+  if (negativosMarcados.length) {
+    const nombres = negativosMarcados.map(c => {
+      const row = c.closest('.cierre-row');
+      return row ? row.querySelector('.cierre-nombre').textContent : '—';
+    }).join('\n  · ');
+    if (!confirm(`⚠️ ATENCIÓN: Los siguientes clientes tienen saldo NEGATIVO (nos deben dinero) y están marcados para poner a cero:\n\n  · ${nombres}\n\nPoner a cero un saldo negativo significa perdonar esa deuda. ¿Deseas continuar de todas formas?`)) return;
+  }
+
   if (!confirm(`¿Ejecutar el cierre de ejercicio ${year}?\n\nEsta acción registrará movimientos de cierre en el histórico de todos los clientes listados.`)) return;
 
   setSaving();
