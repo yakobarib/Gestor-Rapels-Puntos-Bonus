@@ -678,10 +678,21 @@
         </ul>
       </div>
       <div class="help-section">
+        <h3>Cierre de Año</h3>
+        <ul>
+          <li>El botón <strong>Cierre Año</strong> (cabecera, en azul) permite cerrar el ejercicio anual poniendo a cero los saldos de Rapel, Puntos y Bonus de todos los clientes.</li>
+          <li>Al abrirlo se muestra la lista de todos los clientes con saldo distinto de cero, agrupados por sistema. La fecha de cierre se establece por defecto al 31 de diciembre del año en curso.</li>
+          <li>Los clientes aparecen marcados por defecto. <strong>Desmarca los que quieras conservar</strong> — su saldo no cambiará, pero igualmente quedará registrado en el histórico con la nota <em>SALDO TRASPASADO</em>.</li>
+          <li>Los saldos en <strong style="color:var(--green)">verde</strong> son positivos (nos deben gastar); los saldos en <strong style="color:var(--accent)">rojo</strong> son negativos (les debemos dinero). Si marcas clientes con saldo negativo, la aplicación avisa antes de continuar ya que poner a cero una deuda implica perdonarla.</li>
+          <li>Al ejecutar, se insertan movimientos de tipo <strong>CIERRE EJERCICIO AAAA</strong> en el histórico de cada cliente, tanto si se puso a cero como si se traspasó el saldo.</li>
+          <li>Puedes filtrar estos movimientos en el Histórico usando las opciones <em>Rapel Ajuste Especial</em>, <em>Puntos Cierre Año</em> o <em>Bonus Cierre Año</em>.</li>
+        </ul>
+      </div>
+      <div class="help-section">
         <h3>Histórico</h3>
         <ul>
           <li>Filtra primero por <strong>cliente</strong>, luego por sistema (Rapel / Puntos / Bonus) y por tipo de movimiento.</li>
-          <li>Los tipos disponibles se adaptan automáticamente al sistema seleccionado: <em>Rapel Ingresos, Rapel Gastos, Ajuste Especial, Puntos Ganados, Puntos Canjeados, Bonus Ganado, Bonus Canjeado</em>.</li>
+          <li>Los tipos disponibles se adaptan automáticamente al sistema seleccionado: <em>Rapel Ingresos, Rapel Gastos, Ajuste Especial, Puntos Ganados, Puntos Canjeados, Bonus Ganado, Bonus Canjeado, Cierre Año</em>.</li>
           <li>Usa el buscador para encontrar por albarán o notas.</li>
           <li>El botón <strong>Imprimir</strong> genera un PDF con todos los movimientos visibles según los filtros activos.</li>
         </ul>
@@ -714,6 +725,19 @@
     <!-- VERSIONES -->
     <div class="help-body" id="help-versiones" style="display:none">
       <div class="help-ver">
+        <div class="help-ver-item">
+          <div class="help-ver-head">
+            <span class="help-ver-num">v4.7</span>
+            <span class="help-ver-date">Julio 2026</span>
+          </div>
+          <ul class="help-ver-list">
+            <li><strong>Cierre de Año</strong> — botón en cabecera para cerrar el ejercicio anual poniendo a cero los saldos de Rapel, Puntos y Bonus por cliente</li>
+            <li>Selección individual por cliente y sistema; los desmarcados conservan saldo pero quedan registrados en el histórico con nota de traspaso</li>
+            <li>Saldos negativos destacados en rojo con aviso antes de perdonar deudas</li>
+            <li>Nuevos filtros en Histórico: <em>Puntos Cierre Año</em> y <em>Bonus Cierre Año</em></li>
+            <li>Corrección: Ajuste Especial de Rapel guardaba en tabla incorrecta</li>
+          </ul>
+        </div>
         <div class="help-ver-item">
           <div class="help-ver-head">
             <span class="help-ver-num">v4.6</span>
