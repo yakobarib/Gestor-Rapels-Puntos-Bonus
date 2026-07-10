@@ -125,6 +125,10 @@
   .consumo-empty{color:var(--text-dim);font-size:13px;padding:4px 0}
   .consumo-empty a{color:var(--blue);text-decoration:none}
   .consumo-empty a:hover{text-decoration:underline}
+  .consumo-drawer{margin:0 0 14px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 14px}
+  .consumo-drawer .consumo-tbl{font-size:12px}
+  .consumo-drawer .consumo-tbl td{padding:6px 8px}
+  .consumo-drawer .consumo-head{margin-bottom:10px}
   .tag-ganado{background:rgba(245,158,11,.12);color:var(--orange)}
   .tag-canjeado{background:rgba(91,141,239,.12);color:var(--blue)}
   .tag-bonus-g{background:rgba(76,175,125,.12);color:var(--green)}
@@ -936,7 +940,8 @@
 <div class="overlay" id="ovlConsumo">
   <div class="modal" style="max-width:380px">
     <div class="modal-title">Consumo Año Anterior</div>
-    <div class="modal-sub">Introduce las unidades vendidas del año anterior para la comparativa</div>
+    <div class="modal-sub" id="cModalSub">Introduce las unidades vendidas del año anterior para la comparativa</div>
+    <input type="hidden" id="cNombre">
     <div class="fg" style="margin-top:16px">
       <div class="fgr">
         <label>Año *</label>
@@ -1223,6 +1228,7 @@
   </div>
   <div class="drawer-body">
     <div class="sum-grid" id="drPSum"></div>
+    <div class="consumo-drawer" id="drPConsumo"></div>
     <div class="add-form">
       <div class="add-form-title">Registrar movimiento</div>
       <div class="add-grid">
@@ -1818,6 +1824,7 @@ function openDrawerP(id) {
   document.getElementById('drPRef').value='';
   document.getElementById('drPNot').value='';
   renderPMovs(p);
+  renderConsumoCliente(p);
   document.getElementById('bgP').classList.add('open');
   document.getElementById('drP').classList.add('open');
 }
@@ -2565,35 +2572,17 @@ function parseCalcNotas(notas) {
   return { neumaticos: n1 + n2, pastillas: past, alternadores: alt };
 }
 
-function calcConsumoAnio(year) {
+function calcConsumoCliente(year, p) {
   let neumaticos = 0, pastillas = 0, alternadores = 0;
   const yStr = String(year);
-  db.puntos.forEach(p => {
-    (p.movimientos || []).filter(m => m.tipo === 'GANADO' && (m.fecha || '').startsWith(yStr)).forEach(m => {
-      const c = parseCalcNotas(m.notas);
-      neumaticos += c.neumaticos;
-      pastillas  += c.pastillas;
-      alternadores += c.alternadores;
-    });
+  (p.movimientos || []).filter(m => m.tipo === 'GANADO' && (m.fecha || '').startsWith(yStr)).forEach(m => {
+    const c = parseCalcNotas(m.notas);
+    neumaticos += c.neumaticos; pastillas += c.pastillas; alternadores += c.alternadores;
   });
   return { neumaticos, pastillas, alternadores };
 }
 
-function renderConsumo() {
-  const wrap = document.getElementById('consumoWrap');
-  const el   = document.getElementById('consumoTable');
-  if (!wrap || !el) return;
-  const year = new Date().getFullYear();
-  const ant  = db.consumo.find(c => c.año === year - 1);
-  const actual = calcConsumoAnio(year);
-  wrap.style.display = '';
-
-  if (!ant) {
-    el.innerHTML = `<div class="consumo-head"><span class="consumo-title">Evolución de Consumo</span></div>
-      <div class="consumo-empty">Sin datos del año anterior. <a href="#" onclick="openConsumoEdit();return false">Introducir datos de ${year - 1}</a></div>`;
-    return;
-  }
-
+function buildConsumoTable(ant, actual, year, nombre) {
   function pctColor(p) { return p >= 100 ? 'var(--green)' : p >= 70 ? 'var(--orange)' : 'var(--accent)'; }
   function row(icon, label, av, bv) {
     const pct = av > 0 ? Math.round(bv / av * 100) : null;
@@ -2607,26 +2596,73 @@ function renderConsumo() {
       <td class="consumo-bar-cell"><div class="consumo-bar-bg"><div class="consumo-bar-fill" style="width:${barW}%;background:${col}"></div></div></td>
     </tr>`;
   }
-
-  el.innerHTML = `
-    <div class="consumo-head">
+  const editBtn = nombre
+    ? `<button class="btn btn-ghost btn-sm" style="padding:3px 10px;font-size:11px;margin-left:auto" onclick="openConsumoEdit('${nombre.replace(/'/g,"\\'")}')">✎ ${year-1}</button>`
+    : '';
+  return `<div class="consumo-head">
       <span class="consumo-title">Evolución de Consumo</span>
-      <span class="consumo-years">${year - 1} vs ${year}</span>
-      <button class="btn btn-ghost btn-sm" style="padding:3px 10px;font-size:11px;margin-left:auto" onclick="openConsumoEdit()">✎ Editar ${year - 1}</button>
+      <span class="consumo-years">${year-1} vs ${year}</span>
+      ${editBtn}
     </div>
     <table class="consumo-tbl">
-      <thead><tr><th>Categoría</th><th>${year - 1}</th><th>${year}</th><th>Obj.</th><th></th></tr></thead>
+      <thead><tr><th>Categoría</th><th>${year-1}</th><th>${year}</th><th>Obj.</th><th></th></tr></thead>
       <tbody>
-        ${row('🏎', 'Neumáticos', ant.neumaticos, actual.neumaticos)}
-        ${row('🛑', 'Pastillas freno', ant.pastillas, actual.pastillas)}
-        ${row('⚡', 'Alt. / Arranques', ant.alternadores, actual.alternadores)}
+        ${row('🏎','Neumáticos', ant.neumaticos, actual.neumaticos)}
+        ${row('🛑','Pastillas', ant.pastillas, actual.pastillas)}
+        ${row('⚡','Alt./Arr.', ant.alternadores, actual.alternadores)}
       </tbody>
     </table>`;
 }
 
-function openConsumoEdit() {
+function renderConsumoCliente(p) {
+  const el = document.getElementById('drPConsumo');
+  if (!el) return;
+  const year = new Date().getFullYear();
+  const ant  = db.consumo.find(c => c.nombre === p.nombre && c.año === year - 1);
+  const actual = calcConsumoCliente(year, p);
+  if (!ant) {
+    el.innerHTML = `<div class="consumo-head"><span class="consumo-title" style="font-size:13px">Evolución de Consumo</span></div>
+      <div class="consumo-empty">Sin datos de ${year-1}. <a href="#" onclick="openConsumoEdit('${p.nombre.replace(/'/g,"\\'")}');return false">Introducir datos</a></div>`;
+  } else {
+    el.innerHTML = buildConsumoTable(ant, actual, year, p.nombre);
+  }
+}
+
+function renderConsumo() {
+  const wrap = document.getElementById('consumoWrap');
+  const el   = document.getElementById('consumoTable');
+  if (!wrap || !el) return;
+  const year = new Date().getFullYear();
+  const totalAnt = { neumaticos:0, pastillas:0, alternadores:0 };
+  const totalAct = { neumaticos:0, pastillas:0, alternadores:0 };
+  let clientesConDatos = 0;
+  db.puntos.forEach(p => {
+    const ant = db.consumo.find(c => c.nombre === p.nombre && c.año === year - 1);
+    if (ant) {
+      clientesConDatos++;
+      totalAnt.neumaticos += ant.neumaticos; totalAnt.pastillas += ant.pastillas; totalAnt.alternadores += ant.alternadores;
+    }
+    const act = calcConsumoCliente(year, p);
+    totalAct.neumaticos += act.neumaticos; totalAct.pastillas += act.pastillas; totalAct.alternadores += act.alternadores;
+  });
+  wrap.style.display = '';
+  if (!clientesConDatos) {
+    el.innerHTML = `<div class="consumo-head"><span class="consumo-title">Evolución de Consumo — Total</span></div>
+      <div class="consumo-empty">Sin datos de ${year-1}. Abre la ficha de cada cliente para introducirlos.</div>`;
+  } else {
+    el.innerHTML = buildConsumoTable(totalAnt, totalAct, year, null)
+      .replace('<span class="consumo-title">Evolución de Consumo</span>',
+               `<span class="consumo-title">Evolución de Consumo — Total</span><span style="font-size:11px;color:var(--text-dim)">${clientesConDatos}/${db.puntos.length} clientes</span>`);
+  }
+}
+
+function openConsumoEdit(nombre) {
   const year = new Date().getFullYear() - 1;
-  const ex = db.consumo.find(c => c.año === year);
+  const ex = db.consumo.find(c => c.nombre === nombre && c.año === year);
+  document.getElementById('cNombre').value = nombre || '';
+  document.getElementById('cModalSub').textContent = nombre
+    ? `Cliente: ${nombre} · Introduce las unidades de ${year}`
+    : `Introduce las unidades del año ${year}`;
   document.getElementById('cAnio').value = ex ? ex.año : year;
   document.getElementById('cNeum').value = ex ? ex.neumaticos : '';
   document.getElementById('cPast').value = ex ? ex.pastillas : '';
@@ -2635,26 +2671,31 @@ function openConsumoEdit() {
 }
 
 async function saveConsumoAnterior() {
-  const año = parseInt(document.getElementById('cAnio').value);
-  const neumaticos   = parseInt(document.getElementById('cNeum').value) || 0;
-  const pastillas    = parseInt(document.getElementById('cPast').value) || 0;
-  const alternadores = parseInt(document.getElementById('cAlt').value)  || 0;
+  const nombre = document.getElementById('cNombre').value.trim();
+  const año    = parseInt(document.getElementById('cAnio').value);
+  const neumaticos   = parseInt(document.getElementById('cNeum').value)  || 0;
+  const pastillas    = parseInt(document.getElementById('cPast').value)  || 0;
+  const alternadores = parseInt(document.getElementById('cAlt').value)   || 0;
+  if (!nombre) { alert('Error: no hay cliente seleccionado'); return; }
   if (!año || año < 2020) { alert('Introduce un año válido'); return; }
   setSaving();
-  const ex = db.consumo.find(c => c.año === año);
+  const ex = db.consumo.find(c => c.nombre === nombre && c.año === año);
   let error;
   if (ex) {
     const res = await sb.from('consumo_anual').update({ neumaticos, pastillas, alternadores }).eq('id', ex.id);
     error = res.error;
     if (!error) { ex.neumaticos = neumaticos; ex.pastillas = pastillas; ex.alternadores = alternadores; }
   } else {
-    const res = await sb.from('consumo_anual').insert({ año, neumaticos, pastillas, alternadores }).select();
+    const res = await sb.from('consumo_anual').insert({ nombre, año, neumaticos, pastillas, alternadores }).select();
     error = res.error;
     if (!error) db.consumo.push(res.data[0]);
   }
   if (error) { alert('Error: ' + error.message); setError(); return; }
   setSynced();
   closeOverlay('ovlConsumo');
+  // Refrescar drawer si está abierto
+  const p = db.puntos.find(x => x.nombre === nombre);
+  if (p) renderConsumoCliente(p);
   renderConsumo();
 }
 
