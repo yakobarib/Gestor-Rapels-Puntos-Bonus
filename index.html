@@ -107,6 +107,24 @@
   .cierre-saldo{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:var(--green);text-align:right;white-space:nowrap}
   .cierre-toggle{font-size:11px;color:var(--blue);text-decoration:none;opacity:.7}
   .cierre-toggle:hover{opacity:1}
+  .consumo-wrap{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px;margin-bottom:16px}
+  .consumo-head{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+  .consumo-title{font-family:'Syne',sans-serif;font-weight:700;font-size:14px;flex:1}
+  .consumo-years{font-size:11px;color:var(--text-dim);font-family:'JetBrains Mono',monospace}
+  .consumo-tbl{width:100%;border-collapse:collapse;font-size:13px}
+  .consumo-tbl th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--text-dim);padding:4px 10px 8px;border-bottom:1px solid var(--border)}
+  .consumo-tbl th:not(:first-child){text-align:right}
+  .consumo-tbl td{padding:9px 10px;border-bottom:1px solid var(--border)}
+  .consumo-tbl tr:last-child td{border-bottom:none}
+  .consumo-num{font-family:'JetBrains Mono',monospace;text-align:right;font-size:14px;color:var(--text-dim)}
+  .consumo-actual{font-weight:700;color:var(--text) !important}
+  .consumo-pct{font-family:'JetBrains Mono',monospace;font-weight:700;text-align:right;font-size:14px;min-width:56px}
+  .consumo-bar-cell{padding-left:12px;width:100px}
+  .consumo-bar-bg{background:var(--surface2);border-radius:4px;height:7px}
+  .consumo-bar-fill{height:100%;border-radius:4px;transition:width .5s}
+  .consumo-empty{color:var(--text-dim);font-size:13px;padding:4px 0}
+  .consumo-empty a{color:var(--blue);text-decoration:none}
+  .consumo-empty a:hover{text-decoration:underline}
   .tag-ganado{background:rgba(245,158,11,.12);color:var(--orange)}
   .tag-canjeado{background:rgba(91,141,239,.12);color:var(--blue)}
   .tag-bonus-g{background:rgba(76,175,125,.12);color:var(--green)}
@@ -463,10 +481,11 @@
     </div>
   </div>
   <div class="tab-scroll">
+    <div id="consumoWrap" class="consumo-wrap" style="display:none"><div id="consumoTable"></div></div>
     <div class="tbl-wrap">
       <table>
         <thead><tr>
-          <th>Cliente</th><th>Puntos ganados</th><th>Canjeados</th><th>Saldo pts</th><th>Valor €</th><th>Movimientos</th><th></th>
+          <th>Cliente</th><th>Puntos ganados</th><th>Canjeados</th><th>Saldo pts</th><th></th>
         </tr></thead>
         <tbody id="tbodyP"></tbody>
       </table>
@@ -913,6 +932,36 @@
   </div>
 </div>
 
+<!-- MODAL CONSUMO AÑO ANTERIOR -->
+<div class="overlay" id="ovlConsumo">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-title">Consumo Año Anterior</div>
+    <div class="modal-sub">Introduce las unidades vendidas del año anterior para la comparativa</div>
+    <div class="fg" style="margin-top:16px">
+      <div class="fgr">
+        <label>Año *</label>
+        <input type="number" id="cAnio" placeholder="2025" min="2020" max="2099">
+      </div>
+      <div class="fgr">
+        <label>🏎 Neumáticos (uds)</label>
+        <input type="number" id="cNeum" placeholder="0" min="0">
+      </div>
+      <div class="fgr">
+        <label>🛑 Pastillas freno (packs)</label>
+        <input type="number" id="cPast" placeholder="0" min="0">
+      </div>
+      <div class="fgr">
+        <label>⚡ Alt. / Arranques (uds)</label>
+        <input type="number" id="cAlt" placeholder="0" min="0">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeOverlay('ovlConsumo')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveConsumoAnterior()">✓ Guardar</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL CIERRE DE AÑO -->
 <div class="overlay" id="ovlCierre">
   <div class="modal" style="max-width:560px">
@@ -1333,7 +1382,7 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const PTS_VALUE = 1;
-let db = { rapels: [], puntos: [], bonus: [] };
+let db = { rapels: [], puntos: [], bonus: [], consumo: [] };
 let activeR = null, activeP = null, activeB = null;
 let quickMode = null; // { tipo:'rapel'|'puntos'|'bonus', subtipo:'INGRESO'|'GASTO'|'GANADO'|'CANJEADO' }
 let editMovMode = null; // { sistema:'puntos'|'bonus', movId, clienteId }
@@ -1351,15 +1400,17 @@ document.addEventListener('input', function(e) {
 
 async function load() {
   document.getElementById('loadingOverlay').style.display = 'flex';
-  const [{ data: rapels, error: e1 }, { data: puntos, error: e2 }, { data: bonus, error: e3 }] = await Promise.all([
+  const [{ data: rapels, error: e1 }, { data: puntos, error: e2 }, { data: bonus, error: e3 }, { data: consumo, error: e4 }] = await Promise.all([
     sb.from('clientes_rapel').select('*, movimientos_rapel(*)').order('nombre'),
     sb.from('clientes_puntos').select('*, movimientos_puntos(*)').order('nombre'),
-    sb.from('clientes_bonus').select('*, movimientos_bonus(*)').order('nombre')
+    sb.from('clientes_bonus').select('*, movimientos_bonus(*)').order('nombre'),
+    sb.from('consumo_anual').select('*').order('año')
   ]);
   if (e1 || e2 || e3) { setError(); console.error(e1, e2, e3); }
-  db.rapels = (rapels||[]).map(r => ({ ...r, movimientos: (r.movimientos_rapel||[]).sort((a,b)=>a.created_at?.localeCompare(b.created_at)) }));
+  db.rapels  = (rapels||[]).map(r => ({ ...r, movimientos: (r.movimientos_rapel||[]).sort((a,b)=>a.created_at?.localeCompare(b.created_at)) }));
   db.puntos  = (puntos||[]).map(p => ({ ...p, movimientos: (p.movimientos_puntos||[]).sort((a,b)=>a.created_at?.localeCompare(b.created_at)) }));
   db.bonus   = (bonus||[]).map(b => ({ ...b, movimientos: (b.movimientos_bonus||[]).sort((a,b)=>a.created_at?.localeCompare(b.created_at)) }));
+  db.consumo = consumo || [];
   document.getElementById('loadingOverlay').style.display = 'none';
   setSynced();
   renderAll();
@@ -1447,7 +1498,7 @@ function updateBadges() {
 }
 
 // ══ RENDER ALL ══
-function renderAll() { renderDashboard(); renderRapels(); renderPuntos(); renderBonus(); updateBadges(); }
+function renderAll() { renderDashboard(); renderRapels(); renderPuntos(); renderBonus(); renderConsumo(); updateBadges(); }
 
 // ══ DASHBOARD ══
 function renderDashboard() {
@@ -1518,7 +1569,7 @@ function renderPuntos() {
   if(f==='pos')  list=list.filter(p=>pStats(p).saldo>0);
   if(f==='zero') list=list.filter(p=>pStats(p).saldo===0);
   const tb=document.getElementById('tbodyP');
-  if(!list.length){tb.innerHTML=`<tr><td colspan="7">${emptyState('Ningún cliente',q?'Sin resultados':'Sin clientes aún')}</td></tr>`;return;}
+  if(!list.length){tb.innerHTML=`<tr><td colspan="5">${emptyState('Ningún cliente',q?'Sin resultados':'Sin clientes aún')}</td></tr>`;return;}
   tb.innerHTML=list.map(p=>{
     const{ganado,canjeado,saldo}=pStats(p);
     return`<tr class="row-click" onclick="openDrawerP('${p.id}')">
@@ -1526,8 +1577,6 @@ function renderPuntos() {
       <td style="color:var(--orange)">${pts(ganado)}</td>
       <td style="color:var(--blue)">${pts(canjeado)}</td>
       <td style="font-weight:700;color:${saldo>0?'var(--orange)':'var(--text-dim)'}">${pts(saldo)}</td>
-      <td>${ptsEur(saldo)}</td>
-      <td><span class="tag tag-gray">${(p.movimientos||[]).length} mov.</span></td>
       <td><span class="tag ${saldo>0?'tag-orange':'tag-gray'}">${saldo>0?'CON SALDO':'SIN SALDO'}</span></td>
     </tr>`;
   }).join('');
@@ -2506,6 +2555,109 @@ document.addEventListener('click', e => {
   if (pop && pop.classList.contains('open') && !pop.closest('.opts-wrap').contains(e.target)) pop.classList.remove('open');
 });
 
+// ══ CONSUMO CATEGORÍAS ══
+function parseCalcNotas(notas) {
+  if (!notas) return { neumaticos: 0, pastillas: 0, alternadores: 0 };
+  const n1   = parseInt((notas.match(/Neum\.1ª:\s*(\d+)×/) || [])[1]) || 0;
+  const n2   = parseInt((notas.match(/Neum\.2ª:\s*(\d+)×/) || [])[1]) || 0;
+  const past = parseInt((notas.match(/Pastillas:\s*(\d+)×/) || [])[1]) || 0;
+  const alt  = parseInt((notas.match(/Alt\/Arr:\s*(\d+)×/) || [])[1]) || 0;
+  return { neumaticos: n1 + n2, pastillas: past, alternadores: alt };
+}
+
+function calcConsumoAnio(year) {
+  let neumaticos = 0, pastillas = 0, alternadores = 0;
+  const yStr = String(year);
+  db.puntos.forEach(p => {
+    (p.movimientos || []).filter(m => m.tipo === 'GANADO' && (m.fecha || '').startsWith(yStr)).forEach(m => {
+      const c = parseCalcNotas(m.notas);
+      neumaticos += c.neumaticos;
+      pastillas  += c.pastillas;
+      alternadores += c.alternadores;
+    });
+  });
+  return { neumaticos, pastillas, alternadores };
+}
+
+function renderConsumo() {
+  const wrap = document.getElementById('consumoWrap');
+  const el   = document.getElementById('consumoTable');
+  if (!wrap || !el) return;
+  const year = new Date().getFullYear();
+  const ant  = db.consumo.find(c => c.año === year - 1);
+  const actual = calcConsumoAnio(year);
+  wrap.style.display = '';
+
+  if (!ant) {
+    el.innerHTML = `<div class="consumo-head"><span class="consumo-title">Evolución de Consumo</span></div>
+      <div class="consumo-empty">Sin datos del año anterior. <a href="#" onclick="openConsumoEdit();return false">Introducir datos de ${year - 1}</a></div>`;
+    return;
+  }
+
+  function pctColor(p) { return p >= 100 ? 'var(--green)' : p >= 70 ? 'var(--orange)' : 'var(--accent)'; }
+  function row(icon, label, av, bv) {
+    const pct = av > 0 ? Math.round(bv / av * 100) : null;
+    const col = pct !== null ? pctColor(pct) : 'var(--text-dim)';
+    const barW = pct !== null ? Math.min(pct, 150) / 150 * 100 : 0;
+    return `<tr>
+      <td>${icon} ${label}</td>
+      <td class="consumo-num">${av}</td>
+      <td class="consumo-num consumo-actual">${bv}</td>
+      <td class="consumo-pct" style="color:${col}">${pct !== null ? pct + '%' : '—'}</td>
+      <td class="consumo-bar-cell"><div class="consumo-bar-bg"><div class="consumo-bar-fill" style="width:${barW}%;background:${col}"></div></div></td>
+    </tr>`;
+  }
+
+  el.innerHTML = `
+    <div class="consumo-head">
+      <span class="consumo-title">Evolución de Consumo</span>
+      <span class="consumo-years">${year - 1} vs ${year}</span>
+      <button class="btn btn-ghost btn-sm" style="padding:3px 10px;font-size:11px;margin-left:auto" onclick="openConsumoEdit()">✎ Editar ${year - 1}</button>
+    </div>
+    <table class="consumo-tbl">
+      <thead><tr><th>Categoría</th><th>${year - 1}</th><th>${year}</th><th>Obj.</th><th></th></tr></thead>
+      <tbody>
+        ${row('🏎', 'Neumáticos', ant.neumaticos, actual.neumaticos)}
+        ${row('🛑', 'Pastillas freno', ant.pastillas, actual.pastillas)}
+        ${row('⚡', 'Alt. / Arranques', ant.alternadores, actual.alternadores)}
+      </tbody>
+    </table>`;
+}
+
+function openConsumoEdit() {
+  const year = new Date().getFullYear() - 1;
+  const ex = db.consumo.find(c => c.año === year);
+  document.getElementById('cAnio').value = ex ? ex.año : year;
+  document.getElementById('cNeum').value = ex ? ex.neumaticos : '';
+  document.getElementById('cPast').value = ex ? ex.pastillas : '';
+  document.getElementById('cAlt').value  = ex ? ex.alternadores : '';
+  document.getElementById('ovlConsumo').classList.add('open');
+}
+
+async function saveConsumoAnterior() {
+  const año = parseInt(document.getElementById('cAnio').value);
+  const neumaticos   = parseInt(document.getElementById('cNeum').value) || 0;
+  const pastillas    = parseInt(document.getElementById('cPast').value) || 0;
+  const alternadores = parseInt(document.getElementById('cAlt').value)  || 0;
+  if (!año || año < 2020) { alert('Introduce un año válido'); return; }
+  setSaving();
+  const ex = db.consumo.find(c => c.año === año);
+  let error;
+  if (ex) {
+    const res = await sb.from('consumo_anual').update({ neumaticos, pastillas, alternadores }).eq('id', ex.id);
+    error = res.error;
+    if (!error) { ex.neumaticos = neumaticos; ex.pastillas = pastillas; ex.alternadores = alternadores; }
+  } else {
+    const res = await sb.from('consumo_anual').insert({ año, neumaticos, pastillas, alternadores }).select();
+    error = res.error;
+    if (!error) db.consumo.push(res.data[0]);
+  }
+  if (error) { alert('Error: ' + error.message); setError(); return; }
+  setSynced();
+  closeOverlay('ovlConsumo');
+  renderConsumo();
+}
+
 // ══ CIERRE DE AÑO ══
 function openCierre() {
   const year = new Date().getFullYear();
@@ -2604,6 +2756,17 @@ async function executeCierre() {
     const {data,error} = await sb.from('movimientos_bonus').insert({cliente_id:b.id,tipo:'AJUSTE',importe,fecha,notas}).select();
     if (error) { alert('Error bonus '+b.nombre+': '+error.message); setError(); return; }
     b.movimientos.push(data[0]);
+  }
+
+  // Guardar consumo del año cerrado para comparativa del año siguiente
+  const consumoAnio = calcConsumoAnio(parseInt(year));
+  const exC = db.consumo.find(c => c.año === parseInt(year));
+  if (exC) {
+    await sb.from('consumo_anual').update({ neumaticos: consumoAnio.neumaticos, pastillas: consumoAnio.pastillas, alternadores: consumoAnio.alternadores }).eq('id', exC.id);
+    exC.neumaticos = consumoAnio.neumaticos; exC.pastillas = consumoAnio.pastillas; exC.alternadores = consumoAnio.alternadores;
+  } else {
+    const res = await sb.from('consumo_anual').insert({ año: parseInt(year), ...consumoAnio }).select();
+    if (!res.error) db.consumo.push(res.data[0]);
   }
 
   setSynced();
