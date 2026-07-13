@@ -118,10 +118,10 @@
   .consumo-tbl tr:last-child td{border-bottom:none}
   .consumo-num{font-family:'JetBrains Mono',monospace;text-align:right;font-size:14px;color:var(--text-dim)}
   .consumo-actual{font-weight:700;color:var(--text) !important}
-  .consumo-pct-bar{text-align:right;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;min-width:70px}
+  .consumo-pct-num{text-align:right;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700}
   .consumo-group-hd{text-align:center !important;font-size:9px;letter-spacing:1px;color:var(--text-dim);border-bottom:1px solid var(--border);padding-bottom:4px}
   .consumo-group-row th{padding-bottom:2px;border-bottom:none}
-  .consumo-tbl .consumo-group-sep{border-left:1px solid var(--border)}
+  .consumo-sep{border-left:2px solid var(--border) !important;padding-left:14px !important}
   .consumo-pct{font-family:'JetBrains Mono',monospace;font-weight:700;text-align:right;font-size:14px;min-width:56px}
   .consumo-bar-cell{padding-left:12px;width:100px}
   .consumo-bar-bg{background:var(--surface2);border-radius:4px;height:7px}
@@ -2605,21 +2605,17 @@ function getMaxMes2026() {
 }
 
 function buildConsumoTable(ant, actual, year, nombre, maxMes) {
-  const MES = ['','ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
-  const parcialLabel = maxMes > 0 ? `${MES[1]}-${MES[maxMes]}` : 'parcial';
+  const MES_LARGO = ['','enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  const parcialLabel = maxMes > 0 ? `AÑO PARCIAL (ENERO - ${MES_LARGO[maxMes].toUpperCase()})` : 'AÑO PARCIAL';
   const factor = (maxMes > 0 && maxMes < 12) ? 12 / maxMes : 1;
   function proy(v) { return Math.round(v * factor); }
   function parc(v) { return maxMes > 0 ? Math.round(v * maxMes / 12) : v; }
-  function pctColor(p) { return p >= 100 ? 'var(--green)' : p >= 70 ? 'var(--orange)' : 'var(--accent)'; }
-  function objCell(a, b) {
-    if (a <= 0) return '<td class="consumo-pct-bar">—</td>';
+  function pctCell(a, b, cls) {
+    const td = `<td class="consumo-pct-num${cls ? ' '+cls : ''}">`;
+    if (a <= 0) return td + '—</td>';
     const p = Math.round(b / a * 100);
-    const col = pctColor(p);
-    const barW = Math.min(p, 150) / 150 * 100;
-    return `<td class="consumo-pct-bar">
-      <span style="color:${col};font-weight:700">${p}%</span>
-      <div class="consumo-bar-bg" style="margin-top:3px"><div class="consumo-bar-fill" style="width:${barW}%;background:${col}"></div></div>
-    </td>`;
+    const col = p >= 100 ? 'var(--green)' : 'var(--accent)';
+    return `${td}<span style="color:${col}">${p}%</span></td>`;
   }
   function row(icon, label, av, ytdv) {
     const proyv = proy(ytdv);
@@ -2627,11 +2623,11 @@ function buildConsumoTable(ant, actual, year, nombre, maxMes) {
     return `<tr>
       <td>${icon} ${label}</td>
       <td class="consumo-num">${av}</td>
-      <td class="consumo-num" style="font-weight:600">${proyv}</td>
-      ${objCell(av, proyv)}
-      <td class="consumo-num">${parc25}</td>
+      <td class="consumo-num">${proyv}</td>
+      ${pctCell(av, ytdv, '')}
+      <td class="consumo-num consumo-sep">${parc25}</td>
       <td class="consumo-num consumo-actual">${ytdv}</td>
-      ${objCell(parc25, ytdv)}
+      ${pctCell(parc25, ytdv, '')}
     </tr>`;
   }
   const editBtn = nombre
@@ -2644,20 +2640,20 @@ function buildConsumoTable(ant, actual, year, nombre, maxMes) {
     </div>
     <table class="consumo-tbl">
       <colgroup>
-        <col style="width:20%">
-        <col style="width:9%"><col style="width:9%"><col style="width:12%">
-        <col style="width:9%"><col style="width:9%"><col style="width:12%">
+        <col style="width:22%">
+        <col style="width:9%"><col style="width:9%"><col style="width:8%">
+        <col style="width:9%"><col style="width:9%"><col style="width:8%">
       </colgroup>
       <thead>
         <tr class="consumo-group-row">
           <th></th>
           <th colspan="3" class="consumo-group-hd">AÑO COMPLETO</th>
-          <th colspan="3" class="consumo-group-hd">${parcialLabel.toUpperCase()}</th>
+          <th colspan="3" class="consumo-group-hd consumo-sep">${parcialLabel}</th>
         </tr>
         <tr>
           <th>Categoría</th>
           <th>${year-1}</th><th>${year} proy.</th><th>Obj.</th>
-          <th>${year-1} est.</th><th>${year}</th><th>Obj.</th>
+          <th class="consumo-sep">${year-1} est.</th><th>${year}</th><th>Obj.</th>
         </tr>
       </thead>
       <tbody>
