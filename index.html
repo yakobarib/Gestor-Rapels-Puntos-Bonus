@@ -118,7 +118,10 @@
   .consumo-tbl tr:last-child td{border-bottom:none}
   .consumo-num{font-family:'JetBrains Mono',monospace;text-align:right;font-size:14px;color:var(--text-dim)}
   .consumo-actual{font-weight:700;color:var(--text) !important}
-  .consumo-pct-bar{text-align:right;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;min-width:80px}
+  .consumo-pct-bar{text-align:right;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;min-width:70px}
+  .consumo-group-hd{text-align:center !important;font-size:9px;letter-spacing:1px;color:var(--text-dim);border-bottom:1px solid var(--border);padding-bottom:4px}
+  .consumo-group-row th{padding-bottom:2px;border-bottom:none}
+  .consumo-tbl .consumo-group-sep{border-left:1px solid var(--border)}
   .consumo-pct{font-family:'JetBrains Mono',monospace;font-weight:700;text-align:right;font-size:14px;min-width:56px}
   .consumo-bar-cell{padding-left:12px;width:100px}
   .consumo-bar-bg{background:var(--surface2);border-radius:4px;height:7px}
@@ -2603,24 +2606,32 @@ function getMaxMes2026() {
 
 function buildConsumoTable(ant, actual, year, nombre, maxMes) {
   const MES = ['','ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
-  const parcialLabel = maxMes > 0 ? `${MES[1]}-${MES[maxMes]}` : '';
+  const parcialLabel = maxMes > 0 ? `${MES[1]}-${MES[maxMes]}` : 'parcial';
   const factor = (maxMes > 0 && maxMes < 12) ? 12 / maxMes : 1;
   function proy(v) { return Math.round(v * factor); }
+  function parc(v) { return maxMes > 0 ? Math.round(v * maxMes / 12) : v; }
   function pctColor(p) { return p >= 100 ? 'var(--green)' : p >= 70 ? 'var(--orange)' : 'var(--accent)'; }
+  function objCell(a, b) {
+    if (a <= 0) return '<td class="consumo-pct-bar">—</td>';
+    const p = Math.round(b / a * 100);
+    const col = pctColor(p);
+    const barW = Math.min(p, 150) / 150 * 100;
+    return `<td class="consumo-pct-bar">
+      <span style="color:${col};font-weight:700">${p}%</span>
+      <div class="consumo-bar-bg" style="margin-top:3px"><div class="consumo-bar-fill" style="width:${barW}%;background:${col}"></div></div>
+    </td>`;
+  }
   function row(icon, label, av, ytdv) {
     const proyv = proy(ytdv);
-    const pct = av > 0 ? Math.round(proyv / av * 100) : null;
-    const col = pct !== null ? pctColor(pct) : 'var(--text-dim)';
-    const barW = pct !== null ? Math.min(pct, 150) / 150 * 100 : 0;
+    const parc25 = parc(av);
     return `<tr>
       <td>${icon} ${label}</td>
       <td class="consumo-num">${av}</td>
+      <td class="consumo-num" style="font-weight:600">${proyv}</td>
+      ${objCell(av, proyv)}
+      <td class="consumo-num">${parc25}</td>
       <td class="consumo-num consumo-actual">${ytdv}</td>
-      <td class="consumo-num" style="color:${col};font-weight:600">${proyv}</td>
-      <td class="consumo-pct-bar" style="color:${col}">
-        ${pct !== null ? pct + '%' : '—'}
-        <div class="consumo-bar-bg" style="margin-top:3px"><div class="consumo-bar-fill" style="width:${barW}%;background:${col}"></div></div>
-      </td>
+      ${objCell(parc25, ytdv)}
     </tr>`;
   }
   const editBtn = nombre
@@ -2632,14 +2643,23 @@ function buildConsumoTable(ant, actual, year, nombre, maxMes) {
       ${editBtn}
     </div>
     <table class="consumo-tbl">
-      <colgroup><col style="width:35%"><col style="width:17%"><col style="width:17%"><col style="width:17%"><col style="width:14%"></colgroup>
-      <thead><tr>
-        <th>Categoría</th>
-        <th>${year-1}</th>
-        <th>${year} ${parcialLabel}</th>
-        <th>${year} proy.</th>
-        <th>Obj.</th>
-      </tr></thead>
+      <colgroup>
+        <col style="width:20%">
+        <col style="width:9%"><col style="width:9%"><col style="width:12%">
+        <col style="width:9%"><col style="width:9%"><col style="width:12%">
+      </colgroup>
+      <thead>
+        <tr class="consumo-group-row">
+          <th></th>
+          <th colspan="3" class="consumo-group-hd">AÑO COMPLETO</th>
+          <th colspan="3" class="consumo-group-hd">${parcialLabel.toUpperCase()}</th>
+        </tr>
+        <tr>
+          <th>Categoría</th>
+          <th>${year-1}</th><th>${year} proy.</th><th>Obj.</th>
+          <th>${year-1} est.</th><th>${year}</th><th>Obj.</th>
+        </tr>
+      </thead>
       <tbody>
         ${row('🏎','Neumáticos', ant.neumaticos, actual.neumaticos)}
         ${row('🛑','Pastillas', ant.pastillas, actual.pastillas)}
