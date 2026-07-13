@@ -119,6 +119,7 @@
   .consumo-num{font-family:'JetBrains Mono',monospace;text-align:right;font-size:14px;color:var(--text-dim)}
   .consumo-actual{font-weight:700;color:var(--text) !important}
   .consumo-pct-num{text-align:right;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700}
+  .consumo-pct-left{text-align:left !important}
   .consumo-group-hd{text-align:center !important;font-size:9px;letter-spacing:1px;color:var(--text-dim);border-bottom:1px solid var(--border);padding-bottom:4px}
   .consumo-group-row th{padding-bottom:2px;border-bottom:none}
   .consumo-sep{border-left:2px solid var(--border) !important;padding-left:14px !important}
@@ -2624,7 +2625,7 @@ function buildConsumoTable(ant, actual, year, nombre, maxMes) {
       <td>${icon} ${label}</td>
       <td class="consumo-num">${av}</td>
       <td class="consumo-num">${proyv}</td>
-      ${pctCell(av, ytdv, '')}
+      ${pctCell(av, ytdv, 'consumo-pct-left')}
       <td class="consumo-num consumo-sep">${parc25}</td>
       <td class="consumo-num consumo-actual">${ytdv}</td>
       ${pctCell(parc25, ytdv, '')}
