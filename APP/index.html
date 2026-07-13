@@ -2624,8 +2624,8 @@ function buildConsumoTable(ant, actual, year, nombre, maxMes) {
     const parc25 = parc(av);
     return `<tr>
       <td>${icon} ${label}</td>
-      <td class="consumo-num" style="padding-right:2px">${av}</td>
-      <td class="consumo-num" style="padding-left:2px">${proyv}</td>
+      <td class="consumo-num" style="padding-right:0">${av}</td>
+      <td class="consumo-num" style="padding-left:0">${proyv}</td>
       ${pctCell(av, ytdv, 'consumo-pct-left')}
       <td class="consumo-num consumo-sep">${parc25}</td>
       <td class="consumo-num consumo-actual">${ytdv}</td>
@@ -2654,7 +2654,7 @@ function buildConsumoTable(ant, actual, year, nombre, maxMes) {
         </tr>
         <tr>
           <th>Categoría</th>
-          <th style="padding-right:2px">${year-1}</th><th style="padding-left:2px">${year}</th><th style="text-align:left">Obj.</th>
+          <th style="padding-right:0">${year-1}</th><th style="padding-left:0">${year}</th><th style="text-align:left">Obj.</th>
           <th class="consumo-sep">${year-1}</th><th>${year}</th><th>Obj.</th>
         </tr>
       </thead>
