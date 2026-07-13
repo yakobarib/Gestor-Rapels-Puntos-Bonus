@@ -118,6 +118,7 @@
   .consumo-tbl tr:last-child td{border-bottom:none}
   .consumo-num{font-family:'JetBrains Mono',monospace;text-align:right;font-size:14px;color:var(--text-dim)}
   .consumo-actual{font-weight:700;color:var(--text) !important}
+  .consumo-pct-bar{text-align:right;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;min-width:80px}
   .consumo-pct{font-family:'JetBrains Mono',monospace;font-weight:700;text-align:right;font-size:14px;min-width:56px}
   .consumo-bar-cell{padding-left:12px;width:100px}
   .consumo-bar-bg{background:var(--surface2);border-radius:4px;height:7px}
@@ -488,6 +489,7 @@
     <div id="consumoWrap" class="consumo-wrap" style="display:none"><div id="consumoTable"></div></div>
     <div class="tbl-wrap">
       <table>
+        <colgroup><col style="width:35%"><col style="width:17%"><col style="width:17%"><col style="width:17%"><col style="width:14%"></colgroup>
         <thead><tr>
           <th>Cliente</th><th>Puntos ganados</th><th>Canjeados</th><th>Saldo pts</th><th></th>
         </tr></thead>
@@ -2582,18 +2584,43 @@ function calcConsumoCliente(year, p) {
   return { neumaticos, pastillas, alternadores };
 }
 
-function buildConsumoTable(ant, actual, year, nombre) {
+function getMaxMes(movimientos, year) {
+  let max = 0;
+  const yStr = String(year);
+  (movimientos||[]).filter(m => m.tipo==='GANADO' && (m.fecha||'').startsWith(yStr)).forEach(m => {
+    const mes = parseInt((m.fecha||'').slice(5,7));
+    if (mes > max) max = mes;
+  });
+  return max;
+}
+
+function getMaxMes2026() {
+  const year = new Date().getFullYear();
+  let max = 0;
+  db.puntos.forEach(p => { const m = getMaxMes(p.movimientos, year); if (m > max) max = m; });
+  return max;
+}
+
+function buildConsumoTable(ant, actual, year, nombre, maxMes) {
+  const MES = ['','ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  const parcialLabel = maxMes > 0 ? `${MES[1]}-${MES[maxMes]}` : '';
+  const factor = (maxMes > 0 && maxMes < 12) ? 12 / maxMes : 1;
+  function proy(v) { return Math.round(v * factor); }
   function pctColor(p) { return p >= 100 ? 'var(--green)' : p >= 70 ? 'var(--orange)' : 'var(--accent)'; }
-  function row(icon, label, av, bv) {
-    const pct = av > 0 ? Math.round(bv / av * 100) : null;
+  function row(icon, label, av, ytdv) {
+    const proyv = proy(ytdv);
+    const pct = av > 0 ? Math.round(proyv / av * 100) : null;
     const col = pct !== null ? pctColor(pct) : 'var(--text-dim)';
     const barW = pct !== null ? Math.min(pct, 150) / 150 * 100 : 0;
     return `<tr>
       <td>${icon} ${label}</td>
       <td class="consumo-num">${av}</td>
-      <td class="consumo-num consumo-actual">${bv}</td>
-      <td class="consumo-pct" style="color:${col}">${pct !== null ? pct + '%' : '—'}</td>
-      <td class="consumo-bar-cell"><div class="consumo-bar-bg"><div class="consumo-bar-fill" style="width:${barW}%;background:${col}"></div></div></td>
+      <td class="consumo-num consumo-actual">${ytdv}</td>
+      <td class="consumo-num" style="color:${col};font-weight:600">${proyv}</td>
+      <td class="consumo-pct-bar" style="color:${col}">
+        ${pct !== null ? pct + '%' : '—'}
+        <div class="consumo-bar-bg" style="margin-top:3px"><div class="consumo-bar-fill" style="width:${barW}%;background:${col}"></div></div>
+      </td>
     </tr>`;
   }
   const editBtn = nombre
@@ -2605,7 +2632,14 @@ function buildConsumoTable(ant, actual, year, nombre) {
       ${editBtn}
     </div>
     <table class="consumo-tbl">
-      <thead><tr><th>Categoría</th><th>${year-1}</th><th>${year}</th><th>Obj.</th><th></th></tr></thead>
+      <colgroup><col style="width:35%"><col style="width:17%"><col style="width:17%"><col style="width:17%"><col style="width:14%"></colgroup>
+      <thead><tr>
+        <th>Categoría</th>
+        <th>${year-1}</th>
+        <th>${year} ${parcialLabel}</th>
+        <th>${year} proy.</th>
+        <th>Obj.</th>
+      </tr></thead>
       <tbody>
         ${row('🏎','Neumáticos', ant.neumaticos, actual.neumaticos)}
         ${row('🛑','Pastillas', ant.pastillas, actual.pastillas)}
@@ -2620,11 +2654,12 @@ function renderConsumoCliente(p) {
   const year = new Date().getFullYear();
   const ant  = db.consumo.find(c => c.nombre === p.nombre && c.año === year - 1);
   const actual = calcConsumoCliente(year, p);
+  const maxMes = getMaxMes(p.movimientos, year);
   if (!ant) {
     el.innerHTML = `<div class="consumo-head"><span class="consumo-title" style="font-size:13px">Evolución de Consumo</span></div>
       <div class="consumo-empty">Sin datos de ${year-1}. <a href="#" onclick="openConsumoEdit('${p.nombre.replace(/'/g,"\\'")}');return false">Introducir datos</a></div>`;
   } else {
-    el.innerHTML = buildConsumoTable(ant, actual, year, p.nombre);
+    el.innerHTML = buildConsumoTable(ant, actual, year, p.nombre, maxMes);
   }
 }
 
@@ -2650,7 +2685,8 @@ function renderConsumo() {
     el.innerHTML = `<div class="consumo-head"><span class="consumo-title">Evolución de Consumo — Total</span></div>
       <div class="consumo-empty">Sin datos de ${year-1}. Abre la ficha de cada cliente para introducirlos.</div>`;
   } else {
-    el.innerHTML = buildConsumoTable(totalAnt, totalAct, year, null)
+    const maxMes = getMaxMes2026();
+    el.innerHTML = buildConsumoTable(totalAnt, totalAct, year, null, maxMes)
       .replace('<span class="consumo-title">Evolución de Consumo</span>',
                `<span class="consumo-title">Evolución de Consumo — Total</span><span style="font-size:11px;color:var(--text-dim)">${clientesConDatos}/${db.puntos.length} clientes</span>`);
   }
