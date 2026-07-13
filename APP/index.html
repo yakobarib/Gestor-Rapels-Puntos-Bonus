@@ -121,6 +121,7 @@
   .consumo-pct-num{text-align:right;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700}
   .consumo-pct-left{text-align:left !important}
   .consumo-group-hd{text-align:center !important;font-size:9px;letter-spacing:1px;color:var(--text-dim);border-bottom:1px solid var(--border);padding-bottom:4px}
+  .consumo-group-hd-main{color:#fff !important;font-size:11px !important}
   .consumo-group-row th{padding-bottom:2px;border-bottom:none}
   .consumo-sep{border-left:2px solid var(--border) !important;padding-left:14px !important}
   .consumo-pct{font-family:'JetBrains Mono',monospace;font-weight:700;text-align:right;font-size:14px;min-width:56px}
@@ -2642,18 +2643,18 @@ function buildConsumoTable(ant, actual, year, nombre, maxMes) {
     <table class="consumo-tbl">
       <colgroup>
         <col style="width:15%">
-        <col style="width:10%"><col style="width:10%"><col style="width:13%">
+        <col style="width:6%"><col style="width:10%"><col style="width:13%">
         <col style="width:10%"><col style="width:10%"><col style="width:8%">
       </colgroup>
       <thead>
         <tr class="consumo-group-row">
           <th></th>
-          <th colspan="3" class="consumo-group-hd">AÑO COMPLETO</th>
+          <th colspan="3" class="consumo-group-hd consumo-group-hd-main">AÑO COMPLETO</th>
           <th colspan="3" class="consumo-group-hd consumo-sep">${parcialLabel}</th>
         </tr>
         <tr>
           <th>Categoría</th>
-          <th>${year-1}</th><th>${year}</th><th>Obj.</th>
+          <th>${year-1}</th><th>${year}</th><th style="text-align:left">Obj.</th>
           <th class="consumo-sep">${year-1}</th><th>${year}</th><th>Obj.</th>
         </tr>
       </thead>
