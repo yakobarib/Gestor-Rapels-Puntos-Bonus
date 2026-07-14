@@ -1833,10 +1833,6 @@ function openDrawerP(id) {
     <div class="sum-card"><div class="sum-label">Ganados</div><div class="sum-val" style="color:var(--orange)">${pts(ganado)}</div></div>
     <div class="sum-card"><div class="sum-label">Canjeados</div><div class="sum-val" style="color:var(--blue)">${pts(canjeado)}</div></div>
     <div class="sum-card"><div class="sum-label">Saldo</div><div class="sum-val" style="color:${saldo>0?'var(--orange)':'var(--text-dim)'}">${pts(saldo)}</div></div>`;
-  document.getElementById('drPFec').value=today();
-  document.getElementById('drPPts').value='';
-  document.getElementById('drPRef').value='';
-  document.getElementById('drPNot').value='';
   renderPMovs(p);
   renderConsumoCliente(p);
   document.getElementById('bgP').classList.add('open');
