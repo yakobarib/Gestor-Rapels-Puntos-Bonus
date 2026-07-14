@@ -2639,7 +2639,7 @@ function buildConsumoTable(ant, actual, year, nombre, maxMes) {
       ${cmp(parc25, ytdv, false, true)}
       ${pct(parc25, ytdv)}
       ${cmp(av, ytdv, true, false)}
-      ${pct(ytdv, av)}
+      ${pct(av, ytdv)}
       ${cierreCell(proyv)}
     </tr>`;
   }
@@ -2662,14 +2662,14 @@ function buildConsumoTable(ant, actual, year, nombre, maxMes) {
         <tr class="consumo-group-row">
           <th></th>
           <th colspan="2" class="consumo-group-hd consumo-group-hd-main">${parcialLabel}</th>
-          <th colspan="2" class="consumo-group-hd consumo-sep">AÑO COMPLETO</th>
-          <th class="consumo-group-hd consumo-sep" style="font-style:italic">CIERRE EST.</th>
+          <th colspan="2" class="consumo-group-hd consumo-group-hd-main consumo-sep">AÑO COMPLETO</th>
+          <th class="consumo-group-hd consumo-group-hd-main consumo-sep">ESTIMADO A CIERRE ${year}</th>
         </tr>
         <tr>
           <th>Categoría</th>
-          <th>${year-1} → ${year}</th><th style="text-align:left">OBJETIVO</th>
-          <th class="consumo-sep">${year-1} → ${year}</th><th style="text-align:left">OBJETIVO</th>
-          <th class="consumo-sep" style="text-align:left;font-style:italic">${year} proy.</th>
+          <th style="text-align:center">${year-1} → ${year}</th><th style="text-align:center">OBJETIVO</th>
+          <th class="consumo-sep" style="text-align:center">${year-1} → ${year}</th><th style="text-align:center">OBJETIVO</th>
+          <th class="consumo-sep" style="text-align:center">${year} proy.</th>
         </tr>
       </thead>
       <tbody>
