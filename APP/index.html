@@ -2347,7 +2347,7 @@ async function saveQuickAction() {
     let puntos, referencia=document.getElementById('qaRef').value.trim(), notasFinal=notas;
     if(subtipo==='GANADO'){
       puntos=getCalcTotal();
-      if(puntos<=0){alert('Introduce al menos un valor en la calculadora');return;}
+      if(puntos===0){alert('Introduce al menos un valor en la calculadora');return;}
       if(!notasFinal) notasFinal=buildCalcNotas();
     } else {
       puntos=parseInt(document.getElementById('qaPts').value);
