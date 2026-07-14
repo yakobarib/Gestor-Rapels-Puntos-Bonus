@@ -731,7 +731,7 @@
         <ul>
           <li><strong>🏎 Neumáticos 1ª marca</strong> (Continental, Goodyear, Firestone, Pirelli, Michelin, Bridgestone, Kumho) — <strong>3 puntos por neumático</strong></li>
           <li><strong>🏎 Neumáticos 2ª marca</strong> (Sava, Leao Tire, Riken y resto) — <strong>2 puntos por neumático</strong></li>
-          <li><strong>🔧 Carrocería</strong> (iluminación, retrovisores, chapa, paragolpes, radiadores...) — <strong>10 puntos por cada 100 €</strong></li>
+          <li><strong>🔧 Carrocería</strong> (iluminación, retrovisores, chapa, paragolpes, radiadores...) — <strong>1 punto por cada 10 €</strong></li>
           <li><strong>🛑 Pastillas de freno</strong> — <strong>2 puntos por pack</strong></li>
           <li><strong>⚡ Alternadores / Arranques</strong> — <strong>2 puntos por unidad</strong></li>
           <li><strong>➕ Puntos adicionales</strong> — entrada directa para otros conceptos o ajustes manuales</li>
@@ -2597,7 +2597,8 @@ function buildPuntosPrintPage(p){
   const pctColor=p=>p>=100?'#16a34a':p>=75?'#d97706':'#dc2626';
   let consumoHtml='';
   if(ant){
-    const cats=[{icon:'🏎',label:'Neumáticos',ant:ant.neumaticos,act:actual.neumaticos},{icon:'🛑',label:'Pastillas',ant:ant.pastillas,act:actual.pastillas},{icon:'⚡',label:'Alt./Arr.',ant:ant.alternadores,act:actual.alternadores}];
+    const catsAll=[{icon:'🏎',label:'Neumáticos',ant:ant.neumaticos,act:actual.neumaticos},{icon:'🛑',label:'Pastillas',ant:ant.pastillas,act:actual.pastillas},{icon:'⚡',label:'Alt./Arr.',ant:ant.alternadores,act:actual.alternadores},{icon:'🔧',label:'Carrocería',ant:ant.carroceria||0,act:actual.carroceria||0}];
+    const cats=catsAll.filter(c=>c.ant>0||c.act>0);
     consumoHtml=`<div style="margin-bottom:24px"><div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#002D5A;border-bottom:2px solid #002D5A;padding-bottom:6px;margin-bottom:12px">Evolución de Consumo ${year-1} vs ${year}</div><table style="font-size:11px;margin-bottom:0"><thead><tr><th style="width:20%;background:#002D5A">Categoría</th><th colspan="3" style="text-align:center;background:#003f7f;border-left:2px solid #fff3">Ene–${mesNombre} (parcial)</th><th colspan="3" style="text-align:center;background:#1a1a2e;border-left:2px solid #fff3">Año completo</th><th style="text-align:center;background:#2d2d44;border-left:2px solid #fff3">Cierre est.</th></tr><tr style="background:#e8edf5;color:#002D5A;font-size:10px"><td style="font-weight:600;padding:5px 10px"></td><td style="padding:5px 8px;font-weight:600;color:#555;border-left:2px solid #ccd">${year-1} est.</td><td style="padding:5px 8px;font-weight:600;color:#555">${year}</td><td style="padding:5px 8px;font-weight:700;color:#002D5A">Obj.</td><td style="padding:5px 8px;font-weight:600;color:#555;border-left:2px solid #ccd">${year-1}</td><td style="padding:5px 8px;font-weight:600;color:#555">${year}</td><td style="padding:5px 8px;font-weight:700;color:#002D5A">Obj.</td><td style="padding:5px 8px;font-weight:600;color:#555;border-left:2px solid #ccd">${year} proy.</td></tr></thead><tbody>${cats.map(c=>{const p1=parc(c.ant),p2=c.act,p3=proy(c.act);const pctParc=c.ant>0?Math.round(c.act/p1*100):null;const pctComp=c.ant>0?Math.round(c.act/c.ant*100):null;return`<tr><td style="font-weight:600;padding:7px 10px">${c.icon} ${c.label}</td><td style="padding:7px 8px;color:#888;font-size:11px;border-left:2px solid #dde">${p1}</td><td style="padding:7px 8px;font-weight:700">${p2}</td><td style="padding:7px 8px;font-weight:800;color:${pctParc!==null?pctColor(pctParc):'#888'}">${pctParc!==null?pctParc+'%':'—'}</td><td style="padding:7px 8px;color:#888;font-size:11px;border-left:2px solid #dde">${c.ant}</td><td style="padding:7px 8px;font-weight:700">${p2}</td><td style="padding:7px 8px;font-weight:800;color:${pctComp!==null?pctColor(pctComp):'#888'}">${pctComp!==null?pctComp+'%':'—'}</td><td style="padding:7px 8px;font-weight:700;color:#555;border-left:2px solid #dde;font-style:italic">${p3}</td></tr>`;}).join('')}</tbody></table></div>`;
   }
   return`<div class="page-header"><div class="logo"><h1>RECAMBIOS IBIZA</h1><p>Gestión · Puntos de Fidelización</p></div><div class="doc-meta"><div class="doc-type">Extracto de Puntos</div><div class="doc-date">${fecha}</div></div></div><div class="cliente-band"><div><div class="cli-label">Cliente</div><div class="cli-nombre">${p.nombre}</div></div><div style="text-align:right;opacity:.8;font-size:10px">${movs.length} movimiento${movs.length!==1?'s':''}</div></div><div class="stats-row"><div class="stat-card ganado"><div class="stat-label">★ Puntos Ganados</div><div class="stat-val">${ganado.toLocaleString('es-ES')}</div></div><div class="stat-card canjeado"><div class="stat-label">⇄ Puntos Canjeados</div><div class="stat-val">${canjeado.toLocaleString('es-ES')}</div></div><div class="stat-card saldo"><div class="stat-label">◆ Saldo Actual</div><div class="stat-val">${saldo.toLocaleString('es-ES')}</div></div></div>${consumoHtml}<div class="section-title">Movimientos</div><table class="mov-table"><thead><tr><th>Fecha</th><th>Tipo</th><th>Referencia</th><th>Descripción</th><th style="text-align:right">Puntos</th></tr></thead><tbody>${movs.map(m=>`<tr><td>${fmtFecha(m.fecha)}</td><td><span class="badge badge-${m.tipo.toLowerCase()}">${m.tipo}</span></td><td>${m.referencia||'—'}</td><td style="color:#555">${m.notas||''}</td><td style="text-align:right;font-weight:700;color:${m.tipo==='CANJEADO'?'#1d4ed8':'#b45309'}">${m.tipo==='CANJEADO'?'−':'+'}${m.puntos.toLocaleString('es-ES')}</td></tr>`).join('')}<tr class="total-row"><td colspan="4"><strong>SALDO ACTUAL</strong></td><td style="text-align:right;color:${saldo>=0?'#15803d':'#dc2626'}">${saldo.toLocaleString('es-ES')} pts</td></tr></tbody></table><div class="footer"><div class="firma-box">Firma cliente</div><div class="firma-box">Firma Recambios Ibiza</div></div>`;
@@ -2629,7 +2630,8 @@ function printClientPuntos(){
       {icon:'🏎',label:'Neumáticos',ant:ant.neumaticos,act:actual.neumaticos},
       {icon:'🛑',label:'Pastillas',ant:ant.pastillas,act:actual.pastillas},
       {icon:'⚡',label:'Alt./Arr.',ant:ant.alternadores,act:actual.alternadores},
-    ];
+      {icon:'🔧',label:'Carrocería',ant:ant.carroceria||0,act:actual.carroceria||0},
+    ].filter(c=>c.ant>0||c.act>0);
     const parc25=(v)=>parc(v);
     const proyv=(v)=>proy(v);
     consumoHtml=`
@@ -2843,7 +2845,7 @@ function calcPoints() {
   const past  = parseInt(document.getElementById('qaPast')?.value)||0;
   const alt   = parseInt(document.getElementById('qaAlt')?.value)||0;
   const extra = parseInt(document.getElementById('qaExtra')?.value)||0;
-  const pN1=n1*3, pN2=n2*2, pC=Math.floor(carr/100)*10, pP=past*2, pA=alt*2, pE=extra;
+  const pN1=n1*3, pN2=n2*2, pC=Math.floor(carr/10), pP=past*2, pA=alt*2, pE=extra;
   const total=pN1+pN2+pC+pP+pA+pE;
   const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v+' pts';};
   set('resNeum1',pN1); set('resNeum2',pN2); set('resCarr',pC);
@@ -2861,7 +2863,7 @@ function buildCalcNotas() {
   const parts=[];
   if(n1)   parts.push(`Neum.1ª: ${n1}×3=${n1*3}pts`);
   if(n2)   parts.push(`Neum.2ª: ${n2}×2=${n2*2}pts`);
-  if(carr) parts.push(`Carrocería: ${carr}€=${Math.floor(carr/100)*10}pts`);
+  if(carr) parts.push(`Carrocería: ${carr}€=${Math.floor(carr/10)}pts`);
   if(past) parts.push(`Pastillas: ${past}×2=${past*2}pts`);
   if(alt)  parts.push(`Alt/Arr: ${alt}×2=${alt*2}pts`);
   if(extra)parts.push(`Adicionales: ${extra}pts`);
@@ -2874,7 +2876,7 @@ function getCalcTotal() {
   const past=parseInt(document.getElementById('qaPast')?.value)||0;
   const alt=parseInt(document.getElementById('qaAlt')?.value)||0;
   const extra=parseInt(document.getElementById('qaExtra')?.value)||0;
-  return n1*3+n2*2+Math.floor(carr/100)*10+past*2+alt*2+extra;
+  return n1*3+n2*2+Math.floor(carr/10)+past*2+alt*2+extra;
 }
 
 // ══ BLOQUEO ══
@@ -3047,22 +3049,23 @@ document.addEventListener('click', e => {
 
 // ══ CONSUMO CATEGORÍAS ══
 function parseCalcNotas(notas) {
-  if (!notas) return { neumaticos: 0, pastillas: 0, alternadores: 0 };
+  if (!notas) return { neumaticos: 0, pastillas: 0, alternadores: 0, carroceria: 0 };
   const n1   = parseInt((notas.match(/Neum\.1ª:\s*(\d+)×/) || [])[1]) || 0;
   const n2   = parseInt((notas.match(/Neum\.2ª:\s*(\d+)×/) || [])[1]) || 0;
   const past = parseInt((notas.match(/Pastillas:\s*(\d+)×/) || [])[1]) || 0;
   const alt  = parseInt((notas.match(/Alt\/Arr:\s*(\d+)×/) || [])[1]) || 0;
-  return { neumaticos: n1 + n2, pastillas: past, alternadores: alt };
+  const carr = parseFloat((notas.match(/Carrocer[ií]a:\s*([\d.]+)€/) || [])[1]) || 0;
+  return { neumaticos: n1 + n2, pastillas: past, alternadores: alt, carroceria: carr };
 }
 
 function calcConsumoCliente(year, p) {
-  let neumaticos = 0, pastillas = 0, alternadores = 0;
+  let neumaticos = 0, pastillas = 0, alternadores = 0, carroceria = 0;
   const yStr = String(year);
   (p.movimientos || []).filter(m => m.tipo === 'GANADO' && (m.fecha || '').startsWith(yStr)).forEach(m => {
     const c = parseCalcNotas(m.notas);
-    neumaticos += c.neumaticos; pastillas += c.pastillas; alternadores += c.alternadores;
+    neumaticos += c.neumaticos; pastillas += c.pastillas; alternadores += c.alternadores; carroceria += c.carroceria;
   });
-  return { neumaticos, pastillas, alternadores };
+  return { neumaticos, pastillas, alternadores, carroceria };
 }
 
 function getMaxMes(movimientos, year) {
