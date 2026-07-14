@@ -2472,18 +2472,6 @@ function printClientRapel(){
   printDoc(h);
 }
 
-function printClientPuntos(){
-  const p=db.puntos.find(x=>x.id===activeP); if(!p) return;
-  const{ganado,canjeado,saldo}=pStats(p);
-  const movs=[...(p.movimientos||[])].sort((a,b)=>(a.fecha||'').localeCompare(b.fecha||''));
-  let h=printHeader(p.nombre,'EXTRACTO DE PUNTOS','Extracto Puntos de Fidelización');
-  h+=`<table><thead><tr><th>Fecha</th><th>Tipo</th><th>Referencia</th><th>Descripción</th><th style="text-align:right">Puntos</th></tr></thead><tbody>`;
-  for(const m of movs) h+=`<tr><td>${fmtFecha(m.fecha)}</td><td>${m.tipo}</td><td>${m.referencia||'—'}</td><td>${m.notas||''}</td><td style="text-align:right;font-weight:600;color:${m.tipo==='CANJEADO'?'#1565c0':'#b45309'}">${m.tipo==='CANJEADO'?'-':'+'} ${pts(m.puntos)}</td></tr>`;
-  h+=`<tr class="total-row"><td colspan="4"><strong>SALDO ACTUAL</strong></td><td style="text-align:right">${pts(saldo)} (${ptsEur(saldo)})</td></tr></tbody></table>`;
-  h+=`<div class="footer"><div class="firma-box">Firma cliente</div><div class="firma-box">Firma Recambios Ibiza</div></div></body></html>`;
-  printDoc(h);
-}
-
 function printRMov(rid,mid,e){
   e.stopPropagation();
   const r=db.rapels.find(x=>x.id===rid);
