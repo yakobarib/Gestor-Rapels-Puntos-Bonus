@@ -943,6 +943,44 @@
   </div>
 </div>
 
+<!-- MODAL EDITAR MOVIMIENTO PUNTOS -->
+<div class="overlay" id="ovlEditMov">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-title">Editar movimiento</div>
+    <input type="hidden" id="emClienteId">
+    <input type="hidden" id="emMovId">
+    <div class="fg" style="margin-top:16px">
+      <div class="fgr" style="grid-column:1/-1">
+        <label>Tipo</label>
+        <select id="emTipo">
+          <option value="GANADO">Ganado — Puntos por compra</option>
+          <option value="CANJEADO">Canjeado — Canje por catálogo</option>
+        </select>
+      </div>
+      <div class="fgr">
+        <label>Puntos</label>
+        <input type="number" id="emPts" min="1" step="1" placeholder="0">
+      </div>
+      <div class="fgr">
+        <label>Referencia</label>
+        <input type="text" id="emRef" placeholder="Ej: ALB-041589">
+      </div>
+      <div class="fgr">
+        <label>Fecha</label>
+        <input type="date" id="emFec">
+      </div>
+      <div class="fgr" style="grid-column:1/-1">
+        <label>Descripción</label>
+        <input type="text" id="emNot" placeholder="Producto, observaciones...">
+      </div>
+    </div>
+    <div class="modal-actions" style="margin-top:24px">
+      <button class="btn btn-ghost" onclick="closeOverlay('ovlEditMov')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveEditPMov()">✓ Guardar</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL CONSUMO AÑO ANTERIOR -->
 <div class="overlay" id="ovlConsumo">
   <div class="modal" style="max-width:380px">
@@ -1236,37 +1274,6 @@
   <div class="drawer-body">
     <div class="sum-grid" id="drPSum"></div>
     <div class="consumo-drawer" id="drPConsumo"></div>
-    <div class="add-form">
-      <div class="add-form-title">Registrar movimiento</div>
-      <div class="add-grid">
-        <div class="add-row" style="grid-column:1/-1">
-          <label>Tipo</label>
-          <select id="drPTipo">
-            <option value="GANADO">Ganado — Puntos por compra</option>
-            <option value="CANJEADO">Canjeado — Canje por catálogo</option>
-          </select>
-        </div>
-        <div class="add-row">
-          <label>Puntos</label>
-          <input id="drPPts" type="number" min="1" step="1" placeholder="0">
-        </div>
-        <div class="add-row">
-          <label>Referencia</label>
-          <input id="drPRef" placeholder="Ej: ALB-041589">
-        </div>
-        <div class="add-row">
-          <label>Fecha</label>
-          <input id="drPFec" type="date">
-        </div>
-        <div class="add-row">
-          <label>Descripción</label>
-          <input id="drPNot" placeholder="Producto, observaciones...">
-        </div>
-      </div>
-      <div style="margin-top:10px">
-        <button class="btn btn-primary btn-sm" onclick="addPMov()">Añadir movimiento</button>
-      </div>
-    </div>
     <div style="font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--text-dim);margin-bottom:10px">Movimientos</div>
     <div class="mov-list" id="drPMovs"></div>
   </div>
@@ -1852,6 +1859,9 @@ function renderPMovs(p) {
         <button class="btn btn-ghost btn-sm mov-del" onclick="printPMov('${p.id}','${m.id}',event)" title="Imprimir">
           <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><rect x="2" y="1" width="7" height="4.5"/><path d="M2 6H1v3.5h9V6H8"/><rect x="3" y="7" width="5" height="2.5"/></svg>
         </button>
+        <button class="btn btn-ghost btn-sm mov-del" onclick="editPMov('${p.id}','${m.id}',event)" title="Editar">
+          <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M7.5 1.5l2 2L3 10H1V8L7.5 1.5z"/></svg>
+        </button>
         <button class="btn btn-danger btn-sm mov-del" onclick="delPMov('${p.id}','${m.id}',event)">
           <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M2 2.5h7M4 2.5V2a.3.3 0 0 1 .3-.3h2.4a.3.3 0 0 1 .3.3v.5M8.5 2.5l-.5 6.2a.5.5 0 0 1-.5.5H3.5a.5.5 0 0 1-.5-.5L2.5 2.5"/></svg>
         </button>
@@ -1886,6 +1896,46 @@ async function delPMov(pid,mid,e) {
   p.movimientos=p.movimientos.filter(m=>m.id!==mid);
   setSynced();
   openDrawerP(pid); renderPuntos(); renderDashboard();
+}
+
+function editPMov(pid, mid, e) {
+  e.stopPropagation();
+  const p = db.puntos.find(x => x.id === pid);
+  const m = (p?.movimientos || []).find(x => x.id === mid);
+  if (!m) return;
+  document.getElementById('emClienteId').value = pid;
+  document.getElementById('emMovId').value = mid;
+  document.getElementById('emTipo').value = m.tipo;
+  document.getElementById('emPts').value = m.puntos;
+  document.getElementById('emRef').value = m.referencia || '';
+  document.getElementById('emFec').value = m.fecha || '';
+  document.getElementById('emNot').value = m.notas || '';
+  document.getElementById('ovlEditMov').classList.add('open');
+}
+
+async function saveEditPMov() {
+  const pid = document.getElementById('emClienteId').value;
+  const mid = document.getElementById('emMovId').value;
+  const puntos = parseInt(document.getElementById('emPts').value);
+  if (isNaN(puntos) || puntos <= 0) { alert('Introduce un número de puntos válido'); return; }
+  const upd = {
+    tipo: document.getElementById('emTipo').value,
+    puntos,
+    referencia: document.getElementById('emRef').value.trim(),
+    fecha: document.getElementById('emFec').value || null,
+    notas: document.getElementById('emNot').value.trim()
+  };
+  setSaving();
+  const { error } = await sb.from('movimientos_puntos').update(upd).eq('id', mid);
+  if (error) { alert('Error: ' + error.message); setError(); return; }
+  const p = db.puntos.find(x => x.id === pid);
+  const m = p.movimientos.find(x => x.id === mid);
+  Object.assign(m, upd);
+  setSynced();
+  closeOverlay('ovlEditMov');
+  openDrawerP(pid);
+  renderPuntos();
+  renderDashboard();
 }
 
 // ══ DRAWER BONUS ══
@@ -2606,10 +2656,13 @@ function getMaxMes2026() {
   return max;
 }
 
-function buildConsumoTable(ant, actual, year, nombre, maxMes) {
+function buildConsumoTable(ant, actual, year, nombre, maxMes, compact) {
   const MES_CORTO = ['','ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
   const MES_LARGO = ['','enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
-  const parcialLabel = maxMes > 0 ? `AÑO PARCIAL (ENERO – ${MES_LARGO[maxMes].toUpperCase()})` : 'AÑO PARCIAL';
+  const parcialLabel = compact
+    ? (maxMes > 0 ? `(ENERO – ${MES_CORTO[maxMes]})` : 'PARCIAL')
+    : (maxMes > 0 ? `AÑO PARCIAL (ENERO – ${MES_LARGO[maxMes].toUpperCase()})` : 'AÑO PARCIAL');
+  const completoLabel = compact ? `(${year-1} – ${year})` : `AÑO COMPLETO (${year-1} – ${year})`;
   const factor = (maxMes > 0 && maxMes < 12) ? 12 / maxMes : 1;
   function proy(v) { return Math.round(v * factor); }
   function parc(v) { return maxMes > 0 ? Math.round(v * maxMes / 12) : v; }
@@ -2663,7 +2716,7 @@ function buildConsumoTable(ant, actual, year, nombre, maxMes) {
         <tr class="consumo-group-row">
           <th class="consumo-group-hd-main" style="text-align:left">CATEGORÍA</th>
           <th colspan="2" class="consumo-group-hd consumo-group-hd-main consumo-sep-left">${parcialLabel}</th>
-          <th colspan="2" class="consumo-group-hd consumo-group-hd-main consumo-sep">AÑO COMPLETO (${year-1} – ${year})</th>
+          <th colspan="2" class="consumo-group-hd consumo-group-hd-main consumo-sep">${completoLabel}</th>
           <th class="consumo-group-hd consumo-group-hd-main consumo-sep">ESTIMADO A CIERRE ${year}</th>
         </tr>
       </thead>
@@ -2686,7 +2739,7 @@ function renderConsumoCliente(p) {
     el.innerHTML = `<div class="consumo-head"><span class="consumo-title" style="font-size:13px">Evolución de Consumo</span></div>
       <div class="consumo-empty">Sin datos de ${year-1}. <a href="#" onclick="openConsumoEdit('${p.nombre.replace(/'/g,"\\'")}');return false">Introducir datos</a></div>`;
   } else {
-    el.innerHTML = buildConsumoTable(ant, actual, year, p.nombre, maxMes);
+    el.innerHTML = buildConsumoTable(ant, actual, year, p.nombre, maxMes, true);
   }
 }
 
