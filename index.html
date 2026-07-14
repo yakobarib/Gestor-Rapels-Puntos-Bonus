@@ -2660,16 +2660,10 @@ function buildConsumoTable(ant, actual, year, nombre, maxMes) {
       </colgroup>
       <thead>
         <tr class="consumo-group-row">
-          <th></th>
+          <th class="consumo-group-hd-main" style="text-align:left">CATEGORÍA</th>
           <th colspan="2" class="consumo-group-hd consumo-group-hd-main">${parcialLabel}</th>
           <th colspan="2" class="consumo-group-hd consumo-group-hd-main consumo-sep">AÑO COMPLETO</th>
           <th class="consumo-group-hd consumo-group-hd-main consumo-sep">ESTIMADO A CIERRE ${year}</th>
-        </tr>
-        <tr>
-          <th>Categoría</th>
-          <th style="text-align:center">${year-1} → ${year}</th><th style="text-align:left">OBJETIVO</th>
-          <th style="text-align:center;border-left:2px solid var(--border)">${year-1} → ${year}</th><th style="text-align:left">OBJETIVO</th>
-          <th class="consumo-sep"></th>
         </tr>
       </thead>
       <tbody>
