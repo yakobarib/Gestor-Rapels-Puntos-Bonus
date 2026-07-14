@@ -148,12 +148,19 @@
   .btn-blue{background:rgba(91,141,239,.12);color:var(--blue);border:1px solid rgba(91,141,239,.35)}.btn-blue:hover{background:rgba(91,141,239,.22)}
   .btn-sm{padding:5px 12px;font-size:12px;border-radius:6px}
   .print-menu-wrap{position:relative;display:inline-block}
-  .print-menu-wrap .print-dropdown{display:none;position:absolute;right:0;top:calc(100% + 4px);background:var(--surface);border:1px solid var(--border);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.25);z-index:300;min-width:180px;overflow:hidden}
-  .print-menu-wrap .print-dropdown.open{display:block}
+  .print-menu-wrap .print-dropdown{display:none;position:absolute;right:0;top:calc(100% + 4px);background:var(--surface);border:1px solid var(--border);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.25);z-index:300;min-width:220px;overflow:hidden}
+  .print-menu-wrap .print-dropdown.open{display:flex;flex-direction:column}
   .print-dropdown-item{display:block;width:100%;text-align:left;padding:9px 14px;font-size:12px;font-weight:600;color:var(--text);background:none;border:none;cursor:pointer;font-family:'Syne',sans-serif}
   .print-dropdown-item:hover{background:var(--surface2)}
   .print-dropdown-sep{height:1px;background:var(--border);margin:2px 0}
-  .print-dropdown-clients{max-height:200px;overflow-y:auto}
+  .print-dropdown-clients{max-height:220px;overflow-y:auto;flex:1}
+  .print-chk-row{display:flex;align-items:center;gap:8px;padding:6px 14px;cursor:pointer;font-size:12px;color:var(--text)}
+  .print-chk-row:hover{background:var(--surface2)}
+  .print-chk-row input[type=checkbox]{accent-color:var(--accent);width:14px;height:14px;flex-shrink:0;cursor:pointer}
+  .print-chk-all{font-weight:700;color:var(--text-dim);font-size:11px;text-transform:uppercase;letter-spacing:.5px}
+  .print-dropdown-foot{padding:8px 10px;border-top:1px solid var(--border);display:flex;gap:6px}
+  .print-sel-btn{flex:1;padding:7px 10px;font-size:12px;font-weight:700;font-family:'Syne',sans-serif;border-radius:6px;border:none;cursor:pointer;background:var(--accent);color:#fff}
+  .print-sel-btn:hover{opacity:.85}
 
   .overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)}
   .overlay.open{display:flex}
@@ -449,6 +456,7 @@
             <button class="print-dropdown-item" onclick="printAllTab('rapel')">🖨 Imprimir Todos</button>
             <div class="print-dropdown-sep"></div>
             <div class="print-dropdown-clients" id="printClientsR"></div>
+            <div class="print-dropdown-foot"><button class="print-sel-btn" onclick="printSelected('rapel')">Imprimir seleccionados</button></div>
           </div>
         </div>
       </div>
@@ -506,6 +514,7 @@
             <button class="print-dropdown-item" onclick="printAllTab('puntos')">🖨 Imprimir Todos</button>
             <div class="print-dropdown-sep"></div>
             <div class="print-dropdown-clients" id="printClientsP"></div>
+            <div class="print-dropdown-foot"><button class="print-sel-btn" onclick="printSelected('puntos')">Imprimir seleccionados</button></div>
           </div>
         </div>
       </div>
@@ -564,6 +573,7 @@
             <button class="print-dropdown-item" onclick="printAllTab('bonus')">🖨 Imprimir Todos</button>
             <div class="print-dropdown-sep"></div>
             <div class="print-dropdown-clients" id="printClientsB"></div>
+            <div class="print-dropdown-foot"><button class="print-sel-btn" onclick="printSelected('bonus')">Imprimir seleccionados</button></div>
           </div>
         </div>
       </div>
@@ -2371,15 +2381,65 @@ function populatePrintClients(tab) {
   const tipo = tab==='R'?'rapel':tab==='P'?'puntos':'bonus';
   const lista = tipo==='rapel'?db.rapels:tipo==='puntos'?db.puntos:db.bonus;
   const el = document.getElementById('printClients'+tab);
-  el.innerHTML = lista.sort((a,b)=>a.nombre.localeCompare(b.nombre,'es')).map(c=>
-    `<button class="print-dropdown-item" onclick="printOneClient('${tipo}','${c.id}')">· ${c.nombre}</button>`
-  ).join('');
+  const sorted = [...lista].sort((a,b)=>a.nombre.localeCompare(b.nombre,'es'));
+  el.innerHTML = `<label class="print-chk-row print-chk-all">
+    <input type="checkbox" id="chkAll${tab}" onchange="toggleAllPrintChk('${tab}')" checked>
+    Seleccionar todos
+  </label>
+  <div class="print-dropdown-sep" style="margin:0"></div>
+  ${sorted.map(c=>`<label class="print-chk-row">
+    <input type="checkbox" class="pchk-${tab}" data-id="${c.id}" onchange="updatePrintSelBtn('${tab}')" checked>
+    ${c.nombre}
+  </label>`).join('')}`;
+  updatePrintSelBtn(tab);
 }
-function printOneClient(tipo, id) {
+function toggleAllPrintChk(tab) {
+  const checked = document.getElementById('chkAll'+tab).checked;
+  document.querySelectorAll('.pchk-'+tab).forEach(c => c.checked = checked);
+  updatePrintSelBtn(tab);
+}
+function updatePrintSelBtn(tab) {
+  const n = [...document.querySelectorAll('.pchk-'+tab)].filter(c=>c.checked).length;
+  const total = document.querySelectorAll('.pchk-'+tab).length;
+  const allChk = document.getElementById('chkAll'+tab);
+  if (allChk) allChk.checked = n === total;
+  const foot = document.querySelector(`#printDrop${tab} .print-sel-btn`);
+  if (foot) foot.textContent = n ? `Imprimir ${n} cliente${n!==1?'s':''}` : 'Imprimir seleccionados';
+}
+function printSelected(tipo) {
+  const tab = tipo==='rapel'?'R':tipo==='puntos'?'P':'B';
+  const ids = [...document.querySelectorAll('.pchk-'+tab+':checked')].map(c=>c.dataset.id);
   ['R','P','B'].forEach(t => document.getElementById('printDrop'+t).classList.remove('open'));
-  if (tipo==='puntos') { activeP=id; printClientPuntos(); }
-  else if (tipo==='rapel') { activeR=id; printClientRapel(); }
-  else { activeB=id; printClientBonus(); }
+  if (!ids.length) { alert('Selecciona al menos un cliente'); return; }
+  const lista = tipo==='rapel'?db.rapels:tipo==='puntos'?db.puntos:db.bonus;
+  const sorted = ids.map(id=>lista.find(x=>x.id===id)).filter(Boolean)
+    .sort((a,b)=>a.nombre.localeCompare(b.nombre,'es'));
+  const SEP = '<div style="page-break-after:always"></div>';
+  const BASE_CSS = `body{font-family:Arial,sans-serif;margin:0;padding:24px 32px;color:#000;font-size:12px}.page-header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #E20613;padding-bottom:12px;margin-bottom:18px}.logo h1{font-size:20px;font-weight:900;margin:0;color:#E20613}.logo p{font-size:10px;color:#777;margin:3px 0 0}.doc-meta{text-align:right}.doc-meta .doc-type{font-size:13px;font-weight:700;color:#002D5A;text-transform:uppercase}.doc-meta .doc-date{font-size:10px;color:#888;margin-top:3px}.cliente-band{background:linear-gradient(135deg,#002D5A,#004080);color:#fff;border-radius:8px;padding:14px 20px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center}.cli-label{font-size:9px;text-transform:uppercase;letter-spacing:1.5px;opacity:.7;margin-bottom:3px}.cli-nombre{font-size:18px;font-weight:900}.section-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#002D5A;border-bottom:2px solid #002D5A;padding-bottom:5px;margin-bottom:10px}table{width:100%;border-collapse:collapse;font-size:11px;margin-bottom:20px}th{background:#002D5A;color:#fff;padding:7px 10px;text-align:left;font-size:10px;text-transform:uppercase}td{padding:7px 10px;border-bottom:1px solid #eee}.total-row td{background:#f0f4f8;font-weight:700;font-size:12px}.footer{margin-top:32px;display:grid;grid-template-columns:1fr 1fr;gap:50px}.firma-box{border-top:1px solid #aaa;padding-top:5px;font-size:10px;color:#888;text-align:center}@media print{body{padding:15px 20px}@page{size:A4;margin:15mm}}`;
+  const fecha = new Date().toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit',year:'numeric'});
+  const w = window.open('','_blank','width=850,height=700');
+  let pages='', titulo='', extraCss='';
+  if (tipo==='puntos') {
+    titulo=`Puntos — ${sorted.length} cliente${sorted.length!==1?'s':''}`;
+    extraCss=`.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:22px}.stat-card{border-radius:8px;padding:14px 16px;text-align:center}.stat-card.ganado{background:#fff8ec;border:1.5px solid #f59e0b}.stat-card.canjeado{background:#eff6ff;border:1.5px solid #3b82f6}.stat-card.saldo{background:#f0fdf4;border:1.5px solid #22c55e}.stat-label{font-size:9px;text-transform:uppercase;letter-spacing:1.2px;font-weight:700;margin-bottom:6px}.stat-card.ganado .stat-label{color:#b45309}.stat-card.canjeado .stat-label{color:#1d4ed8}.stat-card.saldo .stat-label{color:#15803d}.stat-val{font-size:22px;font-weight:900}.stat-card.ganado .stat-val{color:#b45309}.stat-card.canjeado .stat-val{color:#1d4ed8}.stat-card.saldo .stat-val{color:#15803d}.badge{display:inline-block;padding:2px 7px;border-radius:10px;font-size:9px;font-weight:700;text-transform:uppercase}.badge-ganado{background:#fff3cd;color:#b45309;border:1px solid #f59e0b}.badge-canjeado{background:#dbeafe;color:#1d4ed8;border:1px solid #3b82f6}`;
+    pages = sorted.map(p=>buildPuntosPrintPage(p)).join(SEP);
+  } else if (tipo==='rapel') {
+    titulo=`Rapel — ${sorted.length} cliente${sorted.length!==1?'s':''}`;
+    pages = sorted.map(r=>{
+      const{saldo}=rStats(r);
+      const movs=[...(r.movimientos||[])].sort((a,b)=>(a.fecha||'').localeCompare(b.fecha||''));
+      return `<div class="page-header"><div class="logo"><h1>RECAMBIOS IBIZA</h1><p>Extracto de Total Rapel</p></div><div class="doc-meta"><div class="doc-type">Extracto Rapel</div><div class="doc-date">${fecha}</div></div></div><div class="cliente-band"><div><div class="cli-label">Cliente</div><div class="cli-nombre">${r.nombre}</div></div></div><table><thead><tr><th>Fecha</th><th>Tipo</th><th>Albarán</th><th>Notas</th><th style="text-align:right">Importe</th></tr></thead><tbody>${movs.map(m=>{const neg=m.tipo==='GASTO'||Number(m.importe)<0;return`<tr><td>${fmtFecha(m.fecha)}</td><td>${m.tipo}</td><td>${m.albaran||'—'}</td><td>${m.notas||''}</td><td style="text-align:right;font-weight:600;color:${neg?'#E20613':'#2e7d32'}">${neg?'−':'+'} ${eur(Math.abs(m.importe))}</td></tr>`;}).join('')}<tr class="total-row"><td colspan="4"><strong>SALDO ACTUAL</strong></td><td style="text-align:right;color:${saldo<0?'#E20613':'#2e7d32'}">${eur(saldo)}</td></tr></tbody></table><div class="footer"><div class="firma-box">Firma cliente</div><div class="firma-box">Firma Recambios Ibiza</div></div>`;
+    }).join(SEP);
+  } else {
+    titulo=`Bonus — ${sorted.length} cliente${sorted.length!==1?'s':''}`;
+    pages = sorted.map(b=>{
+      const{saldo}=bStats(b);
+      const movs=[...(b.movimientos||[])].sort((a,b)=>(a.fecha||'').localeCompare(b.fecha||''));
+      return `<div class="page-header"><div class="logo"><h1>RECAMBIOS IBIZA</h1><p>Extracto de Bonus de Fidelización</p></div><div class="doc-meta"><div class="doc-type">Extracto Bonus</div><div class="doc-date">${fecha}</div></div></div><div class="cliente-band"><div><div class="cli-label">Cliente</div><div class="cli-nombre">${b.nombre}</div></div></div><table><thead><tr><th>Fecha</th><th>Tipo</th><th>Referencia</th><th>Notas</th><th style="text-align:right">Importe</th></tr></thead><tbody>${movs.map(m=>{const neg=m.tipo==='CANJEADO';return`<tr><td>${fmtFecha(m.fecha)}</td><td>${m.tipo}</td><td>${m.referencia||'—'}</td><td>${m.notas||''}</td><td style="text-align:right;font-weight:600;color:${neg?'#1d4ed8':'#b45309'}">${neg?'−':'+'} ${eur(m.importe)}</td></tr>`;}).join('')}<tr class="total-row"><td colspan="4"><strong>SALDO ACTUAL</strong></td><td style="text-align:right;color:${saldo>=0?'#15803d':'#dc2626'}">${eur(saldo)}</td></tr></tbody></table><div class="footer"><div class="firma-box">Firma cliente</div><div class="firma-box">Firma Recambios Ibiza</div></div>`;
+    }).join(SEP);
+  }
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${titulo}</title><style>*{box-sizing:border-box}${BASE_CSS}${extraCss}</style></head><body>${pages}</body></html>`);
+  w.document.close(); setTimeout(()=>{w.focus();w.print();},400);
 }
 function printAllTab(tipo) {
   ['R','P','B'].forEach(t => document.getElementById('printDrop'+t).classList.remove('open'));
@@ -2433,7 +2493,7 @@ function buildPuntosPrintPage(p){
     const cats=[{icon:'🏎',label:'Neumáticos',ant:ant.neumaticos,act:actual.neumaticos},{icon:'🛑',label:'Pastillas',ant:ant.pastillas,act:actual.pastillas},{icon:'⚡',label:'Alt./Arr.',ant:ant.alternadores,act:actual.alternadores}];
     consumoHtml=`<div style="margin-bottom:24px"><div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#002D5A;border-bottom:2px solid #002D5A;padding-bottom:6px;margin-bottom:12px">Evolución de Consumo ${year-1} vs ${year}</div><table style="font-size:11px;margin-bottom:0"><thead><tr><th style="width:20%;background:#002D5A">Categoría</th><th colspan="3" style="text-align:center;background:#003f7f;border-left:2px solid #fff3">Ene–${mesNombre} (parcial)</th><th colspan="3" style="text-align:center;background:#1a1a2e;border-left:2px solid #fff3">Año completo</th><th style="text-align:center;background:#2d2d44;border-left:2px solid #fff3">Cierre est.</th></tr><tr style="background:#e8edf5;color:#002D5A;font-size:10px"><td style="font-weight:600;padding:5px 10px"></td><td style="padding:5px 8px;font-weight:600;color:#555;border-left:2px solid #ccd">${year-1} est.</td><td style="padding:5px 8px;font-weight:600;color:#555">${year}</td><td style="padding:5px 8px;font-weight:700;color:#002D5A">Obj.</td><td style="padding:5px 8px;font-weight:600;color:#555;border-left:2px solid #ccd">${year-1}</td><td style="padding:5px 8px;font-weight:600;color:#555">${year}</td><td style="padding:5px 8px;font-weight:700;color:#002D5A">Obj.</td><td style="padding:5px 8px;font-weight:600;color:#555;border-left:2px solid #ccd">${year} proy.</td></tr></thead><tbody>${cats.map(c=>{const p1=parc(c.ant),p2=c.act,p3=proy(c.act);const pctParc=c.ant>0?Math.round(c.act/p1*100):null;const pctComp=c.ant>0?Math.round(c.act/c.ant*100):null;return`<tr><td style="font-weight:600;padding:7px 10px">${c.icon} ${c.label}</td><td style="padding:7px 8px;color:#888;font-size:11px;border-left:2px solid #dde">${p1}</td><td style="padding:7px 8px;font-weight:700">${p2}</td><td style="padding:7px 8px;font-weight:800;color:${pctParc!==null?pctColor(pctParc):'#888'}">${pctParc!==null?pctParc+'%':'—'}</td><td style="padding:7px 8px;color:#888;font-size:11px;border-left:2px solid #dde">${c.ant}</td><td style="padding:7px 8px;font-weight:700">${p2}</td><td style="padding:7px 8px;font-weight:800;color:${pctComp!==null?pctColor(pctComp):'#888'}">${pctComp!==null?pctComp+'%':'—'}</td><td style="padding:7px 8px;font-weight:700;color:#555;border-left:2px solid #dde;font-style:italic">${p3}</td></tr>`;}).join('')}</tbody></table></div>`;
   }
-  return`<div class="page-header"><div class="logo"><h1>RECAMBIOS IBIZA</h1><p>Gestión · Puntos de Fidelización</p></div><div class="doc-meta"><div class="doc-type">Extracto de Puntos</div><div class="doc-date">${fecha}</div></div></div><div class="cliente-band"><div><div class="cli-label">Cliente</div><div class="cli-nombre">${p.nombre}</div></div><div style="text-align:right;opacity:.8;font-size:10px">${movs.length} movimiento${movs.length!==1?'s':''}</div></div><div class="stats-row"><div class="stat-card ganado"><div class="stat-label">★ Puntos Ganados</div><div class="stat-val">${ganado.toLocaleString('es-ES')}</div></div><div class="stat-card canjeado"><div class="stat-label">⇄ Puntos Canjeados</div><div class="stat-val">${canjeado.toLocaleString('es-ES')}</div></div><div class="stat-card saldo"><div class="stat-label">◆ Saldo Actual</div><div class="stat-val">${saldo.toLocaleString('es-ES')}</div></div></div>${consumoHtml}<div class="section-title">Movimientos</div><table class="mov-table"><thead><tr><th>Fecha</th><th>Tipo</th><th>Referencia</th><th>Descripción</th><th style="text-align:right">Puntos</th></tr></thead><tbody>${movs.map(m=>`<tr><td>${fmtFecha(m.fecha)}</td><td><span class="badge badge-${m.tipo.toLowerCase()}">${m.tipo}</span></td><td>${m.referencia||'—'}</td><td style="color:#555">${m.notas||''}</td><td style="text-align:right;font-weight:700;color:${m.tipo==='CANJEADO'?'#1d4ed8':'#b45309'}">${m.tipo==='CANJEADO'?'−':'+'}${m.puntos.toLocaleString('es-ES')}</td></tr>`).join('')}<tr class="total-row"><td colspan="4"><strong>SALDO ACTUAL</strong></td><td style="text-align:right;color:${saldo>=0?'#15803d':'#dc2626'}">${saldo.toLocaleString('es-ES')} pts · ${ptsEur(saldo)}</td></tr></tbody></table><div class="footer"><div class="firma-box">Firma cliente</div><div class="firma-box">Firma Recambios Ibiza</div></div>`;
+  return`<div class="page-header"><div class="logo"><h1>RECAMBIOS IBIZA</h1><p>Gestión · Puntos de Fidelización</p></div><div class="doc-meta"><div class="doc-type">Extracto de Puntos</div><div class="doc-date">${fecha}</div></div></div><div class="cliente-band"><div><div class="cli-label">Cliente</div><div class="cli-nombre">${p.nombre}</div></div><div style="text-align:right;opacity:.8;font-size:10px">${movs.length} movimiento${movs.length!==1?'s':''}</div></div><div class="stats-row"><div class="stat-card ganado"><div class="stat-label">★ Puntos Ganados</div><div class="stat-val">${ganado.toLocaleString('es-ES')}</div></div><div class="stat-card canjeado"><div class="stat-label">⇄ Puntos Canjeados</div><div class="stat-val">${canjeado.toLocaleString('es-ES')}</div></div><div class="stat-card saldo"><div class="stat-label">◆ Saldo Actual</div><div class="stat-val">${saldo.toLocaleString('es-ES')}</div></div></div>${consumoHtml}<div class="section-title">Movimientos</div><table class="mov-table"><thead><tr><th>Fecha</th><th>Tipo</th><th>Referencia</th><th>Descripción</th><th style="text-align:right">Puntos</th></tr></thead><tbody>${movs.map(m=>`<tr><td>${fmtFecha(m.fecha)}</td><td><span class="badge badge-${m.tipo.toLowerCase()}">${m.tipo}</span></td><td>${m.referencia||'—'}</td><td style="color:#555">${m.notas||''}</td><td style="text-align:right;font-weight:700;color:${m.tipo==='CANJEADO'?'#1d4ed8':'#b45309'}">${m.tipo==='CANJEADO'?'−':'+'}${m.puntos.toLocaleString('es-ES')}</td></tr>`).join('')}<tr class="total-row"><td colspan="4"><strong>SALDO ACTUAL</strong></td><td style="text-align:right;color:${saldo>=0?'#15803d':'#dc2626'}">${saldo.toLocaleString('es-ES')} pts</td></tr></tbody></table><div class="footer"><div class="firma-box">Firma cliente</div><div class="firma-box">Firma Recambios Ibiza</div></div>`;
 }
 
 function printDoc(html){const w=window.open('','_blank','width=800,height=600');w.document.write(html);w.document.close();setTimeout(()=>{w.focus();w.print();},300);}
