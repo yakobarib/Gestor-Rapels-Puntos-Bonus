@@ -1031,6 +1031,79 @@
   </div>
 </div>
 
+<!-- MODAL EDITAR MOVIMIENTO RAPEL -->
+<div class="overlay" id="ovlEditMovR">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-title">Editar movimiento Rapel</div>
+    <input type="hidden" id="erClienteId">
+    <input type="hidden" id="erMovId">
+    <div class="fg" style="margin-top:16px">
+      <div class="fgr" style="grid-column:1/-1">
+        <label>Tipo</label>
+        <select id="erTipo">
+          <option value="INGRESO">Ingreso — Carga rapel en bolsa</option>
+          <option value="GASTO">Gasto — Consumo de bolsa</option>
+          <option value="AJUSTE">Ajuste especial</option>
+        </select>
+      </div>
+      <div class="fgr">
+        <label>Importe (€)</label>
+        <input type="number" id="erImp" min="0.01" step="0.01" placeholder="0.00">
+      </div>
+      <div class="fgr">
+        <label>Nº Albarán</label>
+        <input type="text" id="erAlb" placeholder="Ej: 041589">
+      </div>
+      <div class="fgr">
+        <label>Fecha</label>
+        <input type="date" id="erFec">
+      </div>
+      <div class="fgr" style="grid-column:1/-1">
+        <label>Notas</label>
+        <input type="text" id="erNot" placeholder="Descripción...">
+      </div>
+    </div>
+    <div class="modal-actions" style="margin-top:24px">
+      <button class="btn btn-ghost" onclick="closeOverlay('ovlEditMovR')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveEditRMov()">✓ Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EDITAR MOVIMIENTO BONUS -->
+<div class="overlay" id="ovlEditMovB">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-title">Editar movimiento Bonus</div>
+    <input type="hidden" id="ebClienteId">
+    <input type="hidden" id="ebMovId">
+    <div class="fg" style="margin-top:16px">
+      <div class="fgr" style="grid-column:1/-1">
+        <label>Tipo</label>
+        <select id="ebTipo">
+          <option value="GANADO">Ganado — Bonus por fidelidad</option>
+          <option value="CANJEADO">Canjeado — Descuento en compra</option>
+        </select>
+      </div>
+      <div class="fgr">
+        <label>Importe (€)</label>
+        <input type="number" id="ebImp" min="0.01" step="0.01" placeholder="0.00">
+      </div>
+      <div class="fgr">
+        <label>Fecha</label>
+        <input type="date" id="ebFec">
+      </div>
+      <div class="fgr" style="grid-column:1/-1">
+        <label>Notas</label>
+        <input type="text" id="ebNot" placeholder="Descripción...">
+      </div>
+    </div>
+    <div class="modal-actions" style="margin-top:24px">
+      <button class="btn btn-ghost" onclick="closeOverlay('ovlEditMovB')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveEditBMov()">✓ Guardar</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL CONSUMO AÑO ANTERIOR -->
 <div class="overlay" id="ovlConsumo">
   <div class="modal" style="max-width:380px">
@@ -1199,12 +1272,6 @@
             <div class="pts-result" id="resNeum2">0 pts</div>
           </div>
           <div class="pts-row">
-            <div><div class="pts-label">🔧 Carrocería</div><div class="pts-sub">Iluminación, retrovisores, chapa, paragolpes, radiadores...</div></div>
-            <input class="pts-qty search-input" id="qaCarr" type="number" min="0" step="0.01" placeholder="0 €" oninput="calcPoints()">
-            <div class="pts-rate">÷10</div>
-            <div class="pts-result" id="resCarr">0 pts</div>
-          </div>
-          <div class="pts-row">
             <div><div class="pts-label">🛑 Pastillas de freno</div><div class="pts-sub">Por cada pack de pastillas</div></div>
             <input class="pts-qty search-input" id="qaPast" type="number" min="0" step="1" placeholder="0" oninput="calcPoints()">
             <div class="pts-rate">×2</div>
@@ -1215,6 +1282,12 @@
             <input class="pts-qty search-input" id="qaAlt" type="number" min="0" step="1" placeholder="0" oninput="calcPoints()">
             <div class="pts-rate">×2</div>
             <div class="pts-result" id="resAlt">0 pts</div>
+          </div>
+          <div class="pts-row">
+            <div><div class="pts-label">🔧 Carrocería</div><div class="pts-sub">Iluminación, retrovisores, chapa, paragolpes, radiadores...</div></div>
+            <input class="pts-qty search-input" id="qaCarr" type="number" min="0" step="0.01" placeholder="0 €" oninput="calcPoints()">
+            <div class="pts-rate">÷10</div>
+            <div class="pts-result" id="resCarr">0 pts</div>
           </div>
           <div class="pts-row">
             <div><div class="pts-label">➕ Puntos adicionales</div><div class="pts-sub">Otros conceptos o ajuste manual</div></div>
@@ -1265,37 +1338,6 @@
   </div>
   <div class="drawer-body">
     <div class="sum-grid" id="drRSum"></div>
-    <div class="add-form">
-      <div class="add-form-title">Registrar movimiento</div>
-      <div class="add-grid">
-        <div class="add-row" style="grid-column:1/-1">
-          <label>Tipo</label>
-          <select id="drRTipo">
-            <option value="INGRESO">Ingreso — Carga rapel en bolsa</option>
-            <option value="GASTO">Gasto — Consumo de bolsa</option>
-          </select>
-        </div>
-        <div class="add-row">
-          <label>Nº Albarán</label>
-          <input id="drRAlb" placeholder="Ej: 041589">
-        </div>
-        <div class="add-row">
-          <label>Importe (€)</label>
-          <input id="drRImp" type="number" min="0.01" step="0.01" placeholder="0.00">
-        </div>
-        <div class="add-row">
-          <label>Fecha</label>
-          <input id="drRFec" type="date">
-        </div>
-        <div class="add-row">
-          <label>Notas</label>
-          <input id="drRNot" placeholder="Descripción...">
-        </div>
-      </div>
-      <div style="margin-top:10px">
-        <button class="btn btn-primary btn-sm" onclick="addRMov()">Añadir movimiento</button>
-      </div>
-    </div>
     <div style="font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--text-dim);margin-bottom:10px">Movimientos</div>
     <div class="mov-list" id="drRMovs"></div>
   </div>
@@ -1351,33 +1393,6 @@
   </div>
   <div class="drawer-body">
     <div class="sum-grid" id="drBSum"></div>
-    <div class="add-form">
-      <div class="add-form-title">Registrar movimiento</div>
-      <div class="add-grid">
-        <div class="add-row" style="grid-column:1/-1">
-          <label>Tipo</label>
-          <select id="drBTipo">
-            <option value="GANADO">Ganado — Bonus por fidelidad</option>
-            <option value="CANJEADO">Canjeado — Descuento en compra</option>
-          </select>
-        </div>
-        <div class="add-row">
-          <label>Importe (€)</label>
-          <input id="drBImp" type="number" min="0.01" step="0.01" placeholder="0.00">
-        </div>
-        <div class="add-row">
-          <label>Fecha</label>
-          <input id="drBFec" type="date">
-        </div>
-        <div class="add-row" style="grid-column:1/-1">
-          <label>Notas</label>
-          <input id="drBNot" placeholder="Descripción...">
-        </div>
-      </div>
-      <div style="margin-top:10px">
-        <button class="btn btn-primary btn-sm" onclick="addBMov()">Añadir movimiento</button>
-      </div>
-    </div>
     <div style="font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--text-dim);margin-bottom:10px">Movimientos</div>
     <div class="mov-list" id="drBMovs"></div>
   </div>
@@ -1802,10 +1817,6 @@ function openDrawerR(id) {
   } else {
     addForm.style.display='';
   }
-  document.getElementById('drRFec').value=today();
-  document.getElementById('drRAlb').value='';
-  document.getElementById('drRImp').value='';
-  document.getElementById('drRNot').value='';
   renderRMovs(r);
   document.getElementById('bgR').classList.add('open');
   document.getElementById('drR').classList.add('open');
@@ -1828,6 +1839,9 @@ function renderRMovs(r) {
       <div style="display:flex;gap:4px;align-items:center">
         <button class="btn btn-ghost btn-sm mov-del" onclick="printRMov('${r.id}','${m.id}',event)" title="Imprimir">
           <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><rect x="2" y="1" width="7" height="4.5"/><path d="M2 6H1v3.5h9V6H8"/><rect x="3" y="7" width="5" height="2.5"/></svg>
+        </button>
+        <button class="btn btn-ghost btn-sm mov-del" onclick="editRMov('${r.id}','${m.id}',event)" title="Editar">
+          <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M7.5 1.5l2 2L3.5 9.5H1.5v-2L7.5 1.5z"/></svg>
         </button>
         <button class="btn btn-danger btn-sm mov-del" onclick="delRMov('${r.id}','${m.id}',event)">
           <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M2 2.5h7M4 2.5V2a.3.3 0 0 1 .3-.3h2.4a.3.3 0 0 1 .3.3v.5M8.5 2.5l-.5 6.2a.5.5 0 0 1-.5.5H3.5a.5.5 0 0 1-.5-.5L2.5 2.5"/></svg>
@@ -1865,6 +1879,96 @@ async function delRMov(rid,mid,e) {
   r.movimientos=r.movimientos.filter(m=>m.id!==mid);
   setSynced();
   openDrawerR(rid); renderRapels(); renderDashboard();
+}
+
+function editRMov(rid, mid, e) {
+  e.stopPropagation();
+  const r = db.rapels.find(x => x.id === rid);
+  const m = (r?.movimientos || []).find(x => x.id === mid);
+  if (!r || !m) return;
+  document.getElementById('erClienteId').value = rid;
+  document.getElementById('erMovId').value = mid;
+  document.getElementById('erTipo').value = m.tipo || 'INGRESO';
+  document.getElementById('erImp').value = Math.abs(m.importe) || '';
+  document.getElementById('erAlb').value = m.albaran || '';
+  document.getElementById('erFec').value = m.fecha || '';
+  document.getElementById('erNot').value = m.notas || '';
+  document.getElementById('ovlEditMovR').classList.add('open');
+}
+async function saveEditRMov() {
+  const rid = document.getElementById('erClienteId').value;
+  const mid = document.getElementById('erMovId').value;
+  const val = parseFloat(document.getElementById('erImp').value);
+  if (isNaN(val) || val <= 0) { alert('Introduce un importe válido'); return; }
+  const upd = {
+    tipo: document.getElementById('erTipo').value,
+    importe: val,
+    albaran: document.getElementById('erAlb').value.trim(),
+    fecha: document.getElementById('erFec').value || null,
+    notas: document.getElementById('erNot').value.trim()
+  };
+  setSaving();
+  const { error } = await sb.from('movimientos_rapel').update(upd).eq('id', mid);
+  if (error) { alert('Error: ' + error.message); setError(); return; }
+  const r = db.rapels.find(x => x.id === rid);
+  const mi = r.movimientos.findIndex(x => x.id === mid);
+  if (mi >= 0) r.movimientos[mi] = { ...r.movimientos[mi], ...upd };
+  setSynced();
+  closeOverlay('ovlEditMovR');
+  openDrawerR(rid); renderRapels(); renderDashboard();
+}
+
+function editBMov(bid, mid, e) {
+  e.stopPropagation();
+  const b = db.bonus.find(x => x.id === bid);
+  const m = (b?.movimientos || []).find(x => x.id === mid);
+  if (!b || !m) return;
+  document.getElementById('ebClienteId').value = bid;
+  document.getElementById('ebMovId').value = mid;
+  document.getElementById('ebTipo').value = m.tipo || 'GANADO';
+  document.getElementById('ebImp').value = m.importe || '';
+  document.getElementById('ebFec').value = m.fecha || '';
+  document.getElementById('ebNot').value = m.notas || '';
+  document.getElementById('ovlEditMovB').classList.add('open');
+}
+async function saveEditBMov() {
+  const bid = document.getElementById('ebClienteId').value;
+  const mid = document.getElementById('ebMovId').value;
+  const val = parseFloat(document.getElementById('ebImp').value);
+  if (isNaN(val) || val <= 0) { alert('Introduce un importe válido'); return; }
+  const upd = {
+    tipo: document.getElementById('ebTipo').value,
+    importe: val,
+    fecha: document.getElementById('ebFec').value || null,
+    notas: document.getElementById('ebNot').value.trim()
+  };
+  setSaving();
+  const { error } = await sb.from('movimientos_bonus').update(upd).eq('id', mid);
+  if (error) { alert('Error: ' + error.message); setError(); return; }
+  const b = db.bonus.find(x => x.id === bid);
+  const mi = b.movimientos.findIndex(x => x.id === mid);
+  if (mi >= 0) b.movimientos[mi] = { ...b.movimientos[mi], ...upd };
+  setSynced();
+  closeOverlay('ovlEditMovB');
+  openDrawerB(bid); renderBonus(); renderDashboard();
+}
+
+function printBMov(bid, mid, e) {
+  e.stopPropagation();
+  const b = db.bonus.find(x => x.id === bid);
+  const m = b?.movimientos.find(x => x.id === mid);
+  if (!b || !m) return;
+  const { saldo } = bStats(b);
+  let h = printHeader(b.nombre, `${m.tipo} BONUS · ${fmtFecha(m.fecha)}`, 'Justificante de Bonus');
+  h += `<table><thead><tr><th>Campo</th><th>Valor</th></tr></thead><tbody>
+    <tr><td>Tipo</td><td><strong>${m.tipo}</strong></td></tr>
+    <tr><td>Fecha</td><td>${fmtFecha(m.fecha)}</td></tr>
+    <tr><td>Notas</td><td>${m.notas || '—'}</td></tr>
+    <tr class="total-row"><td>Importe</td><td style="color:${m.tipo === 'CANJEADO' ? '#E20613' : '#2e7d32'};font-size:15px">${m.tipo === 'CANJEADO' ? '-' : '+'} ${eur(m.importe)}</td></tr>
+    <tr><td>Saldo bolsa</td><td>${eur(saldo)}</td></tr>
+  </tbody></table>`;
+  h += `<div class="footer"><div class="firma-box">Firma cliente</div><div class="firma-box">Firma Recambios Ibiza</div></div></body></html>`;
+  printDoc(h);
 }
 
 function closeDrawer(t) {
@@ -1995,9 +2099,6 @@ function openDrawerB(id) {
     <div class="sum-card"><div class="sum-label">Ganado</div><div class="sum-val" style="color:var(--green)">${eur(ganado)}</div></div>
     <div class="sum-card"><div class="sum-label">Canjeado</div><div class="sum-val" style="color:var(--accent)">${eur(canjeado)}</div></div>
     <div class="sum-card"><div class="sum-label">Saldo</div><div class="sum-val" style="color:${saldo>0?'var(--green)':saldo<0?'var(--accent)':'var(--text-dim)'}">${eur(saldo)}</div></div>`;
-  document.getElementById('drBFec').value=today();
-  document.getElementById('drBImp').value='';
-  document.getElementById('drBNot').value='';
   renderBMovs(b);
   document.getElementById('bgB').classList.add('open');
   document.getElementById('drB').classList.add('open');
@@ -2016,6 +2117,12 @@ function renderBMovs(b) {
       </div>
       <div class="mov-amount" style="color:${m.tipo==='CANJEADO'?'var(--accent)':'var(--green)'}">${m.tipo==='CANJEADO'?'-':'+'} ${eur(m.importe)}</div>
       <div style="display:flex;gap:4px;align-items:center">
+        <button class="btn btn-ghost btn-sm mov-del" onclick="printBMov('${b.id}','${m.id}',event)" title="Imprimir">
+          <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><rect x="2" y="1" width="7" height="4.5"/><path d="M2 6H1v3.5h9V6H8"/><rect x="3" y="7" width="5" height="2.5"/></svg>
+        </button>
+        <button class="btn btn-ghost btn-sm mov-del" onclick="editBMov('${b.id}','${m.id}',event)" title="Editar">
+          <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M7.5 1.5l2 2L3.5 9.5H1.5v-2L7.5 1.5z"/></svg>
+        </button>
         <button class="btn btn-danger btn-sm mov-del" onclick="delBMov('${b.id}','${m.id}',event)">
           <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M2 2.5h7M4 2.5V2a.3.3 0 0 1 .3-.3h2.4a.3.3 0 0 1 .3.3v.5M8.5 2.5l-.5 6.2a.5.5 0 0 1-.5.5H3.5a.5.5 0 0 1-.5-.5L2.5 2.5"/></svg>
         </button>
