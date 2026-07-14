@@ -2629,7 +2629,7 @@ function buildConsumoTable(ant, actual, year, nombre, maxMes) {
   }
   function cierreCell(v) {
     if (v <= 0) return `<td class="consumo-num consumo-sep">—</td>`;
-    return `<td class="consumo-num consumo-sep" style="font-style:italic">${v}</td>`;
+    return `<td class="consumo-num consumo-sep" style="color:var(--text);font-weight:700">${v}</td>`;
   }
   function row(icon, label, av, ytdv) {
     const parc25 = parc(av);
@@ -2667,8 +2667,8 @@ function buildConsumoTable(ant, actual, year, nombre, maxMes) {
         </tr>
         <tr>
           <th>Categoría</th>
-          <th style="text-align:left">${year-1} → ${year}</th><th style="text-align:left">OBJETIVO</th>
-          <th class="consumo-sep" style="text-align:left">${year-1} → ${year}</th><th style="text-align:left">OBJETIVO</th>
+          <th style="text-align:center">${year-1} → ${year}</th><th style="text-align:left">OBJETIVO</th>
+          <th class="consumo-sep" style="text-align:center">${year-1} → ${year}</th><th style="text-align:left">OBJETIVO</th>
           <th class="consumo-sep"></th>
         </tr>
       </thead>
