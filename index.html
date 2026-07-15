@@ -2671,8 +2671,9 @@ function buildMonthlyPtsTable(movimientos, year, maxMes) {
       </tbody>
       <tfoot>
         <tr style="background:#f0f4ff;border-top:2px solid #002D5A">
-          <td colspan="14" style="padding:6px 8px;font-weight:700;font-size:9px;text-align:right;text-transform:uppercase;letter-spacing:.5px;color:#002D5A">Total Puntos Ganados</td>
-          <td colspan="2" style="padding:6px 8px;text-align:right;font-weight:900;font-size:13px;color:#b45309;border-left:2px solid #002D5A">${totalGanado}</td>
+          <td colspan="13" style="padding:6px 8px;font-weight:700;font-size:9px;text-align:right;text-transform:uppercase;letter-spacing:.5px;color:#002D5A">Total Puntos Ganados</td>
+          <td style="padding:6px 8px;text-align:right;font-weight:700;font-size:9px;border-left:1px solid #dde"></td>
+          <td style="padding:6px 8px;text-align:right;font-weight:900;font-size:13px;color:#b45309;border-left:1px solid #dde">${totalGanado}</td>
         </tr>
       </tfoot>
     </table>
@@ -3217,6 +3218,7 @@ function buildConsumoTable(ant, actual, year, nombre, maxMes, compact) {
         ${row('🏎','Neumáticos', ant.neumaticos, actual.neumaticos)}
         ${row('🛑','Pastillas', ant.pastillas, actual.pastillas)}
         ${row('⚡','Alt./Arr.', ant.alternadores, actual.alternadores)}
+        ${(ant.carroceria||0)>0||(actual.carroceria||0)>0?row('🔧','Carrocería', ant.carroceria||0, actual.carroceria||0):''}
       </tbody>
     </table>`;
 }
@@ -3241,17 +3243,17 @@ function renderConsumo() {
   const el   = document.getElementById('consumoTable');
   if (!wrap || !el) return;
   const year = new Date().getFullYear();
-  const totalAnt = { neumaticos:0, pastillas:0, alternadores:0 };
-  const totalAct = { neumaticos:0, pastillas:0, alternadores:0 };
+  const totalAnt = { neumaticos:0, pastillas:0, alternadores:0, carroceria:0 };
+  const totalAct = { neumaticos:0, pastillas:0, alternadores:0, carroceria:0 };
   let clientesConDatos = 0;
   db.puntos.forEach(p => {
     const ant = db.consumo.find(c => c.nombre === p.nombre && c.año === year - 1);
     if (ant) {
       clientesConDatos++;
-      totalAnt.neumaticos += ant.neumaticos; totalAnt.pastillas += ant.pastillas; totalAnt.alternadores += ant.alternadores;
+      totalAnt.neumaticos += ant.neumaticos; totalAnt.pastillas += ant.pastillas; totalAnt.alternadores += ant.alternadores; totalAnt.carroceria += ant.carroceria||0;
     }
     const act = calcConsumoCliente(year, p);
-    totalAct.neumaticos += act.neumaticos; totalAct.pastillas += act.pastillas; totalAct.alternadores += act.alternadores;
+    totalAct.neumaticos += act.neumaticos; totalAct.pastillas += act.pastillas; totalAct.alternadores += act.alternadores; totalAct.carroceria += act.carroceria||0;
   });
   wrap.style.display = '';
   if (!clientesConDatos) {
