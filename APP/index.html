@@ -188,6 +188,8 @@
   .drawer-close{position:absolute;top:16px;right:16px;width:32px;height:32px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text-dim);z-index:10}
   .drawer-close:hover{border-color:var(--accent);color:var(--accent)}
   .drawer-body{flex:1;overflow-y:auto;padding:20px 24px}
+  .drawer-sticky{padding:16px 24px 12px;border-bottom:1px solid var(--border);flex-shrink:0;overflow:hidden}
+  .drawer-scroll{flex:1;overflow-y:auto;padding:16px 24px}
   .drawer-foot{padding:14px 24px;border-top:1px solid var(--border);display:flex;gap:8px;flex-shrink:0}
 
   .sum-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
@@ -1127,6 +1129,10 @@
         <label>⚡ Alt. / Arranques (uds)</label>
         <input type="number" id="cAlt" placeholder="0" min="0">
       </div>
+      <div class="fgr">
+        <label>🔧 Carrocería (€ totales año)</label>
+        <input type="number" id="cCarr" placeholder="0" min="0" step="0.01">
+      </div>
     </div>
     <div class="modal-actions" style="margin-top:24px">
       <button class="btn btn-ghost" onclick="closeOverlay('ovlConsumo')">Cancelar</button>
@@ -1363,9 +1369,11 @@
     <div class="drawer-title" id="drPNom">—</div>
     <div class="drawer-sub" id="drPSub">—</div>
   </div>
-  <div class="drawer-body">
+  <div class="drawer-sticky">
     <div class="sum-grid" id="drPSum"></div>
     <div class="consumo-drawer" id="drPConsumo"></div>
+  </div>
+  <div class="drawer-scroll">
     <div style="font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--text-dim);margin-bottom:10px">Movimientos</div>
     <div class="mov-list" id="drPMovs"></div>
   </div>
@@ -2727,12 +2735,14 @@ function printClientPuntos(){
             return`<tr style="background:${bg};border-bottom:1px solid #e8e8e8">
               <td style="padding:8px 10px;font-weight:600">${c.icon} ${c.label}</td>
               <td style="padding:8px 12px;text-align:center;border-left:1px solid #e8e8e8">
-                <span style="color:#888;font-size:10px">${p1} est.</span> → <strong>${p2}</strong>${pctParc!==null?` <span style="font-weight:800;color:${pctColor(pctParc)}">${pctParc}%</span>`:''}
+                <div style="font-size:11px"><span style="color:#999">${p1} est.</span> <span style="color:#bbb">→</span> <strong style="font-size:12px">${p2}</strong></div>
+                ${pctParc!==null?`<div style="font-weight:800;font-size:13px;color:${pctColor(pctParc)};margin-top:3px">${pctParc}%</div>`:`<div style="color:#ccc;font-size:11px">—</div>`}
               </td>
               <td style="padding:8px 12px;text-align:center;border-left:1px solid #e8e8e8">
-                <span style="color:#888;font-size:10px">${c.ant}</span> → <strong>${p2}</strong>${pctComp!==null?` <span style="font-weight:800;color:${pctColor(pctComp)}">${pctComp}%</span>`:''}
+                <div style="font-size:11px"><span style="color:#999">${c.ant}</span> <span style="color:#bbb">→</span> <strong style="font-size:12px">${p2}</strong></div>
+                ${pctComp!==null?`<div style="font-weight:800;font-size:13px;color:${pctColor(pctComp)};margin-top:3px">${pctComp}%</div>`:`<div style="color:#ccc;font-size:11px">—</div>`}
               </td>
-              <td style="padding:8px 12px;text-align:right;border-left:1px solid #e8e8e8;font-weight:700;font-style:italic;color:#444">${p3}</td>
+              <td style="padding:8px 12px;text-align:right;border-left:1px solid #e8e8e8;font-weight:800;font-size:14px;color:#002D5A;vertical-align:middle">${p3}</td>
             </tr>`;
           }).join('')}
         </tbody>
@@ -3278,6 +3288,7 @@ function openConsumoEdit(nombre) {
   document.getElementById('cNeum').value = ex ? ex.neumaticos : '';
   document.getElementById('cPast').value = ex ? ex.pastillas : '';
   document.getElementById('cAlt').value  = ex ? ex.alternadores : '';
+  document.getElementById('cCarr').value = ex ? (ex.carroceria||'') : '';
   document.getElementById('ovlConsumo').classList.add('open');
 }
 
@@ -3287,17 +3298,18 @@ async function saveConsumoAnterior() {
   const neumaticos   = parseInt(document.getElementById('cNeum').value)  || 0;
   const pastillas    = parseInt(document.getElementById('cPast').value)  || 0;
   const alternadores = parseInt(document.getElementById('cAlt').value)   || 0;
+  const carroceria   = parseFloat(document.getElementById('cCarr').value) || 0;
   if (!nombre) { alert('Error: no hay cliente seleccionado'); return; }
   if (!año || año < 2020) { alert('Introduce un año válido'); return; }
   setSaving();
   const ex = db.consumo.find(c => c.nombre === nombre && c.año === año);
   let error;
   if (ex) {
-    const res = await sb.from('consumo_anual').update({ neumaticos, pastillas, alternadores }).eq('id', ex.id);
+    const res = await sb.from('consumo_anual').update({ neumaticos, pastillas, alternadores, carroceria }).eq('id', ex.id);
     error = res.error;
-    if (!error) { ex.neumaticos = neumaticos; ex.pastillas = pastillas; ex.alternadores = alternadores; }
+    if (!error) { ex.neumaticos = neumaticos; ex.pastillas = pastillas; ex.alternadores = alternadores; ex.carroceria = carroceria; }
   } else {
-    const res = await sb.from('consumo_anual').insert({ nombre, año, neumaticos, pastillas, alternadores }).select();
+    const res = await sb.from('consumo_anual').insert({ nombre, año, neumaticos, pastillas, alternadores, carroceria }).select();
     error = res.error;
     if (!error) db.consumo.push(res.data[0]);
   }
