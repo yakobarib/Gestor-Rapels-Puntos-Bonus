@@ -2599,13 +2599,85 @@ function buildPuntosPrintPage(p){
   if(ant){
     const catsAll=[{icon:'🏎',label:'Neumáticos',ant:ant.neumaticos,act:actual.neumaticos},{icon:'🛑',label:'Pastillas',ant:ant.pastillas,act:actual.pastillas},{icon:'⚡',label:'Alt./Arr.',ant:ant.alternadores,act:actual.alternadores},{icon:'🔧',label:'Carrocería',ant:ant.carroceria||0,act:actual.carroceria||0}];
     const cats=catsAll.filter(c=>c.ant>0||c.act>0);
-    consumoHtml=`<div style="margin-bottom:24px"><div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#002D5A;border-bottom:2px solid #002D5A;padding-bottom:6px;margin-bottom:12px">Evolución de Consumo ${year-1} vs ${year}</div><table style="font-size:11px;margin-bottom:0"><thead><tr><th style="width:20%;background:#002D5A">Categoría</th><th colspan="3" style="text-align:center;background:#003f7f;border-left:2px solid #fff3">Ene–${mesNombre} (parcial)</th><th colspan="3" style="text-align:center;background:#1a1a2e;border-left:2px solid #fff3">Año completo</th><th style="text-align:center;background:#2d2d44;border-left:2px solid #fff3">Cierre est.</th></tr><tr style="background:#e8edf5;color:#002D5A;font-size:10px"><td style="font-weight:600;padding:5px 10px"></td><td style="padding:5px 8px;font-weight:600;color:#555;border-left:2px solid #ccd">${year-1} est.</td><td style="padding:5px 8px;font-weight:600;color:#555">${year}</td><td style="padding:5px 8px;font-weight:700;color:#002D5A">Obj.</td><td style="padding:5px 8px;font-weight:600;color:#555;border-left:2px solid #ccd">${year-1}</td><td style="padding:5px 8px;font-weight:600;color:#555">${year}</td><td style="padding:5px 8px;font-weight:700;color:#002D5A">Obj.</td><td style="padding:5px 8px;font-weight:600;color:#555;border-left:2px solid #ccd">${year} proy.</td></tr></thead><tbody>${cats.map(c=>{const p1=parc(c.ant),p2=c.act,p3=proy(c.act);const pctParc=c.ant>0?Math.round(c.act/p1*100):null;const pctComp=c.ant>0?Math.round(c.act/c.ant*100):null;return`<tr><td style="font-weight:600;padding:7px 10px">${c.icon} ${c.label}</td><td style="padding:7px 8px;color:#888;font-size:11px;border-left:2px solid #dde">${p1}</td><td style="padding:7px 8px;font-weight:700">${p2}</td><td style="padding:7px 8px;font-weight:800;color:${pctParc!==null?pctColor(pctParc):'#888'}">${pctParc!==null?pctParc+'%':'—'}</td><td style="padding:7px 8px;color:#888;font-size:11px;border-left:2px solid #dde">${c.ant}</td><td style="padding:7px 8px;font-weight:700">${p2}</td><td style="padding:7px 8px;font-weight:800;color:${pctComp!==null?pctColor(pctComp):'#888'}">${pctComp!==null?pctComp+'%':'—'}</td><td style="padding:7px 8px;font-weight:700;color:#555;border-left:2px solid #dde;font-style:italic">${p3}</td></tr>`;}).join('')}</tbody></table></div>`;
+    const pctColorB=pct=>pct>=100?'#16a34a':pct>=75?'#d97706':'#dc2626';
+    consumoHtml=`<div style="margin-bottom:20px"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#002D5A;border-bottom:2px solid #002D5A;padding-bottom:5px;margin-bottom:10px">Evolución de Consumo ${year-1} vs ${year}</div><table style="font-size:11px;margin-bottom:0;border-collapse:collapse;width:100%"><thead><tr style="background:#002D5A;color:#fff;font-size:10px;text-transform:uppercase;letter-spacing:.8px"><th style="padding:8px 10px;text-align:left;font-weight:700">Categoría</th><th style="padding:8px 12px;text-align:center;border-left:1px solid rgba(255,255,255,.25);font-weight:700">Ene–${mesNombre} (parcial)</th><th style="padding:8px 12px;text-align:center;border-left:1px solid rgba(255,255,255,.25);font-weight:700">${year-1} → ${year} (año)</th><th style="padding:8px 12px;text-align:right;border-left:1px solid rgba(255,255,255,.25);font-weight:700">Estimado ${year}</th></tr></thead><tbody>${cats.map((c,i)=>{const p1=parc(c.ant),p2=c.act,p3=proy(c.act);const pctParc=c.ant>0?Math.round(c.act/p1*100):null;const pctComp=c.ant>0?Math.round(c.act/c.ant*100):null;const bg=i%2===0?'#fff':'#f7f9fc';return`<tr style="background:${bg};border-bottom:1px solid #e8e8e8"><td style="padding:8px 10px;font-weight:600">${c.icon} ${c.label}</td><td style="padding:8px 12px;text-align:center;border-left:1px solid #e8e8e8"><span style="color:#888;font-size:10px">${p1} est.</span> → <strong>${p2}</strong>${pctParc!==null?` <span style="font-weight:800;color:${pctColorB(pctParc)}">${pctParc}%</span>`:''}</td><td style="padding:8px 12px;text-align:center;border-left:1px solid #e8e8e8"><span style="color:#888;font-size:10px">${c.ant}</span> → <strong>${p2}</strong>${pctComp!==null?` <span style="font-weight:800;color:${pctColorB(pctComp)}">${pctComp}%</span>`:''}</td><td style="padding:8px 12px;text-align:right;border-left:1px solid #e8e8e8;font-weight:700;font-style:italic;color:#444">${p3}</td></tr>`;}).join('')}</tbody></table></div>`;
   }
   return`<div class="page-header"><div class="logo"><h1>RECAMBIOS IBIZA</h1><p>Gestión · Puntos de Fidelización</p></div><div class="doc-meta"><div class="doc-type">Extracto de Puntos</div><div class="doc-date">${fecha}</div></div></div><div class="cliente-band"><div><div class="cli-label">Cliente</div><div class="cli-nombre">${p.nombre}</div></div><div style="text-align:right;opacity:.8;font-size:10px">${movs.length} movimiento${movs.length!==1?'s':''}</div></div><div class="stats-row"><div class="stat-card ganado"><div class="stat-label">★ Puntos Ganados</div><div class="stat-val">${ganado.toLocaleString('es-ES')}</div></div><div class="stat-card canjeado"><div class="stat-label">⇄ Puntos Canjeados</div><div class="stat-val">${canjeado.toLocaleString('es-ES')}</div></div><div class="stat-card saldo"><div class="stat-label">◆ Saldo Actual</div><div class="stat-val">${saldo.toLocaleString('es-ES')}</div></div></div>${consumoHtml}<div class="section-title">Movimientos</div><table class="mov-table"><thead><tr><th>Fecha</th><th>Tipo</th><th>Referencia</th><th>Descripción</th><th style="text-align:right">Puntos</th></tr></thead><tbody>${movs.map(m=>`<tr><td>${fmtFecha(m.fecha)}</td><td><span class="badge badge-${m.tipo.toLowerCase()}">${m.tipo}</span></td><td>${m.referencia||'—'}</td><td style="color:#555">${m.notas||''}</td><td style="text-align:right;font-weight:700;color:${m.tipo==='CANJEADO'?'#1d4ed8':'#b45309'}">${m.tipo==='CANJEADO'?'−':'+'}${m.puntos.toLocaleString('es-ES')}</td></tr>`).join('')}<tr class="total-row"><td colspan="4"><strong>SALDO ACTUAL</strong></td><td style="text-align:right;color:${saldo>=0?'#15803d':'#dc2626'}">${saldo.toLocaleString('es-ES')} pts</td></tr></tbody></table><div class="footer"><div class="firma-box">Firma cliente</div><div class="firma-box">Firma Recambios Ibiza</div></div>`;
 }
 
 function printDoc(html){const w=window.open('','_blank','width=800,height=600');w.document.write(html);w.document.close();setTimeout(()=>{w.focus();w.print();},300);}
 function printHeader(cliente,titulo,subtitulo){return`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${titulo}</title><style>body{font-family:Arial,sans-serif;margin:0;padding:32px;color:#000}.header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #E20613;padding-bottom:16px;margin-bottom:24px}.logo-area h1{font-size:22px;font-weight:900;margin:0;color:#E20613}.logo-area p{font-size:11px;color:#666;margin:2px 0}.doc-info{text-align:right;font-size:12px;color:#444}.doc-title{font-size:18px;font-weight:700;margin-bottom:16px;color:#002D5A}.cliente-box{background:#f4f4f4;border:1px solid #ddd;border-radius:6px;padding:12px 16px;margin-bottom:20px}.cliente-label{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#666;margin-bottom:4px}.cliente-nombre{font-size:16px;font-weight:700}table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:20px}th{background:#002D5A;color:#fff;padding:8px 12px;text-align:left;font-size:11px;text-transform:uppercase}td{padding:8px 12px;border-bottom:1px solid #eee}tr:last-child td{border-bottom:2px solid #002D5A}.total-row td{font-weight:700;font-size:13px;background:#f9f9f9}.footer{margin-top:40px;display:grid;grid-template-columns:1fr 1fr;gap:40px}.firma-box{border-top:1px solid #000;padding-top:6px;font-size:11px;color:#666;text-align:center}@media print{body{padding:20px}}</style></head><body><div class="header"><div class="logo-area"><h1>RECAMBIOS IBIZA</h1><p>${subtitulo}</p></div><div class="doc-info"><div>${titulo}</div><div style="font-size:11px;color:#888">${new Date().toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit',year:'numeric'})}</div></div></div><div class="cliente-box"><div class="cliente-label">Cliente</div><div class="cliente-nombre">${cliente}</div></div>`;}
+
+function buildMonthlyPtsTable(movimientos, year, maxMes) {
+  const MC=['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  const mk=()=>Array(13).fill(0);
+  const d={n1:mk(),n2:mk(),past:mk(),alt:mk(),carr_eur:mk(),carr_pts:mk(),extra_pts:mk()};
+  const yStr=String(year);
+  (movimientos||[]).filter(m=>m.tipo==='GANADO'&&(m.fecha||'').startsWith(yStr)).forEach(m=>{
+    const mes=parseInt((m.fecha||'').slice(5,7))||0; if(!mes)return;
+    const nt=m.notas||'';
+    const n1=parseInt(nt.match(/Neum\.1ª:\s*(\d+)×/)?.[1])||0;
+    const n2=parseInt(nt.match(/Neum\.2ª:\s*(\d+)×/)?.[1])||0;
+    const past=parseInt(nt.match(/Pastillas:\s*(\d+)×/)?.[1])||0;
+    const alt=parseInt(nt.match(/Alt\/Arr:\s*(\d+)×/)?.[1])||0;
+    const cm=nt.match(/Carrocer[ií]a:\s*([\d.-]+)€=(\d+)pts/);
+    const ce=parseFloat(cm?.[1])||0, cp=parseInt(cm?.[2])||0;
+    d.n1[mes]+=n1; d.n2[mes]+=n2; d.past[mes]+=past; d.alt[mes]+=alt;
+    d.carr_eur[mes]+=ce; d.carr_pts[mes]+=cp;
+    const calcPts=n1*3+n2*2+cp+past*2+alt*2;
+    d.extra_pts[mes]+=Math.max(0,m.puntos-calcPts);
+  });
+  const sum=key=>d[key].reduce((s,v)=>s+v,0);
+  const tN1=sum('n1'),tN2=sum('n2'),tPast=sum('past'),tAlt=sum('alt'),tCe=sum('carr_eur'),tCp=sum('carr_pts'),tEx=sum('extra_pts');
+  const rows=[
+    {label:'Neumáticos 1ª marca',key:'n1',total:tN1,pts:tN1*3,hasData:tN1>0},
+    {label:'Neumáticos 2ª marca',key:'n2',total:tN2,pts:tN2*2,hasData:tN2>0},
+    {label:'Pastillas de freno',key:'past',total:tPast,pts:tPast*2,hasData:tPast>0},
+    {label:'Alternadores / Arr.',key:'alt',total:tAlt,pts:tAlt*2,hasData:tAlt>0},
+    {label:'Carrocería',key:'carr_eur',ptsKey:'carr_pts',total:tCe,pts:tCp,isEur:true,hasData:tCe!==0||tCp>0},
+    {label:'Pts. adicionales',key:'extra_pts',total:tEx,pts:tEx,hasData:tEx>0},
+  ].filter(r=>r.hasData);
+  if(!rows.length) return '';
+  const meses=Array.from({length:12},(_,i)=>i+1);
+  const totalGanado=rows.reduce((s,r)=>s+r.pts,0);
+  return`<div style="margin-bottom:20px">
+    <div class="section-title">Desglose Mensual ${year}</div>
+    <table style="font-size:9px;border-collapse:collapse;width:100%;margin-bottom:0;table-layout:fixed">
+      <colgroup><col style="width:14%">${meses.map(()=>'<col style="width:5.5%">').join('')}<col style="width:7%"><col style="width:6%"></colgroup>
+      <thead>
+        <tr style="background:#002D5A;color:#fff">
+          <th style="padding:5px 6px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase">Categoría</th>
+          ${meses.map(m=>`<th style="padding:5px 3px;text-align:center;font-size:9px;font-weight:700;${m>maxMes?'opacity:.35':''}">${MC[m]}</th>`).join('')}
+          <th style="padding:5px 6px;text-align:right;font-size:9px;font-weight:700;border-left:1px solid rgba(255,255,255,.3)">Total</th>
+          <th style="padding:5px 6px;text-align:right;font-size:9px;font-weight:700;border-left:1px solid rgba(255,255,255,.3)">Pts</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows.map((r,i)=>{
+          const bg=i%2===0?'#fff':'#f7f9fc';
+          const cells=meses.map(m=>{
+            const v=d[r.key][m];
+            const dim=m>maxMes;
+            return`<td style="padding:5px 3px;text-align:center;font-size:9px;${dim?'color:#ccc':''}${v===0?';color:#ddd':';font-weight:600'}">${v!==0?v:'·'}</td>`;
+          }).join('');
+          const totalStr=r.isEur?`${r.total.toLocaleString('es-ES',{maximumFractionDigits:0})}€`:String(r.total);
+          return`<tr style="background:${bg};border-bottom:1px solid #eee">
+            <td style="padding:5px 6px;font-weight:600;font-size:9px">${r.label}</td>
+            ${cells}
+            <td style="padding:5px 6px;text-align:right;font-weight:700;font-size:9px;border-left:1px solid #dde">${totalStr}</td>
+            <td style="padding:5px 6px;text-align:right;font-weight:700;font-size:9px;color:#b45309;border-left:1px solid #dde">${r.pts}</td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+      <tfoot>
+        <tr style="background:#f0f4ff;border-top:2px solid #002D5A">
+          <td colspan="14" style="padding:6px 8px;font-weight:700;font-size:9px;text-align:right;text-transform:uppercase;letter-spacing:.5px;color:#002D5A">Total Puntos Ganados</td>
+          <td colspan="2" style="padding:6px 8px;text-align:right;font-weight:900;font-size:13px;color:#b45309;border-left:2px solid #002D5A">${totalGanado}</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>`;
+}
 
 function printClientPuntos(){
   const p=db.puntos.find(x=>x.id===activeP); if(!p) return;
@@ -2632,50 +2704,41 @@ function printClientPuntos(){
       {icon:'⚡',label:'Alt./Arr.',ant:ant.alternadores,act:actual.alternadores},
       {icon:'🔧',label:'Carrocería',ant:ant.carroceria||0,act:actual.carroceria||0},
     ].filter(c=>c.ant>0||c.act>0);
-    const parc25=(v)=>parc(v);
-    const proyv=(v)=>proy(v);
+    const pctColor=pct=>pct>=100?'#16a34a':pct>=75?'#d97706':'#dc2626';
     consumoHtml=`
-    <div style="margin-bottom:24px">
-      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#002D5A;border-bottom:2px solid #002D5A;padding-bottom:6px;margin-bottom:12px">Evolución de Consumo ${year-1} vs ${year}</div>
-      <table style="font-size:11px;margin-bottom:0">
+    <div style="margin-bottom:20px">
+      <div class="section-title">Evolución de Consumo ${year-1} vs ${year}</div>
+      <table style="font-size:11px;margin-bottom:0;border-collapse:collapse;width:100%">
         <thead>
-          <tr>
-            <th style="width:20%;background:#002D5A">Categoría</th>
-            <th colspan="3" style="text-align:center;background:#003f7f;border-left:2px solid #fff3">Ene–${mesNombre} (parcial)</th>
-            <th colspan="3" style="text-align:center;background:#1a1a2e;border-left:2px solid #fff3">Año completo</th>
-            <th style="text-align:center;background:#2d2d44;border-left:2px solid #fff3">Cierre est.</th>
-          </tr>
-          <tr style="background:#e8edf5;color:#002D5A;font-size:10px">
-            <td style="font-weight:600;padding:5px 10px"></td>
-            <td style="padding:5px 8px;font-weight:600;color:#555;border-left:2px solid #ccd">${year-1} est.</td>
-            <td style="padding:5px 8px;font-weight:600;color:#555">${year}</td>
-            <td style="padding:5px 8px;font-weight:700;color:#002D5A">Obj.</td>
-            <td style="padding:5px 8px;font-weight:600;color:#555;border-left:2px solid #ccd">${year-1}</td>
-            <td style="padding:5px 8px;font-weight:600;color:#555">${year}</td>
-            <td style="padding:5px 8px;font-weight:700;color:#002D5A">Obj.</td>
-            <td style="padding:5px 8px;font-weight:600;color:#555;border-left:2px solid #ccd">${year} proy.</td>
+          <tr style="background:#002D5A;color:#fff;font-size:10px;text-transform:uppercase;letter-spacing:.8px">
+            <th style="padding:8px 10px;text-align:left;font-weight:700">Categoría</th>
+            <th style="padding:8px 12px;text-align:center;border-left:1px solid rgba(255,255,255,.25);font-weight:700">Ene–${mesNombre} (parcial)</th>
+            <th style="padding:8px 12px;text-align:center;border-left:1px solid rgba(255,255,255,.25);font-weight:700">${year-1} → ${year} (año)</th>
+            <th style="padding:8px 12px;text-align:right;border-left:1px solid rgba(255,255,255,.25);font-weight:700">Estimado ${year}</th>
           </tr>
         </thead>
         <tbody>
-          ${cats.map(c=>{
-            const p1=parc25(c.ant),p2=c.act,p3=proyv(c.act);
+          ${cats.map((c,i)=>{
+            const p1=parc(c.ant),p2=c.act,p3=proy(c.act);
             const pctParc=c.ant>0?Math.round(c.act/p1*100):null;
             const pctComp=c.ant>0?Math.round(c.act/c.ant*100):null;
-            return`<tr>
-              <td style="font-weight:600;padding:7px 10px">${c.icon} ${c.label}</td>
-              <td style="padding:7px 8px;color:#888;font-size:11px;border-left:2px solid #dde">${p1}</td>
-              <td style="padding:7px 8px;font-weight:700">${p2}</td>
-              <td style="padding:7px 8px;font-weight:800;color:${pctParc!==null?pctColor(pctParc):'#888'}">${pctParc!==null?pctParc+'%':'—'}</td>
-              <td style="padding:7px 8px;color:#888;font-size:11px;border-left:2px solid #dde">${c.ant}</td>
-              <td style="padding:7px 8px;font-weight:700">${p2}</td>
-              <td style="padding:7px 8px;font-weight:800;color:${pctComp!==null?pctColor(pctComp):'#888'}">${pctComp!==null?pctComp+'%':'—'}</td>
-              <td style="padding:7px 8px;font-weight:700;color:#555;border-left:2px solid #dde;font-style:italic">${p3}</td>
+            const bg=i%2===0?'#fff':'#f7f9fc';
+            return`<tr style="background:${bg};border-bottom:1px solid #e8e8e8">
+              <td style="padding:8px 10px;font-weight:600">${c.icon} ${c.label}</td>
+              <td style="padding:8px 12px;text-align:center;border-left:1px solid #e8e8e8">
+                <span style="color:#888;font-size:10px">${p1} est.</span> → <strong>${p2}</strong>${pctParc!==null?` <span style="font-weight:800;color:${pctColor(pctParc)}">${pctParc}%</span>`:''}
+              </td>
+              <td style="padding:8px 12px;text-align:center;border-left:1px solid #e8e8e8">
+                <span style="color:#888;font-size:10px">${c.ant}</span> → <strong>${p2}</strong>${pctComp!==null?` <span style="font-weight:800;color:${pctColor(pctComp)}">${pctComp}%</span>`:''}
+              </td>
+              <td style="padding:8px 12px;text-align:right;border-left:1px solid #e8e8e8;font-weight:700;font-style:italic;color:#444">${p3}</td>
             </tr>`;
           }).join('')}
         </tbody>
       </table>
     </div>`;
   }
+  const monthlyTableHtml=buildMonthlyPtsTable(movs,year,maxMes);
 
   const w=window.open('','_blank','width=850,height=700');
   w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Puntos — ${p.nombre}</title><style>
@@ -2731,6 +2794,7 @@ function printClientPuntos(){
       <div class="stat-card saldo"><div class="stat-label">◆ Saldo Actual</div><div class="stat-val">${saldo.toLocaleString('es-ES')}</div></div>
     </div>
     ${consumoHtml}
+    ${monthlyTableHtml}
     <div class="section-title">Movimientos</div>
     <table class="mov-table">
       <thead><tr><th>Fecha</th><th>Tipo</th><th>Referencia</th><th>Descripción</th><th style="text-align:right">Puntos</th></tr></thead>
