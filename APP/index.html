@@ -1840,20 +1840,17 @@ function openDrawerR(id) {
     <div class="sum-card"><div class="sum-label">Total Rapel</div><div class="sum-val">${eur(ingreso)}</div></div>
     <div class="sum-card"><div class="sum-label">Consumido</div><div class="sum-val" style="color:var(--accent)">${eur(gasto)}</div></div>
     <div class="sum-card"><div class="sum-label">Saldo</div><div class="sum-val" style="color:${saldo<0?'var(--accent)':'var(--green)'}">${eur(saldo)}</div></div>`;
-  const addForm=document.querySelector('#drR .add-form');
   const blqBanner=document.getElementById('drRBlqBanner');
   if(blqBanner) blqBanner.remove();
   if(bloq.bloqueado){
-    addForm.style.display='none';
+    const body=document.querySelector('#drR .drawer-body');
     const banner=document.createElement('div');
     banner.id='drRBlqBanner';
     banner.className='blk-banner';
     banner.innerHTML=`<div class="blk-icon"><svg width="16" height="16" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="2.5" y="5.5" width="7" height="5.5" rx="1"/><path d="M4 5.5V4a2 2 0 0 1 4 0v1.5"/></svg></div>
       <div class="blk-info"><div class="blk-title">Rapel bloqueado</div><div class="blk-sub">Por: <strong>${bloq.por||'—'}</strong> · ${bloq.fecha||''}<br>${bloq.motivo?'Motivo: '+bloq.motivo:''}</div></div>
       <button class="btn btn-ghost btn-sm" onclick="desbloquear('${r.id}')">Desbloquear</button>`;
-    addForm.parentNode.insertBefore(banner, addForm);
-  } else {
-    addForm.style.display='';
+    body.insertBefore(banner, body.firstChild);
   }
   renderRMovs(r);
   document.getElementById('bgR').classList.add('open');
