@@ -344,6 +344,7 @@
     /* Tabla con scroll horizontal */
     .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
     .tbl-wrap table{min-width:500px}
+    .tbl-wrap td{white-space:nowrap}
     /* Sum grid drawer */
     .sum-grid{grid-template-columns:1fr 1fr}
     /* Historico */
@@ -357,8 +358,11 @@
     .drawer{width:100vw;max-width:100vw}
   }
   @media(max-width:480px){
-    .kpis{grid-template-columns:1fr}
-    .kpi-value{font-size:22px}
+    .kpis{grid-template-columns:1fr 1fr}
+    .kpi{padding:10px 8px}
+    .kpi-value{font-size:18px}
+    .kpi-label{font-size:9px}
+    .kpi-sub{font-size:10px}
   }
   </style>
 </head>
