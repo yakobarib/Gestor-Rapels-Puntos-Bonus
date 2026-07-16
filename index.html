@@ -471,6 +471,7 @@
         <option value="ok">Con saldo</option>
         <option value="low">Saldo bajo (&lt;20%)</option>
         <option value="zero">Sin saldo</option>
+        <option value="bloq">Saldo bloqueado</option>
       </select>
     </div>
   </div>
@@ -1026,6 +1027,10 @@
         <label>Descripción</label>
         <input type="text" id="emNot" placeholder="Producto, observaciones...">
       </div>
+      <div class="fgr" style="grid-column:1/-1">
+        <label>Editado por *</label>
+        <input type="text" id="emPor" placeholder="TU NOMBRE (OBLIGATORIO)">
+      </div>
     </div>
     <div class="modal-actions" style="margin-top:24px">
       <button class="btn btn-ghost" onclick="closeOverlay('ovlEditMov')">Cancelar</button>
@@ -1065,6 +1070,10 @@
         <label>Notas</label>
         <input type="text" id="erNot" placeholder="Descripción...">
       </div>
+      <div class="fgr" style="grid-column:1/-1">
+        <label>Editado por *</label>
+        <input type="text" id="erPor" placeholder="TU NOMBRE (OBLIGATORIO)">
+      </div>
     </div>
     <div class="modal-actions" style="margin-top:24px">
       <button class="btn btn-ghost" onclick="closeOverlay('ovlEditMovR')">Cancelar</button>
@@ -1098,6 +1107,10 @@
       <div class="fgr" style="grid-column:1/-1">
         <label>Notas</label>
         <input type="text" id="ebNot" placeholder="Descripción...">
+      </div>
+      <div class="fgr" style="grid-column:1/-1">
+        <label>Editado por *</label>
+        <input type="text" id="ebPor" placeholder="TU NOMBRE (OBLIGATORIO)">
       </div>
     </div>
     <div class="modal-actions" style="margin-top:24px">
@@ -1238,6 +1251,11 @@
         <label id="qaImpLabel">Importe (€)</label>
         <input id="qaImp" type="number" min="0.01" step="0.01" placeholder="0.00">
       </div>
+      <!-- Campo exclusivo Rapel INGRESO -->
+      <div class="fgr full" id="qaRapelIntrodRow" style="display:none">
+        <label>Introducido por *</label>
+        <input id="qaRapelIntrod" placeholder="TU NOMBRE (OBLIGATORIO)">
+      </div>
       <!-- Campo exclusivo Rapel GASTO -->
       <div class="fgr full" id="qaRapelGestRow" style="display:none">
         <label>Gestionado por *</label>
@@ -1316,6 +1334,16 @@
       <div class="fgr full" id="qaRefRow" style="display:none">
         <label>Referencia / Mes</label>
         <input id="qaRef" placeholder="Ej: Junio 2026">
+      </div>
+      <!-- Campos usuario Puntos GANADO -->
+      <div class="fgr full" id="qaPtsIntrodRow" style="display:none">
+        <label>Introducido por *</label>
+        <input id="qaPtsIntrod" placeholder="TU NOMBRE (OBLIGATORIO)">
+      </div>
+      <!-- Campos usuario Puntos CANJEADO -->
+      <div class="fgr full" id="qaPtsGestRow" style="display:none">
+        <label>Gestionado por *</label>
+        <input id="qaPtsGest" placeholder="TU NOMBRE (OBLIGATORIO)">
       </div>
       <div class="fgr">
         <label>Fecha</label>
@@ -1634,6 +1662,7 @@ function renderRapels() {
   if(f==='ok')   list=list.filter(r=>rStats(r).saldo>0&&rStats(r).pct<80);
   if(f==='low')  list=list.filter(r=>{const s=rStats(r);return s.pct>=80&&s.saldo>=0;});
   if(f==='zero') list=list.filter(r=>rStats(r).saldo<=0);
+  if(f==='bloq') list=list.filter(r=>parseBloq(r.notas).bloqueado);
   const tb=document.getElementById('tbodyR');
   if(!list.length){tb.innerHTML=`<tr><td colspan="7">${emptyState('Ningún cliente',q?'Sin resultados':'Sin clientes aún')}</td></tr>`;return;}
   tb.innerHTML=list.map(r=>{
@@ -1880,7 +1909,10 @@ async function addRMov() {
 
 async function delRMov(rid,mid,e) {
   e.stopPropagation();
-  if(!confirm('¿Eliminar este movimiento?')) return;
+  const quien=prompt('¿Tu nombre? (obligatorio para eliminar)');
+  if(quien===null) return;
+  if(!quien.trim()){alert('El nombre es obligatorio para eliminar un movimiento');return;}
+  if(!confirm(`¿Eliminar este movimiento? (por: ${quien.trim()})`)) return;
   setSaving();
   const{error}=await sb.from('movimientos_rapel').delete().eq('id',mid);
   if(error){alert('Error: '+error.message);setError();return;}
@@ -1902,6 +1934,7 @@ function editRMov(rid, mid, e) {
   document.getElementById('erAlb').value = m.albaran || '';
   document.getElementById('erFec').value = m.fecha || '';
   document.getElementById('erNot').value = m.notas || '';
+  document.getElementById('erPor').value = '';
   document.getElementById('ovlEditMovR').classList.add('open');
 }
 async function saveEditRMov() {
@@ -1909,12 +1942,15 @@ async function saveEditRMov() {
   const mid = document.getElementById('erMovId').value;
   const val = parseFloat(document.getElementById('erImp').value);
   if (isNaN(val) || val <= 0) { alert('Introduce un importe válido'); return; }
+  const por = document.getElementById('erPor').value.trim();
+  if (!por) { alert('El campo "Editado por" es obligatorio'); return; }
+  const notBase = document.getElementById('erNot').value.trim();
   const upd = {
     tipo: document.getElementById('erTipo').value,
     importe: val,
     albaran: document.getElementById('erAlb').value.trim(),
     fecha: document.getElementById('erFec').value || null,
-    notas: document.getElementById('erNot').value.trim()
+    notas: `EDIT. POR: ${por}`+(notBase?` · ${notBase}`:'')
   };
   setSaving();
   const { error } = await sb.from('movimientos_rapel').update(upd).eq('id', mid);
@@ -1938,6 +1974,7 @@ function editBMov(bid, mid, e) {
   document.getElementById('ebImp').value = m.importe || '';
   document.getElementById('ebFec').value = m.fecha || '';
   document.getElementById('ebNot').value = m.notas || '';
+  document.getElementById('ebPor').value = '';
   document.getElementById('ovlEditMovB').classList.add('open');
 }
 async function saveEditBMov() {
@@ -1945,11 +1982,14 @@ async function saveEditBMov() {
   const mid = document.getElementById('ebMovId').value;
   const val = parseFloat(document.getElementById('ebImp').value);
   if (isNaN(val) || val <= 0) { alert('Introduce un importe válido'); return; }
+  const por = document.getElementById('ebPor').value.trim();
+  if (!por) { alert('El campo "Editado por" es obligatorio'); return; }
+  const notBase = document.getElementById('ebNot').value.trim();
   const upd = {
     tipo: document.getElementById('ebTipo').value,
     importe: val,
     fecha: document.getElementById('ebFec').value || null,
-    notas: document.getElementById('ebNot').value.trim()
+    notas: `EDIT. POR: ${por}`+(notBase?` · ${notBase}`:'')
   };
   setSaving();
   const { error } = await sb.from('movimientos_bonus').update(upd).eq('id', mid);
@@ -2047,7 +2087,10 @@ async function addPMov() {
 
 async function delPMov(pid,mid,e) {
   e.stopPropagation();
-  if(!confirm('¿Eliminar este movimiento?')) return;
+  const quien=prompt('¿Tu nombre? (obligatorio para eliminar)');
+  if(quien===null) return;
+  if(!quien.trim()){alert('El nombre es obligatorio para eliminar un movimiento');return;}
+  if(!confirm(`¿Eliminar este movimiento? (por: ${quien.trim()})`)) return;
   setSaving();
   const{error}=await sb.from('movimientos_puntos').delete().eq('id',mid);
   if(error){alert('Error: '+error.message);setError();return;}
@@ -2069,6 +2112,7 @@ function editPMov(pid, mid, e) {
   document.getElementById('emRef').value = m.referencia || '';
   document.getElementById('emFec').value = m.fecha || '';
   document.getElementById('emNot').value = m.notas || '';
+  document.getElementById('emPor').value = '';
   document.getElementById('ovlEditMov').classList.add('open');
 }
 
@@ -2077,12 +2121,15 @@ async function saveEditPMov() {
   const mid = document.getElementById('emMovId').value;
   const puntos = parseInt(document.getElementById('emPts').value);
   if (isNaN(puntos) || puntos <= 0) { alert('Introduce un número de puntos válido'); return; }
+  const por = document.getElementById('emPor').value.trim();
+  if (!por) { alert('El campo "Editado por" es obligatorio'); return; }
+  const notBase = document.getElementById('emNot').value.trim();
   const upd = {
     tipo: document.getElementById('emTipo').value,
     puntos,
     referencia: document.getElementById('emRef').value.trim(),
     fecha: document.getElementById('emFec').value || null,
-    notas: document.getElementById('emNot').value.trim()
+    notas: `EDIT. POR: ${por}`+(notBase?` · ${notBase}`:'')
   };
   setSaving();
   const { error } = await sb.from('movimientos_puntos').update(upd).eq('id', mid);
@@ -2158,7 +2205,10 @@ async function addBMov() {
 
 async function delBMov(bid,mid,e) {
   e.stopPropagation();
-  if(!confirm('¿Eliminar este movimiento?')) return;
+  const quien=prompt('¿Tu nombre? (obligatorio para eliminar)');
+  if(quien===null) return;
+  if(!quien.trim()){alert('El nombre es obligatorio para eliminar un movimiento');return;}
+  if(!confirm(`¿Eliminar este movimiento? (por: ${quien.trim()})`)) return;
   setSaving();
   const{error}=await sb.from('movimientos_bonus').delete().eq('id',mid);
   if(error){alert('Error: '+error.message);setError();return;}
@@ -2182,9 +2232,12 @@ function printClientBonus(){
 
 // ══ DELETE CLIENT ══
 async function deleteClient(tipo) {
+  const quien=prompt('¿Tu nombre? (obligatorio para eliminar cliente)');
+  if(quien===null) return;
+  if(!quien.trim()){alert('El nombre es obligatorio para eliminar un cliente');return;}
   if(tipo==='rapel') {
     const r=db.rapels.find(x=>x.id===activeR);
-    if(!r||!confirm(`¿Eliminar a ${r.nombre}?`)) return;
+    if(!r||!confirm(`¿Eliminar a ${r.nombre}? (por: ${quien.trim()})`)) return;
     setSaving();
     const{error}=await sb.from('clientes_rapel').delete().eq('id',activeR);
     if(error){alert('Error: '+error.message);setError();return;}
@@ -2192,7 +2245,7 @@ async function deleteClient(tipo) {
     closeDrawer('R');
   } else if(tipo==='puntos') {
     const p=db.puntos.find(x=>x.id===activeP);
-    if(!p||!confirm(`¿Eliminar a ${p.nombre}?`)) return;
+    if(!p||!confirm(`¿Eliminar a ${p.nombre}? (por: ${quien.trim()})`)) return;
     setSaving();
     const{error}=await sb.from('clientes_puntos').delete().eq('id',activeP);
     if(error){alert('Error: '+error.message);setError();return;}
@@ -2200,7 +2253,7 @@ async function deleteClient(tipo) {
     closeDrawer('P');
   } else {
     const b=db.bonus.find(x=>x.id===activeB);
-    if(!b||!confirm(`¿Eliminar a ${b.nombre}?`)) return;
+    if(!b||!confirm(`¿Eliminar a ${b.nombre}? (por: ${quien.trim()})`)) return;
     setSaving();
     const{error}=await sb.from('clientes_bonus').delete().eq('id',activeB);
     if(error){alert('Error: '+error.message);setError();return;}
@@ -2223,6 +2276,7 @@ function openQuickAction(tipo, subtipo) {
   const isBonus=tipo==='bonus';
   const isGanado=subtipo==='GANADO';
   show('qaAlbRow',isRapel);
+  show('qaRapelIntrodRow', isRapel && subtipo==='INGRESO');
   show('qaRapelGestRow', isRapel && subtipo==='GASTO');
   show('qaImpRow',isRapel||isBonus);
   document.getElementById('qaImpLabel').textContent = isBonus ? 'Importe Bonus (€)' : 'Importe (€)';
@@ -2233,6 +2287,8 @@ function openQuickAction(tipo, subtipo) {
   show('qaCalcSection', !isRapel && !isBonus && isGanado);
   show('qaPtsRow', !isRapel && !isBonus && !isGanado);
   show('qaRefRow', !isRapel && !isBonus);
+  show('qaPtsIntrodRow', !isRapel && !isBonus && isGanado);
+  show('qaPtsGestRow', !isRapel && !isBonus && !isGanado);
   if(!isRapel && !isBonus && isGanado){['qaNeum1','qaNeum2','qaCarr','qaPast','qaAlt','qaExtra'].forEach(id=>{document.getElementById(id).value='';});calcPoints();}
 
   const list=isRapel?db.rapels:isBonus?db.bonus:db.puntos;
@@ -2247,11 +2303,14 @@ function openQuickAction(tipo, subtipo) {
   document.getElementById('qaImp').value='';
   document.getElementById('qaPts').value='';
   document.getElementById('qaRef').value='';
+  document.getElementById('qaRapelIntrod').value='';
   document.getElementById('qaRapelGest').value='';
   document.getElementById('qaBonusAlb').value='';
   document.getElementById('qaIntrod').value='';
   document.getElementById('qaConcepto').value='';
   document.getElementById('qaGestPor').value='';
+  document.getElementById('qaPtsIntrod').value='';
+  document.getElementById('qaPtsGest').value='';
   ['qaNeum1','qaNeum2','qaCarr','qaPast','qaAlt','qaExtra'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   calcPoints();
   document.getElementById('qaFec').value=today();
@@ -2323,6 +2382,11 @@ async function saveQuickAction() {
     const r=db.rapels.find(x=>x.id===clienteId);
     if(!(await checkBloqAndProceed(r))) return;
     let notasRapel=notas;
+    if(subtipo==='INGRESO'){
+      const introd=document.getElementById('qaRapelIntrod').value.trim();
+      if(!introd){alert('El campo "Introducido por" es obligatorio');return;}
+      notasRapel=`INTROD. POR: ${introd}`+(notas?` · ${notas}`:'');
+    }
     if(subtipo==='GASTO'){
       const gest=document.getElementById('qaRapelGest').value.trim();
       if(!gest){alert('El campo "Gestionado por" es obligatorio');return;}
@@ -2357,10 +2421,16 @@ async function saveQuickAction() {
     if(subtipo==='GANADO'){
       puntos=getCalcTotal();
       if(puntos===0){alert('Introduce al menos un valor en la calculadora');return;}
+      const introd=document.getElementById('qaPtsIntrod').value.trim();
+      if(!introd){alert('El campo "Introducido por" es obligatorio');return;}
       if(!notasFinal) notasFinal=buildCalcNotas();
+      notasFinal=`INTROD. POR: ${introd}`+(notasFinal?` · ${notasFinal}`:'');
     } else {
       puntos=parseInt(document.getElementById('qaPts').value);
       if(isNaN(puntos)||puntos<=0){alert('Introduce un número de puntos válido');return;}
+      const gest=document.getElementById('qaPtsGest').value.trim();
+      if(!gest){alert('El campo "Gestionado por" es obligatorio');return;}
+      notasFinal=`GESTIONA: ${gest}`+(notas?` · ${notas}`:'');
     }
     const{data,error}=await sb.from('movimientos_puntos').insert({cliente_id:clienteId,tipo:subtipo,puntos,referencia,fecha,notas:notasFinal}).select();
     if(error){alert('Error: '+error.message);setError();return;}
@@ -3013,7 +3083,10 @@ async function saveBloquear() {
 }
 
 async function desbloquear(id) {
-  if (!confirm('¿Desbloquear este rapel?')) return;
+  const quien=prompt('¿Tu nombre? (obligatorio para desbloquear)');
+  if(quien===null) return;
+  if(!quien.trim()){alert('El nombre es obligatorio para desbloquear');return;}
+  if(!confirm(`¿Desbloquear este rapel? (por: ${quien.trim()})`)) return;
   const r = db.rapels.find(x=>x.id===id); if (!r) return;
   setSaving();
   const newNotas = removeBloqNotas(r.notas);
