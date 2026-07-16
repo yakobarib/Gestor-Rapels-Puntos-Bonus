@@ -317,12 +317,48 @@
   }
 
   @media(max-width:768px){
-    .kpis{grid-template-columns:1fr 1fr}
+    /* Layout general */
+    .header{padding:0 10px;height:auto;min-height:48px;flex-wrap:wrap;gap:6px}
+    .logo svg{width:28px;height:28px}
+    .logo-text{font-size:11px;letter-spacing:.5px}
+    .logo-sub{display:none}
+    .save-badge{font-size:9px;padding:3px 7px}
+    .header-right{gap:4px}
+    .icon-btn{width:32px;height:32px;font-size:11px;padding:0 7px}
+    /* Nav scrollable horizontal */
+    .nav{overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding:0 8px;gap:0;flex-wrap:nowrap}
+    .nav::-webkit-scrollbar{display:none}
+    .nav-btn{flex-shrink:0;padding:10px 12px;font-size:12px;white-space:nowrap}
+    /* Tab padding reducido */
+    .tab-top{padding:10px 10px 0}
+    .tab-scroll{padding:0 10px 60px}
+    /* KPIs 1 columna en muy pequeño */
+    .kpis{grid-template-columns:1fr 1fr;gap:8px}
+    .kpi{padding:12px 14px}
+    .kpi-value{font-size:18px}
+    .kpi-sub{font-size:10px}
+    /* Formularios */
     .fg{grid-template-columns:1fr}
     .fgr.full{grid-column:auto}
-    .header,.nav{padding:0 14px}
+    .header,.nav{padding:0 10px}
+    /* Tabla con scroll horizontal */
+    .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+    .tbl-wrap table{min-width:500px}
+    /* Sum grid drawer */
     .sum-grid{grid-template-columns:1fr 1fr}
+    /* Historico */
     .hist-item{grid-template-columns:70px 1fr auto auto}
+    /* Search row */
+    .search-row{flex-wrap:wrap;gap:6px}
+    .search-input{min-width:100px}
+    /* Consumo tabla */
+    .consumo-tbl{font-size:11px}
+    /* Drawer full width */
+    .drawer{width:100vw;max-width:100vw}
+  }
+  @media(max-width:480px){
+    .kpis{grid-template-columns:1fr}
+    .kpi-value{font-size:22px}
   }
   </style>
 </head>
@@ -355,7 +391,7 @@
       Solo lectura
     </div>
     <div class="save-badge" id="saveBadge">Conectando...</div>
-    <button class="icon-btn" onclick="openCierre()" title="Cierre de Año" style="gap:5px;width:auto;padding:0 10px;font-family:'Syne',sans-serif;font-size:12px;font-weight:600;color:#E20613;border-color:rgba(226,6,19,.3)">
+    <button class="icon-btn edit-only" onclick="openCierre()" title="Cierre de Año" style="gap:5px;width:auto;padding:0 10px;font-family:'Syne',sans-serif;font-size:12px;font-weight:600;color:#E20613;border-color:rgba(226,6,19,.3)">
       <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="1" y="2" width="12" height="11" rx="1.5"/><path d="M1 5.5h12M4 1v2M10 1v2"/></svg>
       Cierre Año
     </button>
@@ -1097,8 +1133,8 @@
         </select>
       </div>
       <div class="fgr">
-        <label>Importe (€)</label>
-        <input type="number" id="ebImp" min="0.01" step="0.01" placeholder="0.00">
+        <label>Puntos Bonus</label>
+        <input type="number" id="ebImp" min="1" step="1" placeholder="0">
       </div>
       <div class="fgr">
         <label>Fecha</label>
@@ -1574,6 +1610,7 @@ function switchTab(name, btn) {
 // ══ FORMAT ══
 function eur(n)    { return Number(n).toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €'; }
 function pts(n)    { return Number(n).toLocaleString('es-ES')+' pts'; }
+function checkDesktop(){if(window.innerWidth<1024){alert('Esta acción solo está disponible desde ordenador o tablet en modo horizontal.');return false;}return true;}
 function ptsEur(n) { return eur(n*PTS_VALUE); }
 
 // ══ STATS ══
@@ -1649,9 +1686,9 @@ function renderDashboard() {
   const tBCan=db.bonus.reduce((a,b)=>a+bStats(b).canjeado,0);
   const tBS=tBGan-tBCan;
   document.getElementById('kpisBonus').innerHTML=`
-    <div class="kpi"><div class="kpi-label">Bonus Ganado</div><div class="kpi-value" style="color:#fff">${eur(tBGan)}</div><div class="kpi-sub">${db.bonus.length} clientes</div></div>
-    <div class="kpi"><div class="kpi-label">Bonus Canjeado</div><div class="kpi-value c-accent">${eur(tBCan)}</div><div class="kpi-sub">descuentos aplicados</div></div>
-    <div class="kpi"><div class="kpi-label">Bonus Pendiente</div><div class="kpi-value ${tBS>=0?'c-green':'c-accent'}">${eur(tBS)}</div><div class="kpi-sub">disponible para clientes</div></div>`;
+    <div class="kpi"><div class="kpi-label">Bonus Ganado</div><div class="kpi-value" style="color:#fff">${pts(tBGan)}</div><div class="kpi-sub">${db.bonus.length} clientes</div></div>
+    <div class="kpi"><div class="kpi-label">Bonus Canjeado</div><div class="kpi-value c-accent">${pts(tBCan)}</div><div class="kpi-sub">descuentos aplicados</div></div>
+    <div class="kpi"><div class="kpi-label">Bonus Pendiente</div><div class="kpi-value ${tBS>=0?'c-green':'c-accent'}">${pts(tBS)}</div><div class="kpi-sub">disponible para clientes</div></div>`;
 }
 
 // ══ RAPELS TABLE ══
@@ -1920,7 +1957,7 @@ async function delRMov(rid,mid,e) {
 }
 
 function editRMov(rid, mid, e) {
-  e.stopPropagation();
+  e.stopPropagation(); if(!checkDesktop()) return;
   const r = db.rapels.find(x => x.id === rid);
   const m = (r?.movimientos || []).find(x => x.id === mid);
   if (!r || !m) return;
@@ -1961,7 +1998,7 @@ async function saveEditRMov() {
 }
 
 function editBMov(bid, mid, e) {
-  e.stopPropagation();
+  e.stopPropagation(); if(!checkDesktop()) return;
   const b = db.bonus.find(x => x.id === bid);
   const m = (b?.movimientos || []).find(x => x.id === mid);
   if (!b || !m) return;
@@ -1977,8 +2014,8 @@ function editBMov(bid, mid, e) {
 async function saveEditBMov() {
   const bid = document.getElementById('ebClienteId').value;
   const mid = document.getElementById('ebMovId').value;
-  const val = parseFloat(document.getElementById('ebImp').value);
-  if (isNaN(val) || val <= 0) { alert('Introduce un importe válido'); return; }
+  const val = parseInt(document.getElementById('ebImp').value);
+  if (isNaN(val) || val <= 0) { alert('Introduce un número de puntos válido'); return; }
   const por = document.getElementById('ebPor').value.trim();
   if (!por) { alert('El campo "Editado por" es obligatorio'); return; }
   const notBase = document.getElementById('ebNot').value.trim();
@@ -2098,7 +2135,7 @@ async function delPMov(pid,mid,e) {
 }
 
 function editPMov(pid, mid, e) {
-  e.stopPropagation();
+  e.stopPropagation(); if(!checkDesktop()) return;
   const p = db.puntos.find(x => x.id === pid);
   const m = (p?.movimientos || []).find(x => x.id === mid);
   if (!m) return;
@@ -2149,9 +2186,9 @@ function openDrawerB(id) {
   document.getElementById('drBNom').textContent=b.nombre;
   document.getElementById('drBSub').textContent=`${(b.movimientos||[]).length} movimientos · Bonus fidelización`;
   document.getElementById('drBSum').innerHTML=`
-    <div class="sum-card"><div class="sum-label">Ganado</div><div class="sum-val" style="color:var(--green)">${eur(ganado)}</div></div>
-    <div class="sum-card"><div class="sum-label">Canjeado</div><div class="sum-val" style="color:var(--accent)">${eur(canjeado)}</div></div>
-    <div class="sum-card"><div class="sum-label">Saldo</div><div class="sum-val" style="color:${saldo>0?'var(--green)':saldo<0?'var(--accent)':'var(--text-dim)'}">${eur(saldo)}</div></div>`;
+    <div class="sum-card"><div class="sum-label">Ganado</div><div class="sum-val" style="color:var(--green)">${pts(ganado)}</div></div>
+    <div class="sum-card"><div class="sum-label">Canjeado</div><div class="sum-val" style="color:var(--accent)">${pts(canjeado)}</div></div>
+    <div class="sum-card"><div class="sum-label">Saldo</div><div class="sum-val" style="color:${saldo>0?'var(--green)':saldo<0?'var(--accent)':'var(--text-dim)'}">${pts(saldo)}</div></div>`;
   renderBMovs(b);
   document.getElementById('bgB').classList.add('open');
   document.getElementById('drB').classList.add('open');
@@ -2168,7 +2205,7 @@ function renderBMovs(b) {
         <div class="mov-ref"><span class="tag ${tc[m.tipo]||'tag-gray'}">${m.tipo}</span></div>
         <div class="mov-desc">${m.notas||''} ${m.fecha?'· '+fmtFecha(m.fecha):''}</div>
       </div>
-      <div class="mov-amount" style="color:${m.tipo==='CANJEADO'?'var(--accent)':'var(--green)'}">${m.tipo==='CANJEADO'?'-':'+'} ${eur(m.importe)}</div>
+      <div class="mov-amount" style="color:${m.tipo==='CANJEADO'?'var(--accent)':'var(--green)'}">${m.tipo==='CANJEADO'?'-':'+'} ${pts(m.importe)}</div>
       <div style="display:flex;gap:4px;align-items:center">
         <button class="btn btn-ghost btn-sm mov-del" onclick="printBMov('${b.id}','${m.id}',event)" title="Imprimir">
           <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><rect x="2" y="1" width="7" height="4.5"/><path d="M2 6H1v3.5h9V6H8"/><rect x="3" y="7" width="5" height="2.5"/></svg>
@@ -2220,9 +2257,9 @@ function printClientBonus(){
   const{ganado,canjeado,saldo}=bStats(b);
   const movs=[...(b.movimientos||[])].sort((a,c)=>(a.fecha||'').localeCompare(c.fecha||''));
   let h=printHeader(b.nombre,'EXTRACTO DE BONUS','Extracto Bonus de Fidelización');
-  h+=`<table><thead><tr><th>Fecha</th><th>Tipo</th><th>Notas</th><th style="text-align:right">Importe</th></tr></thead><tbody>`;
-  for(const m of movs) h+=`<tr><td>${fmtFecha(m.fecha)}</td><td>${m.tipo}</td><td>${m.notas||''}</td><td style="text-align:right;font-weight:600;color:${m.tipo==='CANJEADO'?'#E20613':'#2e7d32'}">${m.tipo==='CANJEADO'?'-':'+'} ${eur(m.importe)}</td></tr>`;
-  h+=`<tr class="total-row"><td colspan="3"><strong>SALDO ACTUAL</strong></td><td style="text-align:right;color:${saldo>=0?'#2e7d32':'#E20613'}">${eur(saldo)}</td></tr></tbody></table>`;
+  h+=`<table><thead><tr><th>Fecha</th><th>Tipo</th><th>Notas</th><th style="text-align:right">Puntos</th></tr></thead><tbody>`;
+  for(const m of movs) h+=`<tr><td>${fmtFecha(m.fecha)}</td><td>${m.tipo}</td><td>${m.notas||''}</td><td style="text-align:right;font-weight:600;color:${m.tipo==='CANJEADO'?'#E20613':'#2e7d32'}">${m.tipo==='CANJEADO'?'-':'+'} ${pts(m.importe)}</td></tr>`;
+  h+=`<tr class="total-row"><td colspan="3"><strong>SALDO ACTUAL</strong></td><td style="text-align:right;color:${saldo>=0?'#2e7d32':'#E20613'}">${pts(saldo)}</td></tr></tbody></table>`;
   h+=`<div class="footer"><div class="firma-box">Firma cliente</div><div class="firma-box">Firma Recambios Ibiza</div></div></body></html>`;
   printDoc(h);
 }
@@ -2263,6 +2300,7 @@ async function deleteClient(tipo) {
 
 // ══ QUICK ACTION ══
 function openQuickAction(tipo, subtipo) {
+  if(!checkDesktop()) return;
   quickMode={tipo,subtipo};
   const labels={INGRESO:'Nuevo Rapel',GASTO:'Venta Rapel',GANADO:tipo==='bonus'?'Añadir Bonus':'Añadir Puntos',CANJEADO:tipo==='bonus'?'Descontar Bonus':'Venta con Puntos'};
   const subs={INGRESO:'Carga de bolsa de herramienta para un cliente',GASTO:'Consumo de bolsa de herramienta',GANADO:tipo==='bonus'?'Bonus ganado por fidelidad (en €)':'Puntos ganados por compra de neumáticos',CANJEADO:tipo==='bonus'?'Descuento bonus aplicado en compra':'Canje de puntos por producto'};
@@ -2276,7 +2314,9 @@ function openQuickAction(tipo, subtipo) {
   show('qaRapelIntrodRow', isRapel && subtipo==='INGRESO');
   show('qaRapelGestRow', isRapel && subtipo==='GASTO');
   show('qaImpRow',isRapel||isBonus);
-  document.getElementById('qaImpLabel').textContent = isBonus ? 'Importe Bonus (€)' : 'Importe (€)';
+  const qaImpEl=document.getElementById('qaImp');
+  if(isBonus){document.getElementById('qaImpLabel').textContent='Puntos Bonus';qaImpEl.min='1';qaImpEl.step='1';qaImpEl.placeholder='0';}
+  else{document.getElementById('qaImpLabel').textContent='Importe (€)';qaImpEl.min='0.01';qaImpEl.step='0.01';qaImpEl.placeholder='0.00';}
   show('qaBonusAlbRow', isBonus && isGanado);
   show('qaIntrodRow',   isBonus && isGanado);
   show('qaConceptoRow', isBonus && !isGanado);
@@ -2393,8 +2433,8 @@ async function saveQuickAction() {
     if(error){alert('Error: '+error.message);setError();return;}
     if(r) r.movimientos.push(data[0]);
   } else if(tipo==='bonus') {
-    const imp=parseFloat(document.getElementById('qaImp').value);
-    if(isNaN(imp)||imp<=0){alert('Introduce un importe en euros válido');return;}
+    const imp=parseInt(document.getElementById('qaImp').value);
+    if(isNaN(imp)||imp<=0){alert('Introduce un número de puntos válido');return;}
     let notasBonus;
     if(subtipo==='GANADO'){
       const alb=document.getElementById('qaBonusAlb').value.trim();
@@ -2442,6 +2482,7 @@ async function saveQuickAction() {
 
 // ══ EDITAR MOVIMIENTO ══
 function openEditMov(sistema) {
+  if(!checkDesktop()) return;
   editMovMode = null;
   document.getElementById('emSistema').value = sistema;
   document.getElementById('emMovListRow').style.display = 'none';
@@ -3052,6 +3093,7 @@ function removeBloqNotas(notas) {
 }
 
 function openBloquear() {
+  if(!checkDesktop()) return;
   const list = db.rapels.filter(r => !parseBloq(r.notas).bloqueado);
   if (!list.length) { alert('No hay clientes desbloqueados'); return; }
   const sel = document.getElementById('blqCliente');
@@ -3111,6 +3153,7 @@ function onAjTipoChange() {
 }
 
 function openAjuste(preselId) {
+  if(!checkDesktop()) return;
   const sel = document.getElementById('ajCliente');
   sel.innerHTML = '<option value="">— Seleccionar cliente —</option>' + db.rapels.map(r=>`<option value="${r.id}">${r.nombre}</option>`).join('');
   if (preselId) sel.value = preselId;
@@ -3395,6 +3438,7 @@ async function saveConsumoAnterior() {
 
 // ══ CIERRE DE AÑO ══
 function openCierre() {
+  if(!checkDesktop()) return;
   const year = new Date().getFullYear();
   document.getElementById('cierreYear').textContent = year;
   document.getElementById('cierreFecha').value = `${year}-12-31`;
