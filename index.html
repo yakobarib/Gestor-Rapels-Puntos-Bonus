@@ -1906,7 +1906,7 @@ async function addRMov() {
 
 async function delRMov(rid,mid,e) {
   e.stopPropagation();
-  const quien=prompt('¿Tu nombre? (obligatorio para eliminar)');
+  const quien=prompt('¿Tu nombre? (obligatorio para eliminar)')?.toUpperCase();
   if(quien===null) return;
   if(!quien.trim()){alert('El nombre es obligatorio para eliminar un movimiento');return;}
   if(!confirm(`¿Eliminar este movimiento? (por: ${quien.trim()})`)) return;
@@ -2084,7 +2084,7 @@ async function addPMov() {
 
 async function delPMov(pid,mid,e) {
   e.stopPropagation();
-  const quien=prompt('¿Tu nombre? (obligatorio para eliminar)');
+  const quien=prompt('¿Tu nombre? (obligatorio para eliminar)')?.toUpperCase();
   if(quien===null) return;
   if(!quien.trim()){alert('El nombre es obligatorio para eliminar un movimiento');return;}
   if(!confirm(`¿Eliminar este movimiento? (por: ${quien.trim()})`)) return;
@@ -2202,7 +2202,7 @@ async function addBMov() {
 
 async function delBMov(bid,mid,e) {
   e.stopPropagation();
-  const quien=prompt('¿Tu nombre? (obligatorio para eliminar)');
+  const quien=prompt('¿Tu nombre? (obligatorio para eliminar)')?.toUpperCase();
   if(quien===null) return;
   if(!quien.trim()){alert('El nombre es obligatorio para eliminar un movimiento');return;}
   if(!confirm(`¿Eliminar este movimiento? (por: ${quien.trim()})`)) return;
@@ -2229,7 +2229,7 @@ function printClientBonus(){
 
 // ══ DELETE CLIENT ══
 async function deleteClient(tipo) {
-  const quien=prompt('¿Tu nombre? (obligatorio para eliminar cliente)');
+  const quien=prompt('¿Tu nombre? (obligatorio para eliminar cliente)')?.toUpperCase();
   if(quien===null) return;
   if(!quien.trim()){alert('El nombre es obligatorio para eliminar un cliente');return;}
   if(tipo==='rapel') {
@@ -3080,7 +3080,7 @@ async function saveBloquear() {
 }
 
 async function desbloquear(id) {
-  const quien=prompt('¿Tu nombre? (obligatorio para desbloquear)');
+  const quien=prompt('¿Tu nombre? (obligatorio para desbloquear)')?.toUpperCase();
   if(quien===null) return;
   if(!quien.trim()){alert('El nombre es obligatorio para desbloquear');return;}
   if(!confirm(`¿Desbloquear este rapel? (por: ${quien.trim()})`)) return;
