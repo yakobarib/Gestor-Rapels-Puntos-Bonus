@@ -550,6 +550,10 @@
           <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M7 1l1.3 2.6 2.9.42-2.1 2.05.5 2.88L7 7.6 4.4 8.95l.5-2.88L2.8 4.02l2.9-.42z"/></svg>
           Venta con Puntos
         </button>
+        <button class="btn btn-sm" style="background:rgba(46,125,50,.08);color:#2e7d32;border:1px solid var(--border)" onclick="openImportConsumo()">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 1v7M3 5l3 3 3-3M2 10h8"/></svg>
+          Importar Consumo
+        </button>
         <div class="print-menu-wrap" id="printWrapP">
           <button class="btn btn-sm" style="background:rgba(91,141,239,.08);color:var(--text-dim);border:1px solid var(--border)" onclick="togglePrintMenu('P')">
             <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="1" y="3" width="10" height="7" rx="1"/><path d="M3 3V1.5h6V3"/><path d="M3 8.5h6M3 6.5h4"/></svg>
@@ -1196,6 +1200,97 @@
   </div>
 </div>
 
+<!-- MODAL IMPORTAR CONSUMO / BAREMO -->
+<div class="overlay" id="ovlImportConsumo">
+  <div class="modal" style="max-width:960px">
+    <div class="modal-title">Importar Consumo Mensual</div>
+    <div class="modal-sub" id="impSub">Sube el fichero de ventas del ERP para calcular y añadir los puntos automáticamente</div>
+
+    <!-- PASO 1: FICHERO -->
+    <div id="impStepFile">
+      <div class="fg" style="margin-top:16px">
+        <div class="fgr" style="grid-column:1/-1">
+          <label>Tipo de fichero</label>
+          <select id="impTipo" onchange="onImpTipoChange()">
+            <option value="consumo">Consumo mensual de clientes (Marca/Familia)</option>
+            <option value="baremo">Baremo Marca/Familia → Categoría (carga inicial o actualización)</option>
+          </select>
+        </div>
+        <div class="fgr" id="impPeriodoRow">
+          <label>Periodo *</label>
+          <input type="month" id="impPeriodo">
+        </div>
+        <div class="fgr" style="grid-column:1/-1">
+          <label>Fichero (.xls / .xlsx) *</label>
+          <input type="file" id="impFile" accept=".xls,.xlsx">
+        </div>
+      </div>
+      <div id="impFileMsg" style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text-dim);margin-top:10px"></div>
+      <div class="modal-actions" style="margin-top:24px">
+        <button class="btn btn-ghost" onclick="closeImportConsumo()">Cancelar</button>
+        <button class="btn btn-primary" onclick="parseImportFile()">Analizar fichero</button>
+      </div>
+    </div>
+
+    <!-- PASO 2: REVISIÓN -->
+    <div id="impStepReview" style="display:none">
+      <div id="impBaremoSummary" style="display:none;margin-top:16px;font-size:14px"></div>
+      <div id="impUnmappedSection" style="display:none">
+        <div style="font-weight:700;margin:16px 0 8px">⚠ Parejas Marca/Familia sin categoría (<span id="impUnmappedCount">0</span>)</div>
+        <div class="tbl-wrap" style="max-height:220px;overflow-y:auto">
+          <table>
+            <thead><tr><th>Cliente</th><th>Marca</th><th>Familia</th><th class="num">Uds</th><th class="num">Importe</th><th>Categoría</th></tr></thead>
+            <tbody id="impUnmappedBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="impClientSection">
+        <div style="font-weight:700;margin:16px 0 8px">Clientes detectados (<span id="impClientCount">0</span>)</div>
+        <div class="tbl-wrap" style="max-height:320px;overflow-y:auto">
+          <table>
+            <thead><tr><th>Cliente</th><th>Desglose</th><th class="num">Total pts</th></tr></thead>
+            <tbody id="impClientBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div id="impReviewMsg" style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text-dim);margin-top:10px"></div>
+
+      <div class="modal-actions" style="margin-top:24px">
+        <button class="btn btn-ghost" onclick="closeImportConsumo()">Cancelar</button>
+        <button class="btn btn-ghost" onclick="backToImpStepFile()">← Volver</button>
+        <button class="btn btn-primary" id="impConfirmBtn" onclick="confirmImportConsumo()">✓ Confirmar importación</button>
+      </div>
+    </div>
+
+    <!-- PASO 3: RESULTADO -->
+    <div id="impStepDone" style="display:none">
+      <div id="impDoneMsg" style="margin-top:16px;font-size:14px;line-height:1.7"></div>
+      <div class="modal-actions" style="margin-top:24px">
+        <button class="btn btn-primary" onclick="closeImportConsumo()">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL RENOMBRAR CLIENTE -->
+<div class="overlay" id="ovlRenombrar">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-title">Renombrar cliente</div>
+    <div class="modal-sub" id="rnModalSub">Se actualiza en todos los paneles donde aparezca este cliente</div>
+    <div class="fg" style="margin-top:16px">
+      <div class="fgr" style="grid-column:1/-1">
+        <label>Nombre *</label>
+        <input type="text" id="rnNombre" placeholder="NOMBRE DEL CLIENTE">
+      </div>
+    </div>
+    <div class="modal-actions" style="margin-top:24px">
+      <button class="btn btn-ghost" onclick="closeOverlay('ovlRenombrar')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveRenombrar()">✓ Guardar</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL CIERRE DE AÑO -->
 <div class="overlay" id="ovlCierre">
   <div class="modal" style="max-width:560px">
@@ -1418,6 +1513,10 @@
     <div class="mov-list" id="drRMovs"></div>
   </div>
   <div class="drawer-foot">
+    <button class="btn btn-ghost btn-sm" onclick="openRenombrar('rapel')">
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M8.5 1.5l2 2L4 10H2v-2L8.5 1.5z"/></svg>
+      Renombrar
+    </button>
     <button class="btn btn-danger btn-sm" onclick="deleteClient('rapel')">
       <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 3h8M4.5 3V2a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 .5.5v1M9.5 3l-.6 7a.5.5 0 0 1-.5.5H3.6a.5.5 0 0 1-.5-.5L2.5 3"/></svg>
       Eliminar cliente
@@ -1448,6 +1547,10 @@
     <div class="mov-list" id="drPMovs"></div>
   </div>
   <div class="drawer-foot">
+    <button class="btn btn-ghost btn-sm" onclick="openRenombrar('puntos')">
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M8.5 1.5l2 2L4 10H2v-2L8.5 1.5z"/></svg>
+      Renombrar
+    </button>
     <button class="btn btn-danger btn-sm" onclick="deleteClient('puntos')">
       <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 3h8M4.5 3V2a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 .5.5v1M9.5 3l-.6 7a.5.5 0 0 1-.5.5H3.6a.5.5 0 0 1-.5-.5L2.5 3"/></svg>
       Eliminar cliente
@@ -1475,6 +1578,10 @@
     <div class="mov-list" id="drBMovs"></div>
   </div>
   <div class="drawer-foot">
+    <button class="btn btn-ghost btn-sm" onclick="openRenombrar('bonus')">
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M8.5 1.5l2 2L4 10H2v-2L8.5 1.5z"/></svg>
+      Renombrar
+    </button>
     <button class="btn btn-danger btn-sm" onclick="deleteClient('bonus')">
       <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 3h8M4.5 3V2a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 .5.5v1M9.5 3l-.6 7a.5.5 0 0 1-.5.5H3.6a.5.5 0 0 1-.5-.5L2.5 3"/></svg>
       Eliminar cliente
@@ -1538,6 +1645,7 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 <script>
 // ══ SUPABASE ══
 const SUPABASE_URL = 'https://qiwacvjrytpgdqhwnkcj.supabase.co';
@@ -1545,7 +1653,7 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const PTS_VALUE = 1;
-let db = { rapels: [], puntos: [], bonus: [], consumo: [] };
+let db = { rapels: [], puntos: [], bonus: [], consumo: [], baremo: [], clientes: [] };
 let activeR = null, activeP = null, activeB = null;
 let quickMode = null; // { tipo:'rapel'|'puntos'|'bonus', subtipo:'INGRESO'|'GASTO'|'GANADO'|'CANJEADO' }
 let editMovMode = null; // { sistema:'puntos'|'bonus', movId, clienteId }
@@ -1563,17 +1671,23 @@ document.addEventListener('input', function(e) {
 
 async function load() {
   document.getElementById('loadingOverlay').style.display = 'flex';
-  const [{ data: rapels, error: e1 }, { data: puntos, error: e2 }, { data: bonus, error: e3 }, { data: consumo, error: e4 }] = await Promise.all([
-    sb.from('clientes_rapel').select('*, movimientos_rapel(*)').order('nombre'),
-    sb.from('clientes_puntos').select('*, movimientos_puntos(*)').order('nombre'),
-    sb.from('clientes_bonus').select('*, movimientos_bonus(*)').order('nombre'),
-    sb.from('consumo_anual').select('*').order('año')
+  const [{ data: rapels, error: e1 }, { data: puntos, error: e2 }, { data: bonus, error: e3 }, { data: consumo, error: e4 }, { data: baremo, error: e5 }, { data: clientesTodos, error: e6 }] = await Promise.all([
+    sb.from('clientes').select('*, movimientos_rapel(*)').eq('en_rapel', true).order('nombre'),
+    sb.from('clientes').select('*, movimientos_puntos(*)').eq('en_puntos', true).order('nombre'),
+    sb.from('clientes').select('*, movimientos_bonus(*)').eq('en_bonus', true).order('nombre'),
+    sb.from('consumo_anual').select('*').order('año'),
+    sb.from('baremo_puntos').select('*'),
+    sb.from('clientes').select('*').order('nombre')
   ]);
   if (e1 || e2 || e3) { setError(); console.error(e1, e2, e3); }
   db.rapels  = (rapels||[]).map(r => ({ ...r, movimientos: (r.movimientos_rapel||[]).sort((a,b)=>a.created_at?.localeCompare(b.created_at)) }));
   db.puntos  = (puntos||[]).map(p => ({ ...p, movimientos: (p.movimientos_puntos||[]).sort((a,b)=>a.created_at?.localeCompare(b.created_at)) }));
   db.bonus   = (bonus||[]).map(b => ({ ...b, movimientos: (b.movimientos_bonus||[]).sort((a,b)=>a.created_at?.localeCompare(b.created_at)) }));
   db.consumo = consumo || [];
+  db.baremo  = baremo || [];
+  db.clientes = clientesTodos || [];
+  if (e5) console.error('baremo_puntos:', e5);
+  if (e6) console.error('clientes:', e6);
   document.getElementById('loadingOverlay').style.display = 'none';
   setSynced();
   renderAll();
@@ -1670,7 +1784,7 @@ function renderDashboard() {
   const tG=db.rapels.reduce((a,r)=>a+rStats(r).gasto,0);
   const tS=tI-tG;
   const pctU=tI>0?(tG/tI*100).toFixed(1):0;
-  const bloqClients = db.rapels.filter(r=>parseBloq(r.notas).bloqueado);
+  const bloqClients = db.rapels.filter(r=>parseBloq(r.bloqueo).bloqueado);
   const tBloq = bloqClients.reduce((a,r)=>a+rStats(r).saldo,0);
   const bloqKpi = bloqClients.length ? `<div class="kpi" style="border-color:rgba(245,158,11,.4);background:rgba(245,158,11,.05)"><div class="kpi-label" style="color:var(--orange)">🔒 Saldo bloqueado</div><div class="kpi-value c-orange">${eur(tBloq)}</div><div class="kpi-sub">${bloqClients.length} cliente${bloqClients.length>1?'s':''} bloqueado${bloqClients.length>1?'s':''}</div></div>` : '';
   document.getElementById('kpisRapel').innerHTML=`
@@ -1704,12 +1818,12 @@ function renderRapels() {
   if(f==='ok')   list=list.filter(r=>rStats(r).saldo>0&&rStats(r).pct<80);
   if(f==='low')  list=list.filter(r=>{const s=rStats(r);return s.pct>=80&&s.saldo>=0;});
   if(f==='zero') list=list.filter(r=>rStats(r).saldo<=0);
-  if(f==='bloq') list=list.filter(r=>parseBloq(r.notas).bloqueado);
+  if(f==='bloq') list=list.filter(r=>parseBloq(r.bloqueo).bloqueado);
   const tb=document.getElementById('tbodyR');
   if(!list.length){tb.innerHTML=`<tr><td colspan="7">${emptyState('Ningún cliente',q?'Sin resultados':'Sin clientes aún')}</td></tr>`;return;}
   tb.innerHTML=list.map(r=>{
     const {ingreso,gasto,saldo,pct}=rStats(r);
-    const bloq=parseBloq(r.notas);
+    const bloq=parseBloq(r.bloqueo);
     const fc=saldo<0?'fill-danger':pct>=80?'fill-danger':pct>=50?'fill-warn':'fill-ok';
     const tc=bloq.bloqueado?'tag-blocked':saldo<0?'tag-red':pct>=80?'tag-orange':'tag-ok';
     const tt=bloq.bloqueado?'🔒 BLOQUEADO':saldo<0?'EXCEDIDO':pct>=80?'BAJO':'OK';
@@ -1875,7 +1989,7 @@ function openDrawerR(id) {
   const r=db.rapels.find(x=>x.id===id); if(!r) return;
   const{ingreso,gasto,saldo}=rStats(r);
   document.getElementById('drRNom').textContent=r.nombre;
-  const bloq=parseBloq(r.notas);
+  const bloq=parseBloq(r.bloqueo);
   document.getElementById('drRSub').textContent=`${(r.movimientos||[]).length} movimientos · Bolsa herramienta${bloq.bloqueado?' · 🔒 BLOQUEADO':''}`;
   document.getElementById('drRSum').innerHTML=`
     <div class="sum-card"><div class="sum-label">Total Rapel</div><div class="sum-val">${eur(ingreso)}</div></div>
@@ -2271,6 +2385,68 @@ function printClientBonus(){
 }
 
 // ══ DELETE CLIENT ══
+// Borra solo la actividad de este cliente en el panel indicado; si tras esto no le queda
+// ningún movimiento en ningún sistema, borra también su ficha de la tabla compartida `clientes`
+// (evita clientes fantasma sin actividad en ningún panel). Si sigue activo en otro panel, ese
+// panel no se toca para nada.
+const EN_FLAG_POR_TABLA = { movimientos_rapel:'en_rapel', movimientos_puntos:'en_puntos', movimientos_bonus:'en_bonus' };
+async function deleteClientMovimientos(clienteId, movTabla) {
+  const { error } = await sb.from(movTabla).delete().eq('cliente_id', clienteId);
+  if (error) return error;
+  const [{ count: cr }, { count: cp }, { count: cb }] = await Promise.all([
+    sb.from('movimientos_rapel').select('id',{count:'exact',head:true}).eq('cliente_id', clienteId),
+    sb.from('movimientos_puntos').select('id',{count:'exact',head:true}).eq('cliente_id', clienteId),
+    sb.from('movimientos_bonus').select('id',{count:'exact',head:true}).eq('cliente_id', clienteId)
+  ]);
+  if (!cr && !cp && !cb) {
+    await sb.from('clientes').delete().eq('id', clienteId);
+    db.clientes = db.clientes.filter(c=>c.id!==clienteId);
+  } else {
+    const flag = EN_FLAG_POR_TABLA[movTabla];
+    await sb.from('clientes').update({ [flag]: false }).eq('id', clienteId);
+    const cliente = db.clientes.find(c=>c.id===clienteId);
+    if (cliente) cliente[flag] = false;
+  }
+  return null;
+}
+
+// ══ RENOMBRAR CLIENTE ══
+let renombrarMode = null; // { tipo, clienteId }
+function openRenombrar(tipo) {
+  if(!checkDesktop()) return;
+  let c;
+  if (tipo==='rapel') c = db.rapels.find(x=>x.id===activeR);
+  else if (tipo==='puntos') c = db.puntos.find(x=>x.id===activeP);
+  else c = db.bonus.find(x=>x.id===activeB);
+  if (!c) return;
+  renombrarMode = { tipo, clienteId: c.id };
+  document.getElementById('rnNombre').value = c.nombre;
+  document.getElementById('ovlRenombrar').classList.add('open');
+}
+async function saveRenombrar() {
+  if (!renombrarMode) return;
+  const nuevoNombre = document.getElementById('rnNombre').value.trim().toUpperCase();
+  if (!nuevoNombre) { alert('Introduce un nombre'); return; }
+  setSaving();
+  const { error } = await sb.from('clientes').update({ nombre: nuevoNombre }).eq('id', renombrarMode.clienteId);
+  if (error) { alert('Error: '+error.message); setError(); return; }
+  [db.rapels, db.puntos, db.bonus, db.clientes].forEach(list => {
+    const c = list.find(x=>x.id===renombrarMode.clienteId);
+    if (c) c.nombre = nuevoNombre;
+  });
+  db.rapels.sort((a,b)=>a.nombre.localeCompare(b.nombre));
+  db.puntos.sort((a,b)=>a.nombre.localeCompare(b.nombre));
+  db.bonus.sort((a,b)=>a.nombre.localeCompare(b.nombre));
+  db.clientes.sort((a,b)=>a.nombre.localeCompare(b.nombre));
+  const { tipo, clienteId } = renombrarMode;
+  setSynced();
+  closeOverlay('ovlRenombrar');
+  renderAll();
+  if (tipo==='rapel' && activeR===clienteId) openDrawerR(activeR);
+  else if (tipo==='puntos' && activeP===clienteId) openDrawerP(activeP);
+  else if (tipo==='bonus' && activeB===clienteId) openDrawerB(activeB);
+}
+
 async function deleteClient(tipo) {
   const quien=prompt('¿Tu nombre? (obligatorio para eliminar cliente)')?.toUpperCase();
   if(quien===null) return;
@@ -2279,7 +2455,7 @@ async function deleteClient(tipo) {
     const r=db.rapels.find(x=>x.id===activeR);
     if(!r||!confirm(`¿Eliminar a ${r.nombre}? (por: ${quien.trim()})`)) return;
     setSaving();
-    const{error}=await sb.from('clientes_rapel').delete().eq('id',activeR);
+    const error = await deleteClientMovimientos(activeR, 'movimientos_rapel');
     if(error){alert('Error: '+error.message);setError();return;}
     db.rapels=db.rapels.filter(x=>x.id!==activeR);
     closeDrawer('R');
@@ -2287,7 +2463,7 @@ async function deleteClient(tipo) {
     const p=db.puntos.find(x=>x.id===activeP);
     if(!p||!confirm(`¿Eliminar a ${p.nombre}? (por: ${quien.trim()})`)) return;
     setSaving();
-    const{error}=await sb.from('clientes_puntos').delete().eq('id',activeP);
+    const error = await deleteClientMovimientos(activeP, 'movimientos_puntos');
     if(error){alert('Error: '+error.message);setError();return;}
     db.puntos=db.puntos.filter(x=>x.id!==activeP);
     closeDrawer('P');
@@ -2295,7 +2471,7 @@ async function deleteClient(tipo) {
     const b=db.bonus.find(x=>x.id===activeB);
     if(!b||!confirm(`¿Eliminar a ${b.nombre}? (por: ${quien.trim()})`)) return;
     setSaving();
-    const{error}=await sb.from('clientes_bonus').delete().eq('id',activeB);
+    const error = await deleteClientMovimientos(activeB, 'movimientos_bonus');
     if(error){alert('Error: '+error.message);setError();return;}
     db.bonus=db.bonus.filter(x=>x.id!==activeB);
     closeDrawer('B');
@@ -2374,7 +2550,7 @@ function onQaClienteChange() {
   // Aviso inmediato si el cliente de rapel está bloqueado
   if(quickMode?.tipo==='rapel' && v && v!=='__new__') {
     const r=db.rapels.find(x=>x.id===v);
-    if(r){const bloq=parseBloq(r.notas);if(bloq.bloqueado)alert(`⚠️ RAPEL BLOQUEADO — ${r.nombre}\n\nBloqueado por: ${bloq.por||'—'}${bloq.fecha?' el '+bloq.fecha:''}\n${bloq.motivo?'Motivo: '+bloq.motivo+'\n':''}\nNo podrás guardar hasta desbloquearlo.\nAl intentar guardar se te ofrecerá desbloquearlo.`);}
+    if(r){const bloq=parseBloq(r.bloqueo);if(bloq.bloqueado)alert(`⚠️ RAPEL BLOQUEADO — ${r.nombre}\n\nBloqueado por: ${bloq.por||'—'}${bloq.fecha?' el '+bloq.fecha:''}\n${bloq.motivo?'Motivo: '+bloq.motivo+'\n':''}\nNo podrás guardar hasta desbloquearlo.\nAl intentar guardar se te ofrecerá desbloquearlo.`);}
   }
 }
 
@@ -2391,24 +2567,27 @@ async function saveQuickAction() {
     setSaving();
     if(tipo==='rapel') {
       if(db.rapels.find(r=>r.nombre===nombre)){alert('Ya existe este cliente');return;}
-      const{data,error}=await sb.from('clientes_rapel').insert({nombre,ejercicio:2026,notas:''}).select();
+      const{data,error}=await sb.from('clientes').insert({nombre,ejercicio:2026,notas:'',en_rapel:true}).select();
       if(error){alert('Error: '+error.message);setError();return;}
       const nc={...data[0],movimientos:[]};
       db.rapels.push(nc); db.rapels.sort((a,b)=>a.nombre.localeCompare(b.nombre));
+      db.clientes.push(data[0]); db.clientes.sort((a,b)=>a.nombre.localeCompare(b.nombre));
       clienteId=nc.id;
     } else if(tipo==='bonus') {
       if(db.bonus.find(b=>b.nombre===nombre)){alert('Ya existe este cliente');return;}
-      const{data,error}=await sb.from('clientes_bonus').insert({nombre,notas:''}).select();
+      const{data,error}=await sb.from('clientes').insert({nombre,notas:'',en_bonus:true}).select();
       if(error){alert('Error: '+error.message);setError();return;}
       const nc={...data[0],movimientos:[]};
       db.bonus.push(nc); db.bonus.sort((a,b)=>a.nombre.localeCompare(b.nombre));
+      db.clientes.push(data[0]); db.clientes.sort((a,b)=>a.nombre.localeCompare(b.nombre));
       clienteId=nc.id;
     } else {
       if(db.puntos.find(p=>p.nombre===nombre)){alert('Ya existe este cliente');return;}
-      const{data,error}=await sb.from('clientes_puntos').insert({nombre,notas:''}).select();
+      const{data,error}=await sb.from('clientes').insert({nombre,notas:'',en_puntos:true}).select();
       if(error){alert('Error: '+error.message);setError();return;}
       const nc={...data[0],movimientos:[]};
       db.puntos.push(nc); db.puntos.sort((a,b)=>a.nombre.localeCompare(b.nombre));
+      db.clientes.push(data[0]); db.clientes.sort((a,b)=>a.nombre.localeCompare(b.nombre));
       clienteId=nc.id;
     }
   }
@@ -3029,80 +3208,455 @@ function printPMov(pid,mid,e){
   printDoc(h);
 }
 
-// ══ CALCULADORA PUNTOS ══
-function calcPoints() {
-  const n1    = parseInt(document.getElementById('qaNeum1')?.value)||0;
-  const n2    = parseInt(document.getElementById('qaNeum2')?.value)||0;
-  const carr  = parseFloat(document.getElementById('qaCarr')?.value)||0;
-  const past  = parseInt(document.getElementById('qaPast')?.value)||0;
-  const alt   = parseInt(document.getElementById('qaAlt')?.value)||0;
-  const extra = parseInt(document.getElementById('qaExtra')?.value)||0;
-  const pN1=n1*3, pN2=n2*2, pC=Math.floor(carr/10), pP=past*2, pA=alt*2, pE=extra;
-  const total=pN1+pN2+pC+pP+pA+pE;
-  const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v+' pts';};
-  set('resNeum1',pN1); set('resNeum2',pN2); set('resCarr',pC);
-  set('resPast',pP);   set('resAlt',pA);    set('resExtra',pE);
-  const totEl=document.getElementById('qaCalcTotal');
-  if(totEl) totEl.textContent=total+' pts';
+// ══ FÓRMULA DE PUNTOS POR CATEGORÍA (compartida entre calculadora manual e importación) ══
+// cat = { n1: uds neum.1ª, n2: uds neum.2ª, past: uds pastillas, alt: uds alt./arranque, carr: € carrocería, extra: pts adicionales }
+function categoriasPuntos(cat) {
+  const {n1=0,n2=0,past=0,alt=0,carr=0,extra=0}=cat||{};
+  return { pN1:n1*3, pN2:n2*2, pC:Math.floor(carr/10), pP:past*2, pA:alt*2, pE:extra };
 }
-function buildCalcNotas() {
-  const n1    = parseInt(document.getElementById('qaNeum1')?.value)||0;
-  const n2    = parseInt(document.getElementById('qaNeum2')?.value)||0;
-  const carr  = parseFloat(document.getElementById('qaCarr')?.value)||0;
-  const past  = parseInt(document.getElementById('qaPast')?.value)||0;
-  const alt   = parseInt(document.getElementById('qaAlt')?.value)||0;
-  const extra = parseInt(document.getElementById('qaExtra')?.value)||0;
+function categoriasTotal(cat) {
+  const p=categoriasPuntos(cat);
+  return p.pN1+p.pN2+p.pC+p.pP+p.pA+p.pE;
+}
+function categoriasNotas(cat) {
+  const {n1=0,n2=0,past=0,alt=0,carr=0,extra=0}=cat||{};
+  const p=categoriasPuntos(cat);
   const parts=[];
-  if(n1)   parts.push(`Neum.1ª: ${n1}×3=${n1*3}pts`);
-  if(n2)   parts.push(`Neum.2ª: ${n2}×2=${n2*2}pts`);
-  if(carr) parts.push(`Carrocería: ${carr}€=${Math.floor(carr/10)}pts`);
-  if(past) parts.push(`Pastillas: ${past}×2=${past*2}pts`);
-  if(alt)  parts.push(`Alt/Arr: ${alt}×2=${alt*2}pts`);
-  if(extra)parts.push(`Adicionales: ${extra}pts`);
+  if(n1)    parts.push(`Neum.1ª: ${n1}×3=${p.pN1}pts`);
+  if(n2)    parts.push(`Neum.2ª: ${n2}×2=${p.pN2}pts`);
+  if(carr)  parts.push(`Carrocería: ${carr}€=${p.pC}pts`);
+  if(past)  parts.push(`Pastillas: ${past}×2=${p.pP}pts`);
+  if(alt)   parts.push(`Alt/Arr: ${alt}×2=${p.pA}pts`);
+  if(extra) parts.push(`Adicionales: ${extra}pts`);
   return parts.join(' | ');
 }
-function getCalcTotal() {
-  const n1=parseInt(document.getElementById('qaNeum1')?.value)||0;
-  const n2=parseInt(document.getElementById('qaNeum2')?.value)||0;
-  const carr=parseFloat(document.getElementById('qaCarr')?.value)||0;
-  const past=parseInt(document.getElementById('qaPast')?.value)||0;
-  const alt=parseInt(document.getElementById('qaAlt')?.value)||0;
-  const extra=parseInt(document.getElementById('qaExtra')?.value)||0;
-  return n1*3+n2*2+Math.floor(carr/10)+past*2+alt*2+extra;
+
+// ══ CALCULADORA PUNTOS ══
+function readCalcForm() {
+  return {
+    n1:    parseInt(document.getElementById('qaNeum1')?.value)||0,
+    n2:    parseInt(document.getElementById('qaNeum2')?.value)||0,
+    carr:  parseFloat(document.getElementById('qaCarr')?.value)||0,
+    past:  parseInt(document.getElementById('qaPast')?.value)||0,
+    alt:   parseInt(document.getElementById('qaAlt')?.value)||0,
+    extra: parseInt(document.getElementById('qaExtra')?.value)||0
+  };
+}
+function calcPoints() {
+  const cat=readCalcForm();
+  const p=categoriasPuntos(cat);
+  const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v+' pts';};
+  set('resNeum1',p.pN1); set('resNeum2',p.pN2); set('resCarr',p.pC);
+  set('resPast',p.pP);   set('resAlt',p.pA);    set('resExtra',p.pE);
+  const totEl=document.getElementById('qaCalcTotal');
+  if(totEl) totEl.textContent=categoriasTotal(cat)+' pts';
+}
+function buildCalcNotas() { return categoriasNotas(readCalcForm()); }
+function getCalcTotal()   { return categoriasTotal(readCalcForm()); }
+
+// ══ IMPORTACIÓN CONSUMO MENSUAL / BAREMO ══
+let importState = null;
+
+function normCode(v) {
+  if (v===null || v===undefined) return '';
+  const s = String(v).trim().toUpperCase();
+  if (s!=='' && !isNaN(Number(s))) return String(Number(s)); // '01' -> '1', 11 -> '11', para que casen formatos mixtos
+  return s;
+}
+function baremoKey(marca, familia) { return normCode(marca)+'|'+normCode(familia); }
+function buildBaremoMap() {
+  const map = new Map();
+  (db.baremo||[]).forEach(b => map.set(baremoKey(b.marca,b.familia), b));
+  return map;
+}
+
+function prevMonthStr() {
+  const d = new Date();
+  d.setDate(1);
+  d.setMonth(d.getMonth()-1);
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+}
+function openImportConsumo() {
+  if(!checkDesktop()) return;
+  importState = null;
+  document.getElementById('impTipo').value = 'consumo';
+  document.getElementById('impPeriodo').value = prevMonthStr();
+  document.getElementById('impFile').value = '';
+  document.getElementById('impFileMsg').textContent = '';
+  document.getElementById('impFileMsg').style.color = '';
+  onImpTipoChange();
+  show('impStepFile', true); show('impStepReview', false); show('impStepDone', false);
+  document.getElementById('ovlImportConsumo').classList.add('open');
+}
+function closeImportConsumo() { closeOverlay('ovlImportConsumo'); importState = null; }
+function onImpTipoChange() {
+  const tipo = document.getElementById('impTipo').value;
+  show('impPeriodoRow', tipo==='consumo');
+  document.getElementById('impSub').textContent = tipo==='consumo'
+    ? 'Sube el fichero de ventas del ERP para calcular y añadir los puntos automáticamente'
+    : 'Sube el Excel de parejas Marca/Familia → Categoría para crear o actualizar el baremo';
+}
+function backToImpStepFile() { show('impStepFile', true); show('impStepReview', false); }
+
+function parseImportFile() {
+  const tipo = document.getElementById('impTipo').value;
+  const fileInput = document.getElementById('impFile');
+  const file = fileInput.files && fileInput.files[0];
+  const msgEl = document.getElementById('impFileMsg');
+  msgEl.style.color = '#E20613';
+  if (!file) { msgEl.textContent = 'Selecciona un fichero.'; return; }
+  const periodo = document.getElementById('impPeriodo').value;
+  if (tipo==='consumo' && !periodo) { msgEl.textContent = 'Indica el periodo (mes/año).'; return; }
+  msgEl.style.color = ''; msgEl.textContent = 'Analizando...';
+  const reader = new FileReader();
+  reader.onerror = () => { msgEl.style.color='#E20613'; msgEl.textContent = 'Error al leer el fichero.'; };
+  reader.onload = (e) => {
+    try {
+      const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array'});
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, {header:1, raw:true, defval:null});
+      if (tipo==='consumo') procesarFicheroConsumo(rows, periodo);
+      else procesarFicheroBaremo(rows);
+    } catch(err) {
+      console.error(err);
+      msgEl.style.color = '#E20613';
+      msgEl.textContent = 'No se pudo leer el fichero (' + err.message + '). Prueba a guardarlo como .xlsx desde Excel y reinténtalo.';
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function findHeaderCols(rows, wanted) {
+  for (let i=0;i<Math.min(rows.length,60);i++) {
+    const row = rows[i]||[];
+    const found = {};
+    wanted.forEach(w => {
+      const idx = row.findIndex(c => c!=null && w.patterns.some(re=>re.test(String(c).trim())));
+      if (idx>=0) found[w.key]=idx;
+    });
+    if (Object.keys(found).length === wanted.length) return {rowIndex:i, cols:found};
+  }
+  return null;
+}
+
+function procesarFicheroConsumo(rows, periodo) {
+  const msgEl = document.getElementById('impFileMsg');
+  const header = findHeaderCols(rows, [
+    {key:'marca',   patterns:[/^MARCA$/i]},
+    {key:'familia', patterns:[/^FAMILIA$/i]},
+    {key:'uds',     patterns:[/^UNIDADES$/i]},
+    {key:'imp',     patterns:[/IMPORTE\s*NETO/i]}
+  ]);
+  if (!header) { msgEl.style.color='#E20613'; msgEl.textContent='No se han encontrado las columnas MARCA/FAMILIA/UNIDADES/IMPORTE NETO en el fichero.'; return; }
+  const {marca:cMarca, familia:cFamilia, uds:cUds, imp:cImp} = header.cols;
+  const cMarcaDesc = cMarca+1, cFamiliaDesc = cFamilia+1; // convención fija del export ERP: cada código va seguido de su descripción
+
+  const baremoMap = buildBaremoMap();
+  const clientes = [];
+  const unmapped = [];
+  let current = null;
+  const clienteRe = /^CLIENTE:\s*(.+)$/i;
+  const codeNameRe = /^(\d{3,6})\s+(.+)$/;
+
+  for (let i=header.rowIndex+1; i<rows.length; i++) {
+    const row = rows[i]||[];
+    const clienteCell = row.find(c => typeof c==='string' && clienteRe.test(c.trim()));
+    if (clienteCell) {
+      if (current) clientes.push(current);
+      const raw = clienteCell.trim().replace(clienteRe,'$1').trim();
+      const m = raw.match(codeNameRe);
+      current = { erpCode: m ? m[1] : null, erpName: (m ? m[2] : raw).trim(), n1:0,n2:0,past:0,alt:0,carr:0 };
+      continue;
+    }
+    const marcaVal = row[cMarca];
+    if (marcaVal===null || marcaVal===undefined || String(marcaVal).trim()==='') continue; // filas TOTAL/blancas
+    if (!current) continue;
+    const familiaVal = row[cFamilia];
+    const uds = Number(row[cUds])||0;
+    const importe = Number(row[cImp])||0;
+    const entry = baremoMap.get(baremoKey(marcaVal, familiaVal));
+    if (!entry) {
+      unmapped.push({ client:current, marca:String(marcaVal).trim(), marcaDesc:row[cMarcaDesc]!=null?String(row[cMarcaDesc]).trim():'', familia:String(familiaVal).trim(), familiaDesc:row[cFamiliaDesc]!=null?String(row[cFamiliaDesc]).trim():'', uds, importe, categoria:'' });
+      continue;
+    }
+    if (entry.categoria==='N2') current.n2 += uds;
+    else if (entry.categoria==='N3') current.n1 += uds;
+    else if (entry.categoria==='PF') current.past += uds;
+    else if (entry.categoria==='AA') current.alt += uds;
+    else if (entry.categoria==='CR') current.carr += importe;
+  }
+  if (current) clientes.push(current);
+
+  if (!clientes.length) { msgEl.style.color='#E20613'; msgEl.textContent='No se ha detectado ningún bloque "CLIENTE:" en el fichero.'; return; }
+
+  clientes.forEach(c => {
+    c.destino = matchClienteAppInitial(c);
+    if (c.destino==='__new__') c.nuevoNombre = stripLegalSuffix(c.erpName) || c.erpName;
+  });
+  importState = { tipo:'consumo', periodo, clientes, unmapped };
+  renderImportReview();
+}
+
+function procesarFicheroBaremo(rows) {
+  const msgEl = document.getElementById('impFileMsg');
+  let headerIdx = -1;
+  for (let i=0;i<Math.min(rows.length,20);i++) {
+    const row = rows[i]||[];
+    if (String(row[0]||'').trim().toUpperCase()==='MARCA' && String(row[1]||'').trim().toUpperCase()==='FAMILIA') { headerIdx=i; break; }
+  }
+  if (headerIdx<0) { msgEl.style.color='#E20613'; msgEl.textContent='No se ha encontrado la fila de cabecera MARCA/FAMILIA en el fichero.'; return; }
+  const header = rows[headerIdx];
+  const catCols = [];
+  [['N2',/\bN2\b/i],['N3',/\bN3\b/i],['PF',/\bPF\b/i],['AA',/\bAA\b/i],['CR',/\bCR\b/i]].forEach(([code,re]) => {
+    const idx = header.findIndex(c => c!=null && re.test(String(c)));
+    if (idx>=0) catCols.push({code, idx});
+  });
+  if (!catCols.length) { msgEl.style.color='#E20613'; msgEl.textContent='No se han encontrado columnas de categoría (N2/N3/PF/AA/CR).'; return; }
+
+  const parsed = [];
+  for (let i=headerIdx+1; i<rows.length; i++) {
+    const row = rows[i]||[];
+    const marca = row[0], familia = row[1];
+    if (marca==null || String(marca).trim()==='' || familia==null || String(familia).trim()==='') continue;
+    const cat = catCols.find(c => row[c.idx]!=null && String(row[c.idx]).trim()!=='');
+    if (!cat) continue;
+    parsed.push({ marca: normCode(marca), familia: normCode(familia), desc_marca: row[2]!=null?String(row[2]).trim():null, desc_familia: row[3]!=null?String(row[3]).trim():null, categoria: cat.code });
+  }
+  if (!parsed.length) { msgEl.style.color='#E20613'; msgEl.textContent='No se han encontrado filas válidas.'; return; }
+  importState = { tipo:'baremo', rows:parsed };
+  renderImportReview();
+}
+
+// Emparejamiento 100% automático: solo por codigo_erp ya aprendido en una importación anterior.
+// Si el código no se reconoce, se trata siempre como cliente nuevo — nunca se adivina por nombre,
+// para no fusionar por error dos empresas distintas (mismo nombre comercial, CIF diferente).
+function matchClienteAppInitial(client) {
+  if (client.erpCode) {
+    const byCode = db.clientes.find(p => p.codigo_erp && normCode(p.codigo_erp)===normCode(client.erpCode));
+    if (byCode) return String(byCode.id);
+  }
+  return '__new__';
+}
+function stripLegalSuffix(name) {
+  return (name||'').replace(/,?\s*(S\.?L\.?U?\.?|S\.?A\.?U?\.?|S\.?C\.?P?\.?|C\.?B\.?|E\.?S\.?P\.?J\.?)\.?\s*$/i, '').trim();
+}
+
+function computeClientCat(client) {
+  const cat = { n1:client.n1, n2:client.n2, past:client.past, alt:client.alt, carr:client.carr };
+  importState.unmapped.forEach(u => {
+    if (u.client!==client || !u.categoria || u.categoria==='IGNORE') return;
+    if (u.categoria==='N2') cat.n2 += u.uds;
+    else if (u.categoria==='N3') cat.n1 += u.uds;
+    else if (u.categoria==='PF') cat.past += u.uds;
+    else if (u.categoria==='AA') cat.alt += u.uds;
+    else if (u.categoria==='CR') cat.carr += u.importe;
+  });
+  return cat;
+}
+
+function renderImportReview() {
+  show('impStepFile', false); show('impStepReview', true);
+  const isBaremo = importState.tipo==='baremo';
+  show('impBaremoSummary', isBaremo);
+  show('impClientSection', !isBaremo);
+  show('impUnmappedSection', false);
+  if (isBaremo) {
+    document.getElementById('impBaremoSummary').innerHTML = `Se van a crear/actualizar <strong>${importState.rows.length}</strong> parejas Marca/Familia en el baremo.`;
+  } else {
+    renderImpClients();
+  }
+  document.getElementById('impReviewMsg').textContent = '';
+  validateImpReview();
+}
+
+function renderImpUnmapped() {
+  const body = document.getElementById('impUnmappedBody');
+  document.getElementById('impUnmappedCount').textContent = importState.unmapped.length;
+  body.innerHTML = importState.unmapped.map(u => `
+    <tr>
+      <td>${u.client.erpName}</td>
+      <td>${u.marca}${u.marcaDesc?' · '+u.marcaDesc:''}</td>
+      <td>${u.familia}${u.familiaDesc?' · '+u.familiaDesc:''}</td>
+      <td class="num">${u.uds}</td>
+      <td class="num">${eur(u.importe)}</td>
+      <td style="color:var(--text-dim);font-size:11px">Sin categoría — no puntúa este mes</td>
+    </tr>`).join('');
+}
+
+function renderImpClients() {
+  const body = document.getElementById('impClientBody');
+  document.getElementById('impClientCount').textContent = importState.clientes.length;
+  body.innerHTML = importState.clientes.map((c) => {
+    const cat = computeClientCat(c);
+    const total = categoriasTotal(cat);
+    const notas = categoriasNotas(cat) || 'Sin puntos este mes';
+    const destinoNombre = c.destino==='__new__'
+      ? c.nuevoNombre
+      : (db.puntos.find(p=>String(p.id)===String(c.destino))||{}).nombre || c.erpName;
+    return `<tr>
+      <td>${destinoNombre}</td>
+      <td style="font-size:11px;color:var(--text-dim)">${notas}</td>
+      <td class="num">${total}</td>
+    </tr>`;
+  }).join('');
+}
+
+function validateImpReview() {
+  const btn = document.getElementById('impConfirmBtn');
+  const msg = document.getElementById('impReviewMsg');
+  btn.disabled = false;
+  msg.textContent = '';
+}
+
+function formatPeriodoLabel(periodo) {
+  if (!periodo) return '';
+  const [y,m] = periodo.split('-');
+  const meses=['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
+  return `${meses[parseInt(m,10)-1]} ${y}`;
+}
+
+async function confirmImportConsumo() {
+  const btn = document.getElementById('impConfirmBtn');
+  if (importState.tipo==='consumo') {
+    const referencia = 'IMPORT-'+(importState.periodo||'');
+    const { data: existing, error: eCheck } = await sb.from('movimientos_puntos').select('id').eq('referencia', referencia);
+    if (eCheck) { alert('Error comprobando importaciones previas: '+eCheck.message); return; }
+    if (existing && existing.length) {
+      const periodoLabel = formatPeriodoLabel(importState.periodo) || importState.periodo;
+      const ok = confirm(`Ya existe una importación para ${periodoLabel} (${existing.length} movimientos).\n\nSi continúas, NO se sumarán puntos: se SOBRESCRIBIRÁN los movimientos existentes de ese periodo con los nuevos cálculos (igual si no cambia, mayor si sube, menor si baja).\n\n¿Continuar?`);
+      if (!ok) return;
+    }
+  }
+  btn.disabled = true;
+  setSaving();
+  try {
+    if (importState.tipo==='baremo') await confirmImportBaremo();
+    else await confirmImportConsumoMensual();
+    setSynced();
+  } catch (err) {
+    console.error(err);
+    setError();
+    alert('Error al importar: '+err.message);
+    btn.disabled = false;
+    return;
+  }
+  show('impStepReview', false);
+  show('impStepDone', true);
+}
+
+async function reloadBaremo() {
+  const { data, error } = await sb.from('baremo_puntos').select('*');
+  if (!error) db.baremo = data || [];
+}
+
+async function confirmImportBaremo() {
+  const rows = importState.rows;
+  const { error } = await sb.from('baremo_puntos').upsert(rows, { onConflict:'marca,familia' });
+  if (error) throw error;
+  await reloadBaremo();
+  document.getElementById('impDoneMsg').innerHTML = `✓ Baremo actualizado: <strong>${rows.length}</strong> parejas Marca/Familia procesadas.`;
+}
+
+async function confirmImportConsumoMensual() {
+  const periodo = importState.periodo;
+  const fecha = periodo ? periodo+'-01' : null;
+  const periodoLabel = formatPeriodoLabel(periodo);
+  const referencia = 'IMPORT-'+(periodo||'');
+
+  // Reimportar el mismo periodo nunca suma: sobrescribe (o borra) el movimiento ya existente de esa referencia.
+  const { data: existingMovs, error: eEx } = await sb.from('movimientos_puntos').select('id, cliente_id').eq('referencia', referencia);
+  if (eEx) throw eEx;
+  const existingByCliente = new Map((existingMovs||[]).map(m => [String(m.cliente_id), m.id]));
+
+  let clientesOk = 0, puntosTotal = 0;
+  for (const c of importState.clientes) {
+    const cat = computeClientCat(c);
+    const total = categoriasTotal(cat);
+    const isNew = c.destino==='__new__';
+    if (isNew && total===0) continue; // nada que anotar, no crear cliente para esto
+
+    let clienteId = c.destino;
+    let p; // entrada correspondiente en db.puntos (se crea si es la primera vez que este cliente puntúa)
+    if (isNew) {
+      const nombre = (c.nuevoNombre||c.erpName||'').toUpperCase().trim();
+      const { data, error } = await sb.from('clientes').insert({ nombre, notas:'', codigo_erp:c.erpCode, en_puntos:true }).select();
+      if (error) throw error;
+      clienteId = data[0].id;
+      db.clientes.push(data[0]);
+      p = { ...data[0], movimientos:[] };
+      db.puntos.push(p);
+    } else {
+      const cliente = db.clientes.find(x => String(x.id)===String(clienteId));
+      const patch = {};
+      if (cliente && c.erpCode && cliente.codigo_erp!==c.erpCode) patch.codigo_erp = c.erpCode;
+      if (cliente && !cliente.en_puntos) patch.en_puntos = true;
+      if (cliente && Object.keys(patch).length) {
+        const { error } = await sb.from('clientes').update(patch).eq('id', cliente.id);
+        if (error) throw error;
+        Object.assign(cliente, patch);
+      }
+      p = db.puntos.find(x => String(x.id)===String(clienteId));
+      if (!p && cliente) { p = { ...cliente, movimientos:[] }; db.puntos.push(p); }
+    }
+
+    const existingMovId = existingByCliente.get(String(clienteId));
+
+    if (total===0) {
+      if (existingMovId) {
+        const { error } = await sb.from('movimientos_puntos').delete().eq('id', existingMovId);
+        if (error) throw error;
+        if (p) p.movimientos = p.movimientos.filter(m=>m.id!==existingMovId);
+      }
+      continue;
+    }
+
+    const notas = categoriasNotas(cat) + (periodoLabel ? ` | IMPORTACIÓN: ${periodoLabel}` : ' | IMPORTACIÓN');
+    if (existingMovId) {
+      const { data, error } = await sb.from('movimientos_puntos').update({ puntos:total, notas, fecha }).eq('id', existingMovId).select();
+      if (error) throw error;
+      if (p) { const idx = p.movimientos.findIndex(m=>m.id===existingMovId); if (idx>=0) p.movimientos[idx] = data[0]; }
+    } else {
+      const { data, error } = await sb.from('movimientos_puntos').insert({ cliente_id:clienteId, tipo:'GANADO', puntos:total, referencia, fecha, notas }).select();
+      if (error) throw error;
+      if (p) p.movimientos.push(data[0]);
+    }
+    clientesOk++; puntosTotal += total;
+  }
+
+  db.puntos.sort((a,b)=>a.nombre.localeCompare(b.nombre));
+  db.clientes.sort((a,b)=>a.nombre.localeCompare(b.nombre));
+  renderAll();
+  document.getElementById('impDoneMsg').innerHTML =
+    `✓ Importación completada.<br>Clientes actualizados: <strong>${clientesOk}</strong><br>Puntos totales asignados: <strong>${pts(puntosTotal)}</strong>`;
 }
 
 // ══ BLOQUEO ══
 async function checkBloqAndProceed(r) {
-  const bloq = parseBloq(r.notas);
+  const bloq = parseBloq(r.bloqueo);
   if (!bloq.bloqueado) return true;
   const msg = `⚠️ RAPEL BLOQUEADO — ${r.nombre}\n\nBloqueado por: ${bloq.por||'—'}${bloq.fecha?' el '+bloq.fecha:''}\n${bloq.motivo?'Motivo: '+bloq.motivo+'\n':''}\nPara poder operar en este rapel habla con ${bloq.por||'quien lo bloqueó'} para desbloquearlo.\n\n¿Deseas desbloquearlo ahora?`;
   if (!confirm(msg)) return false;
   setSaving();
-  const newNotas = removeBloqNotas(r.notas);
-  const {error} = await sb.from('clientes_rapel').update({notas:newNotas}).eq('id',r.id);
+  const {error} = await sb.from('clientes').update({bloqueo:null}).eq('id',r.id);
   if (error) { alert('Error al desbloquear: '+error.message); setError(); return false; }
-  r.notas = newNotas;
+  r.bloqueo = null;
   setSynced();
   renderAll();
   return true;
 }
 
-function parseBloq(notas) {
-  const m = (notas||'').match(/^__BLQ__({.*?})__BLQ__/s);
+function parseBloq(bloqueo) {
+  const m = (bloqueo||'').match(/^__BLQ__({.*?})__BLQ__/s);
   if (!m) return {bloqueado:false};
   try { return {bloqueado:true, ...JSON.parse(m[1])}; } catch { return {bloqueado:false}; }
 }
-function applyBloqNotas(notas, por, motivo) {
-  const clean = removeBloqNotas(notas);
-  return '__BLQ__'+JSON.stringify({por,motivo,fecha:today()})+'__BLQ__'+(clean?'\n'+clean:'');
-}
-function removeBloqNotas(notas) {
-  return (notas||'').replace(/^__BLQ__.*?__BLQ__\n?/s,'').trim();
+function applyBloqNotas(por, motivo) {
+  return '__BLQ__'+JSON.stringify({por,motivo,fecha:today()})+'__BLQ__';
 }
 
 function openBloquear() {
   if(!checkDesktop()) return;
-  const list = db.rapels.filter(r => !parseBloq(r.notas).bloqueado);
+  const list = db.rapels.filter(r => !parseBloq(r.bloqueo).bloqueado);
   if (!list.length) { alert('No hay clientes desbloqueados'); return; }
   const sel = document.getElementById('blqCliente');
   sel.innerHTML = '<option value="">— Seleccionar cliente —</option>' + list.map(r=>`<option value="${r.id}">${r.nombre}</option>`).join('');
@@ -3120,10 +3674,10 @@ async function saveBloquear() {
   if (!por) { alert('El campo "Bloqueado por" es obligatorio'); return; }
   const r = db.rapels.find(x=>x.id===clienteId); if (!r) return;
   setSaving();
-  const newNotas = applyBloqNotas(r.notas, por, motivo);
-  const {error} = await sb.from('clientes_rapel').update({notas:newNotas}).eq('id',clienteId);
+  const newBloqueo = applyBloqNotas(por, motivo);
+  const {error} = await sb.from('clientes').update({bloqueo:newBloqueo}).eq('id',clienteId);
   if (error) { alert('Error: '+error.message); setError(); return; }
-  r.notas = newNotas;
+  r.bloqueo = newBloqueo;
   setSynced();
   closeOverlay('ovlBloquear');
   renderAll();
@@ -3136,10 +3690,9 @@ async function desbloquear(id) {
   if(!confirm(`¿Desbloquear este rapel? (por: ${quien.trim()})`)) return;
   const r = db.rapels.find(x=>x.id===id); if (!r) return;
   setSaving();
-  const newNotas = removeBloqNotas(r.notas);
-  const {error} = await sb.from('clientes_rapel').update({notas:newNotas}).eq('id',id);
+  const {error} = await sb.from('clientes').update({bloqueo:null}).eq('id',id);
   if (error) { alert('Error: '+error.message); setError(); return; }
-  r.notas = newNotas;
+  r.bloqueo = null;
   setSynced();
   renderAll();
   openDrawerR(id);

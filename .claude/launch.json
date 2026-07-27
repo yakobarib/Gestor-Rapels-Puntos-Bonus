@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "Gestor Rapels y Puntos",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["serve", "APP", "-l", "3077"],
+      "port": 3077
+    }
+  ]
+}
