@@ -58,8 +58,8 @@ Cada cliente tiene array `movimientos` embebido. `db.baremo` es el baremo Marca/
 - **Rapel:** en euros. Puede bloquearse (metadatos en campo `notas`). Tiene % de uso.
 - **Puntos:** 1 punto = 1 €. Se acumulan por categoría (Neumáticos, Pastillas, Alt./Arr., Carrocería).
 - **Bonus:** en puntos directamente (no en euros). 1 € invertido = 2 pts ganados (referencia, no se aplica conversión en la app — los importes ya se introducen en pts).
-- Todos los datos se introducen y muestran en **MAYÚSCULAS**.
-- Cada acción (añadir, editar, eliminar, bloquear, desbloquear) requiere campo obligatorio de **usuario** que la realiza.
+- Todos los datos se introducen y muestran en **MAYÚSCULAS** (excepto email y contraseña del login, ver sección Autenticación).
+- Cada acción (añadir, editar, eliminar, bloquear, desbloquear) queda atribuida al **usuario autenticado** (`currentUserName()`), sin campos manuales de "quién" (ver sección Autenticación).
 
 ## Modo solo lectura en móvil
 - CSS `.edit-only` → `display:none` en `@media(max-width:1023px)`
@@ -100,6 +100,16 @@ Las páginas de impresión incluyen "galletas" (stat cards) de resumen al inicio
 - Migración ejecutada: `Documentos/migracion_clientes_unificados_paso1.sql` (tabla `clientes` + RLS + quitar FKs viejas), migración de datos vía REST (reconciliación de las 3 tablas antiguas por nombre, con casos especiales resueltos a mano — ver más abajo), `paso2.sql` (nuevas FKs de `movimientos_*` hacia `clientes`), `paso3.sql` (columnas `en_rapel`/`en_puntos`/`en_bonus` + backfill).
 - Casos especiales de la reconciliación (por si se repiten patrones parecidos en el futuro): "Dos Torres" renombrado a "Oskar Franch" (mismo `codigo_erp`, cambio de razón social); "Eivissa Lan" y "Giles Ibiza" son el mismo negocio real pero se mantienen como dos clientes separados a propósito (con nota cruzada interna en `notas`); "Turbocar" y "Autos Turbo" son clientes distintos pese al nombre parecido.
 
+## Autenticación (Supabase Auth)
+- La app requiere login (email + contraseña) — grupo cerrado de 4-5 cuentas, una por persona, creadas manualmente por el usuario en Supabase (Authentication → Users). No hay auto-registro ni recuperación de contraseña propia; el cambio de contraseña se hace desde la propia app.
+- `#loginGate` (overlay a pantalla completa) bloquea el acceso hasta que `initAuth()` confirma sesión válida (`sb.auth.getSession()`); si no hay sesión, no se llama a `load()` — ningún dato se pinta sin login. `sb.auth.onAuthStateChange()` vuelve a mostrar el overlay si la sesión se cierra (`SIGNED_OUT`).
+- `currentUserName()` deriva el nombre a mostrar del email (parte antes de la `@`, guiones/puntos → espacios, mayúsculas) — p.ej. `juan.perez@x.com` → `JUAN PEREZ`. Prioriza `user_metadata.display_name` si existe.
+- **Sustituye a los antiguos campos manuales de "¿quién hace esto?"**: Quick Action, Editar Movimiento, Bloquear, Ajuste Especial y los `confirm()` de eliminar/desbloquear ya no piden nombre — usan `currentUserName()` directamente, manteniendo el mismo formato de `notas`/`bloqueo` que antes (p.ej. `EDIT. POR: ${currentUserName()}`).
+- **Cambiar contraseña**: botón en la cabecera (icono de candado) → modal `ovlChangePwd` → `sb.auth.updateUser({password})`. Autoservicio, sin necesitar el panel de Supabase.
+- El listener global que fuerza MAYÚSCULAS en todos los inputs (línea ~1772, `document.addEventListener('input', ...)`) excluye explícitamente `type="email"` y `type="password"` — si no, la contraseña se guardaría distinta a lo que el usuario escribió realmente.
+- RLS: `Documentos/migracion_auth_rls.sql` cambia las políticas de `clientes`, `baremo_puntos`, `consumo_anual` y los tres `movimientos_*` de `anon` a `authenticated`; las tablas legadas `clientes_rapel`/`clientes_puntos`/`clientes_bonus` quedan con RLS activo y sin ninguna política (inaccesibles incluso autenticado).
+- El modo solo-lectura en móvil (`checkDesktop()`) es una capa **distinta** al login: en móvil se puede iniciar sesión y ver datos igual que en escritorio, pero seguir sin poder editar.
+
 ## Historial de cambios recientes
 - KPIs del dashboard renombrados y coloreados (blancos=totales, rojo=consumos, verde/rojo dinámico=saldos)
 - Filtro "Saldo bloqueado" en panel Rapel
@@ -115,3 +125,4 @@ Las páginas de impresión incluyen "galletas" (stat cards) de resumen al inicio
 - Unificación de la tabla de clientes (Rapel/Puntos/Bonus → `clientes` compartida) + función "Renombrar cliente" (ver sección dedicada arriba)
 - Preview local movido al puerto 3077 (`.claude/launch.json`) para evitar colisión con el puerto 3000, usado también por otros proyectos locales del usuario (Gestión de Stocks)
 - Detección de clientes duplicados al dar de alta (autocompletar + sugerencia "¿es el mismo cliente?") — ver sección dedicada arriba
+- Autenticación con Supabase Auth (login por cuenta, RLS `anon`→`authenticated`, cambio de contraseña autoservicio, atribución automática de usuario en los 16 puntos que antes pedían "quién" a mano) — ver sección dedicada arriba
