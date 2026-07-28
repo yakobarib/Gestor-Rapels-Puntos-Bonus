@@ -1771,6 +1771,7 @@ let editMovMode = null; // { sistema:'puntos'|'bonus', movId, clienteId }
 // Forzar mayúsculas en todos los inputs de texto y textareas
 document.addEventListener('input', function(e) {
   const t = e.target;
+  if (t.tagName === 'INPUT' && (t.type === 'email' || t.type === 'password')) return;
   if ((t.tagName === 'INPUT' && t.type !== 'number' && t.type !== 'date') || t.tagName === 'TEXTAREA') {
     const s = t.selectionStart, end = t.selectionEnd;
     t.value = t.value.toUpperCase();
