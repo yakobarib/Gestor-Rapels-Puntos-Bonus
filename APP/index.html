@@ -386,8 +386,8 @@
       <path fill="#E63312" d="M1272.1,802.1c83.9,0,151.8-68,151.8-151.8c0-83.8-68-151.8-151.8-151.8c-83.8,0-151.8,68-151.8,151.8C1120.3,734.2,1188.3,802.1,1272.1,802.1z"/>
     </svg>
     <div>
-      <div class="logo-text">RAPELS · PUNTOS · BONUS</div>
-      <div class="logo-sub">RECAMBIOS IBIZA · GESTIÓN</div>
+      <div class="logo-text">RECAMBIOS IBIZA</div>
+      <div class="logo-sub">GESTOR DE RAPELS · PUNTOS · BONUS</div>
     </div>
   </div>
   <div class="header-right">
@@ -1377,7 +1377,8 @@
       </div>
       <div class="fgr full" id="qaNewRow" style="display:none">
         <label>Nombre del nuevo cliente</label>
-        <input id="qaNewNombre" placeholder="Ej: AUTOCOLOR" style="text-transform:uppercase">
+        <input id="qaNewNombre" placeholder="Ej: AUTOCOLOR" style="text-transform:uppercase" list="dlClientesExistentes" autocomplete="off">
+        <datalist id="dlClientesExistentes"></datalist>
       </div>
       <div class="fgr" id="qaAlbRow">
         <label>Nº Albarán</label>
@@ -2484,6 +2485,7 @@ async function deleteClient(tipo) {
 function openQuickAction(tipo, subtipo) {
   if(!checkDesktop()) return;
   quickMode={tipo,subtipo};
+  populateClientesDatalist();
   const labels={INGRESO:'Nuevo Rapel',GASTO:'Venta Rapel',GANADO:tipo==='bonus'?'Añadir Bonus':'Añadir Puntos',CANJEADO:tipo==='bonus'?'Descontar Bonus':'Venta con Puntos'};
   const subs={INGRESO:'Carga de bolsa de herramienta para un cliente',GASTO:'Consumo de bolsa de herramienta',GANADO:tipo==='bonus'?'Bonus ganado por fidelidad (en €)':'Puntos ganados por compra de neumáticos',CANJEADO:tipo==='bonus'?'Descuento bonus aplicado en compra':'Canje de puntos por producto'};
   document.getElementById('qaTitle').textContent=labels[subtipo];
@@ -2556,6 +2558,53 @@ function onQaClienteChange() {
 
 function show(id,v){document.getElementById(id).style.display=v?'':'none';}
 
+// ══ DETECCIÓN DE CLIENTES DUPLICADOS AL DAR DE ALTA ══
+function normalizeClienteNombre(n) {
+  return (n||'').toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g,'').trim();
+}
+// Busca en TODO el listado compartido (no solo el panel actual) un cliente con nombre
+// igual o muy parecido. Devuelve null si no hay nada razonablemente parecido.
+function fuzzyMatchCliente(nombre) {
+  const norm = normalizeClienteNombre(nombre);
+  if (norm.length < 3) return null;
+  let best = null, bestScore = 0;
+  for (const c of db.clientes) {
+    const cn = normalizeClienteNombre(c.nombre);
+    if (cn === norm) return c; // coincidencia exacta: no hace falta seguir buscando
+    if (cn.includes(norm) || norm.includes(cn)) {
+      const score = Math.min(cn.length, norm.length) / Math.max(cn.length, norm.length);
+      if (score > bestScore) { bestScore = score; best = c; }
+    }
+  }
+  return bestScore >= 0.4 ? best : null;
+}
+function populateClientesDatalist() {
+  const dl = document.getElementById('dlClientesExistentes');
+  if (!dl) return;
+  dl.innerHTML = db.clientes.map(c=>`<option value="${c.nombre}">`).join('');
+}
+// Da de alta un cliente nuevo, o reutiliza uno existente (parecido/idéntico) si el usuario lo confirma.
+// flagPanel: 'en_rapel'|'en_puntos'|'en_bonus'. camposExtra: campos propios del alta (ej. ejercicio en rapel).
+async function resolverClienteNuevo(nombre, flagPanel, camposExtra) {
+  const match = fuzzyMatchCliente(nombre);
+  if (match) {
+    const esExacto = normalizeClienteNombre(match.nombre) === normalizeClienteNombre(nombre);
+    const usarExistente = esExacto || confirm(`Ya existe un cliente parecido: "${match.nombre}".\n\n¿Es el mismo cliente?\n\nAceptar = usar "${match.nombre}"\nCancelar = crear "${nombre}" como cliente nuevo`);
+    if (usarExistente) {
+      if (!match[flagPanel]) {
+        const { error } = await sb.from('clientes').update({ [flagPanel]: true }).eq('id', match.id);
+        if (error) return { error };
+        match[flagPanel] = true;
+      }
+      return { id: match.id, cliente: match };
+    }
+  }
+  const { data, error } = await sb.from('clientes').insert({ nombre, notas:'', [flagPanel]:true, ...(camposExtra||{}) }).select();
+  if (error) return { error };
+  db.clientes.push(data[0]); db.clientes.sort((a,b)=>a.nombre.localeCompare(b.nombre));
+  return { id: data[0].id, cliente: data[0] };
+}
+
 async function saveQuickAction() {
   if(!quickMode) return;
   const{tipo,subtipo}=quickMode;
@@ -2567,27 +2616,24 @@ async function saveQuickAction() {
     setSaving();
     if(tipo==='rapel') {
       if(db.rapels.find(r=>r.nombre===nombre)){alert('Ya existe este cliente');return;}
-      const{data,error}=await sb.from('clientes').insert({nombre,ejercicio:2026,notas:'',en_rapel:true}).select();
-      if(error){alert('Error: '+error.message);setError();return;}
-      const nc={...data[0],movimientos:[]};
-      db.rapels.push(nc); db.rapels.sort((a,b)=>a.nombre.localeCompare(b.nombre));
-      db.clientes.push(data[0]); db.clientes.sort((a,b)=>a.nombre.localeCompare(b.nombre));
+      const res = await resolverClienteNuevo(nombre, 'en_rapel', {ejercicio:2026});
+      if(res.error){alert('Error: '+res.error.message);setError();return;}
+      let nc=db.rapels.find(x=>x.id===res.id);
+      if(!nc){ nc={...res.cliente,movimientos:[]}; db.rapels.push(nc); db.rapels.sort((a,b)=>a.nombre.localeCompare(b.nombre)); }
       clienteId=nc.id;
     } else if(tipo==='bonus') {
       if(db.bonus.find(b=>b.nombre===nombre)){alert('Ya existe este cliente');return;}
-      const{data,error}=await sb.from('clientes').insert({nombre,notas:'',en_bonus:true}).select();
-      if(error){alert('Error: '+error.message);setError();return;}
-      const nc={...data[0],movimientos:[]};
-      db.bonus.push(nc); db.bonus.sort((a,b)=>a.nombre.localeCompare(b.nombre));
-      db.clientes.push(data[0]); db.clientes.sort((a,b)=>a.nombre.localeCompare(b.nombre));
+      const res = await resolverClienteNuevo(nombre, 'en_bonus');
+      if(res.error){alert('Error: '+res.error.message);setError();return;}
+      let nc=db.bonus.find(x=>x.id===res.id);
+      if(!nc){ nc={...res.cliente,movimientos:[]}; db.bonus.push(nc); db.bonus.sort((a,b)=>a.nombre.localeCompare(b.nombre)); }
       clienteId=nc.id;
     } else {
       if(db.puntos.find(p=>p.nombre===nombre)){alert('Ya existe este cliente');return;}
-      const{data,error}=await sb.from('clientes').insert({nombre,notas:'',en_puntos:true}).select();
-      if(error){alert('Error: '+error.message);setError();return;}
-      const nc={...data[0],movimientos:[]};
-      db.puntos.push(nc); db.puntos.sort((a,b)=>a.nombre.localeCompare(b.nombre));
-      db.clientes.push(data[0]); db.clientes.sort((a,b)=>a.nombre.localeCompare(b.nombre));
+      const res = await resolverClienteNuevo(nombre, 'en_puntos');
+      if(res.error){alert('Error: '+res.error.message);setError();return;}
+      let nc=db.puntos.find(x=>x.id===res.id);
+      if(!nc){ nc={...res.cliente,movimientos:[]}; db.puntos.push(nc); db.puntos.sort((a,b)=>a.nombre.localeCompare(b.nombre)); }
       clienteId=nc.id;
     }
   }
