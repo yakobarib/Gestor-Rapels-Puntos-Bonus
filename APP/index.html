@@ -375,7 +375,29 @@
   <div class="loading-text">Conectando con Supabase...</div>
 </div>
 
-<div class="app">
+<!-- LOGIN -->
+<div id="loginGate" style="display:none;position:fixed;inset:0;z-index:1000;align-items:center;justify-content:center;background:var(--bg)">
+  <div class="modal" style="max-width:340px">
+    <div class="modal-title">Iniciar sesión</div>
+    <div class="modal-sub">Recambios Ibiza · Rapels · Puntos · Bonus</div>
+    <div class="fg" style="margin-top:16px">
+      <div class="fgr" style="grid-column:1/-1">
+        <label>Email</label>
+        <input type="email" id="loginEmail" placeholder="tu@email.com" style="text-transform:none" autocomplete="username">
+      </div>
+      <div class="fgr" style="grid-column:1/-1">
+        <label>Contraseña</label>
+        <input type="password" id="loginPassword" style="text-transform:none" autocomplete="current-password">
+      </div>
+    </div>
+    <div id="loginError" style="color:#E20613;font-size:12px;margin-top:10px;display:none"></div>
+    <div class="modal-actions" style="margin-top:20px">
+      <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="doLogin()">Entrar</button>
+    </div>
+  </div>
+</div>
+
+<div class="app" style="display:none" id="appRoot">
 
 <header class="header">
   <div class="logo">
@@ -386,7 +408,7 @@
       <path fill="#E63312" d="M1272.1,802.1c83.9,0,151.8-68,151.8-151.8c0-83.8-68-151.8-151.8-151.8c-83.8,0-151.8,68-151.8,151.8C1120.3,734.2,1188.3,802.1,1272.1,802.1z"/>
     </svg>
     <div>
-      <div class="logo-text">RECAMBIOS IBIZA</div>
+      <div class="logo-text">Recambios Ibiza</div>
       <div class="logo-sub">GESTOR DE RAPELS · PUNTOS · BONUS</div>
     </div>
   </div>
@@ -417,6 +439,13 @@
     </div>
     <button class="icon-btn" id="themeBtn" onclick="toggleTheme()" title="Cambiar tema">
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" id="themeIcon"><circle cx="8" cy="8" r="3"/><path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3.2 3.2l1 1M11.8 11.8l1 1M12.8 3.2l-1 1M4.2 11.8l-1 1"/></svg>
+    </button>
+    <button class="icon-btn" onclick="openChangePwd()" title="Cambiar contraseña">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="2.5" y="5.5" width="9" height="7" rx="1"/><path d="M4.5 5.5V4a2.5 2.5 0 0 1 5 0v1.5"/><circle cx="7" cy="9" r=".6" fill="currentColor" stroke="none"/></svg>
+    </button>
+    <button class="icon-btn" onclick="doLogout()" title="Cerrar sesión" style="gap:5px;width:auto;padding:0 10px;font-family:'JetBrains Mono',monospace;font-size:11px" id="userBadge">
+      <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M5 1.5H2.5A1.5 1.5 0 0 0 1 3v8a1.5 1.5 0 0 0 1.5 1.5H5M9.5 10l3-3-3-3M12.5 7h-8"/></svg>
+      <span id="userBadgeName">—</span>
     </button>
   </div>
 </header>
@@ -789,6 +818,17 @@
         <p>Los puntos caducan en enero de 2027 según las condiciones del programa.</p>
       </div>
       <div class="help-section">
+        <h3>Importar Consumo Mensual</h3>
+        <p>El botón <strong>Importar Consumo</strong> (verde, en pestaña Puntos) calcula y añade los puntos de todos los clientes de golpe a partir del fichero de ventas del ERP, sin tener que introducirlos uno a uno.</p>
+        <ul>
+          <li>Selecciona el periodo (viene puesto por defecto el mes anterior) y sube el fichero mensual de "Ventas Cliente-Familias".</li>
+          <li>Revisa los totales que muestra por cliente y pulsa <strong>Confirmar</strong>. Cada cliente recibe un único movimiento de puntos con el desglose por categoría, igual que si se hubiera introducido a mano.</li>
+          <li>El reconocimiento del cliente es automático — no hace falta buscarlo ni seleccionarlo.</li>
+          <li>Si subes por error un mes ya importado (o una versión corregida del mismo fichero), la app avisa antes de continuar: no se suman los puntos, se sustituyen por el nuevo cálculo.</li>
+          <li>El desplegable "Tipo de fichero" también permite subir el <strong>Baremo Marca/Familia → Categoría</strong> cuando cambie qué marcas y familias dan puntos y cuántos.</li>
+        </ul>
+      </div>
+      <div class="help-section">
         <h3>Bonus de Fidelización</h3>
         <ul>
           <li><strong>Añadir Bonus (verde)</strong> — registra euros ganados por fidelidad para un cliente.</li>
@@ -796,6 +836,15 @@
           <li><strong>Editar Bonus (azul)</strong> — permite corregir el importe, fecha o notas de un movimiento existente.</li>
           <li>El bonus usa <strong>euros (€)</strong> como unidad. 1 bonus = 1 €.</li>
           <li>Haz clic en la fila de un cliente para abrir su ficha con el historial completo y el saldo actual.</li>
+        </ul>
+      </div>
+      <div class="help-section">
+        <h3>Renombrar cliente y clientes duplicados</h3>
+        <ul>
+          <li>Un mismo cliente puede tener actividad en Rapel, Puntos y Bonus a la vez — es la misma ficha en los tres sitios, no tres clientes distintos.</li>
+          <li>El botón <strong>Renombrar</strong>, en la ficha de cualquier cliente, cambia el nombre en los tres sistemas a la vez, aunque solo lo hagas desde uno de ellos.</li>
+          <li>Al dar de alta un cliente nuevo, el campo de nombre sugiere clientes ya existentes mientras escribes.</li>
+          <li>Si el nombre escrito se parece mucho a uno ya existente en otro sistema (p. ej. "COTORRO" y "TALLER COTORRO"), la app pregunta si es el mismo cliente antes de crear uno nuevo — así se evita duplicar el mismo negocio con nombres distintos.</li>
         </ul>
       </div>
       <div class="help-section">
@@ -854,6 +903,21 @@
     <!-- VERSIONES -->
     <div class="help-body" id="help-versiones" style="display:none">
       <div class="help-ver">
+        <div class="help-ver-item">
+          <div class="help-ver-head">
+            <span class="help-ver-num">v4.8</span>
+            <span class="help-ver-date">Julio 2026</span>
+          </div>
+          <ul class="help-ver-list">
+            <li><strong>Importar Consumo</strong> en el panel Puntos — sube el fichero mensual del ERP y calcula los puntos de todos los clientes automáticamente (Marca/Familia → categoría), sin tener que introducirlos a mano</li>
+            <li>Reconocimiento de cliente 100% automático por código de ERP; si el fichero de un mes ya importado se vuelve a subir, se sobrescribe en vez de sumar puntos de más</li>
+            <li>Baremo Marca/Familia → Categoría editable desde la propia app (mismo asistente, seleccionando "Baremo" como tipo de fichero)</li>
+            <li><strong>Ficha de cliente unificada</strong> entre Rapel, Puntos y Bonus — el mismo cliente ya no está duplicado en cada pestaña</li>
+            <li>Nuevo botón <strong>Renombrar</strong> en la ficha de cliente: cambia el nombre en los tres sistemas a la vez, sin tener que repetirlo pestaña por pestaña</li>
+            <li>Al dar de alta un cliente nuevo, aviso si ya existe uno con nombre igual o parecido en otro sistema, para no duplicar el mismo negocio por error</li>
+            <li>Cabecera actualizada: "Recambios Ibiza" como título principal</li>
+          </ul>
+        </div>
         <div class="help-ver-item">
           <div class="help-ver-head">
             <span class="help-ver-num">v4.7</span>
@@ -1013,6 +1077,29 @@
   </div>
 </div>
 
+<!-- MODAL CAMBIAR CONTRASEÑA -->
+<div class="overlay" id="ovlChangePwd">
+  <div class="modal" style="max-width:340px">
+    <div class="modal-title">Cambiar contraseña</div>
+    <div class="modal-sub">Se aplica a tu cuenta de inicio de sesión</div>
+    <div class="fg">
+      <div class="fgr full">
+        <label>Nueva contraseña *</label>
+        <input type="password" id="cpwNueva" style="text-transform:none" autocomplete="new-password">
+      </div>
+      <div class="fgr full">
+        <label>Repetir contraseña *</label>
+        <input type="password" id="cpwRepetir" style="text-transform:none" autocomplete="new-password">
+      </div>
+    </div>
+    <div id="cpwError" style="color:#E20613;font-size:12px;margin-top:4px;display:none"></div>
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeOverlay('ovlChangePwd')">Cancelar</button>
+      <button class="btn btn-sm" style="background:var(--orange);color:#fff;border:none;padding:9px 20px;font-size:13px" onclick="saveChangePwd()">Guardar</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL BLOQUEAR -->
 <div class="overlay" id="ovlBloquear">
   <div class="modal">
@@ -1022,10 +1109,6 @@
       <div class="fgr full">
         <label>Cliente *</label>
         <select id="blqCliente"></select>
-      </div>
-      <div class="fgr full">
-        <label>Bloqueado por *</label>
-        <input id="blqPor" placeholder="Tu nombre (obligatorio)">
       </div>
       <div class="fgr full">
         <label>Motivo (opcional)</label>
@@ -1072,10 +1155,6 @@
         <label>Descripción</label>
         <input type="text" id="emNot" placeholder="Producto, observaciones...">
       </div>
-      <div class="fgr" style="grid-column:1/-1">
-        <label>Editado por *</label>
-        <input type="text" id="emPor" placeholder="TU NOMBRE (OBLIGATORIO)">
-      </div>
     </div>
     <div class="modal-actions" style="margin-top:24px">
       <button class="btn btn-ghost" onclick="closeOverlay('ovlEditMov')">Cancelar</button>
@@ -1115,10 +1194,6 @@
         <label>Notas</label>
         <input type="text" id="erNot" placeholder="Descripción...">
       </div>
-      <div class="fgr" style="grid-column:1/-1">
-        <label>Editado por *</label>
-        <input type="text" id="erPor" placeholder="TU NOMBRE (OBLIGATORIO)">
-      </div>
     </div>
     <div class="modal-actions" style="margin-top:24px">
       <button class="btn btn-ghost" onclick="closeOverlay('ovlEditMovR')">Cancelar</button>
@@ -1152,10 +1227,6 @@
       <div class="fgr" style="grid-column:1/-1">
         <label>Notas</label>
         <input type="text" id="ebNot" placeholder="Descripción...">
-      </div>
-      <div class="fgr" style="grid-column:1/-1">
-        <label>Editado por *</label>
-        <input type="text" id="ebPor" placeholder="TU NOMBRE (OBLIGATORIO)">
       </div>
     </div>
     <div class="modal-actions" style="margin-top:24px">
@@ -1341,10 +1412,6 @@
         <input id="ajFecha" type="date">
       </div>
       <div class="fgr full">
-        <label>Autorizado por *</label>
-        <input id="ajPor" placeholder="Nombre de quien autoriza el ajuste">
-      </div>
-      <div class="fgr full">
         <label>Motivo *</label>
         <input id="ajMotivo" placeholder="Razón del ajuste manual...">
       </div>
@@ -1388,33 +1455,15 @@
         <label id="qaImpLabel">Importe (€)</label>
         <input id="qaImp" type="number" min="0.01" step="0.01" placeholder="0.00">
       </div>
-      <!-- Campo exclusivo Rapel INGRESO -->
-      <div class="fgr full" id="qaRapelIntrodRow" style="display:none">
-        <label>Introducido por *</label>
-        <input id="qaRapelIntrod" placeholder="TU NOMBRE (OBLIGATORIO)">
-      </div>
-      <!-- Campo exclusivo Rapel GASTO -->
-      <div class="fgr full" id="qaRapelGestRow" style="display:none">
-        <label>Gestionado por *</label>
-        <input id="qaRapelGest" placeholder="TU NOMBRE (OBLIGATORIO)">
-      </div>
       <!-- Campos exclusivos Bonus GANADO -->
       <div class="fgr" id="qaBonusAlbRow" style="display:none">
         <label>Nº Albarán *</label>
         <input id="qaBonusAlb" placeholder="EJ: 041589">
       </div>
-      <div class="fgr" id="qaIntrodRow" style="display:none">
-        <label>Introducido por *</label>
-        <input id="qaIntrod" placeholder="TU NOMBRE (OBLIGATORIO)">
-      </div>
       <!-- Campos exclusivos Bonus CANJEADO -->
       <div class="fgr" id="qaConceptoRow" style="display:none">
         <label>Concepto *</label>
         <input id="qaConcepto" placeholder="EN QUÉ SE APLICA EL BONUS...">
-      </div>
-      <div class="fgr" id="qaGestPorRow" style="display:none">
-        <label>Gestionado por *</label>
-        <input id="qaGestPor" placeholder="TU NOMBRE (OBLIGATORIO)">
       </div>
       <!-- Calculadora (GANADO) -->
       <div class="fgr full" id="qaCalcSection" style="display:none">
@@ -1471,16 +1520,6 @@
       <div class="fgr full" id="qaRefRow" style="display:none">
         <label>Referencia / Mes</label>
         <input id="qaRef" placeholder="Ej: Junio 2026">
-      </div>
-      <!-- Campos usuario Puntos GANADO -->
-      <div class="fgr full" id="qaPtsIntrodRow" style="display:none">
-        <label>Introducido por *</label>
-        <input id="qaPtsIntrod" placeholder="TU NOMBRE (OBLIGATORIO)">
-      </div>
-      <!-- Campos usuario Puntos CANJEADO -->
-      <div class="fgr full" id="qaPtsGestRow" style="display:none">
-        <label>Gestionado por *</label>
-        <input id="qaPtsGest" placeholder="TU NOMBRE (OBLIGATORIO)">
       </div>
       <div class="fgr">
         <label>Fecha</label>
@@ -1652,6 +1691,75 @@
 const SUPABASE_URL = 'https://qiwacvjrytpgdqhwnkcj.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFpd2FjdmpyeXRwZ2RxaHdua2NqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExMzIwMDUsImV4cCI6MjA5NjcwODAwNX0.sZVVLa5Y69upY70dG9BUvIaIOX1zr7N1B5mEKfqWmxQ';
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ══ AUTENTICACIÓN ══
+let currentUser = null;
+function currentUserName() {
+  if (!currentUser) return '—';
+  const meta = currentUser.user_metadata || {};
+  if (meta.display_name) return String(meta.display_name).toUpperCase();
+  const local = (currentUser.email||'').split('@')[0];
+  return local.replace(/[._-]+/g,' ').toUpperCase();
+}
+function showLoginGate() {
+  document.getElementById('loginGate').style.display = 'flex';
+  document.getElementById('appRoot').style.display = 'none';
+}
+function showApp() {
+  document.getElementById('loginGate').style.display = 'none';
+  document.getElementById('appRoot').style.display = '';
+  document.getElementById('userBadgeName').textContent = currentUserName();
+}
+async function doLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const errEl = document.getElementById('loginError');
+  errEl.style.display = 'none';
+  if (!email || !password) { errEl.textContent = 'Introduce email y contraseña.'; errEl.style.display = 'block'; return; }
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
+  if (error) { errEl.textContent = 'Email o contraseña incorrectos.'; errEl.style.display = 'block'; return; }
+  currentUser = data.user;
+  showApp();
+  load();
+}
+async function doLogout() {
+  if (!confirm('¿Cerrar sesión?')) return;
+  await sb.auth.signOut();
+  currentUser = null;
+  showLoginGate();
+}
+function openChangePwd() {
+  document.getElementById('cpwNueva').value = '';
+  document.getElementById('cpwRepetir').value = '';
+  document.getElementById('cpwError').style.display = 'none';
+  document.getElementById('ovlChangePwd').classList.add('open');
+}
+async function saveChangePwd() {
+  const nueva = document.getElementById('cpwNueva').value;
+  const repetir = document.getElementById('cpwRepetir').value;
+  const errEl = document.getElementById('cpwError');
+  errEl.style.display = 'none';
+  if (!nueva || nueva.length < 4) { errEl.textContent = 'La contraseña debe tener al menos 4 caracteres.'; errEl.style.display = 'block'; return; }
+  if (nueva !== repetir) { errEl.textContent = 'Las dos contraseñas no coinciden.'; errEl.style.display = 'block'; return; }
+  const { error } = await sb.auth.updateUser({ password: nueva });
+  if (error) { errEl.textContent = 'Error: ' + error.message; errEl.style.display = 'block'; return; }
+  closeOverlay('ovlChangePwd');
+  alert('Contraseña actualizada correctamente.');
+}
+async function initAuth() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) {
+    currentUser = session.user;
+    showApp();
+    load();
+  } else {
+    document.getElementById('loadingOverlay').style.display = 'none';
+    showLoginGate();
+  }
+  sb.auth.onAuthStateChange((event) => {
+    if (event === 'SIGNED_OUT') { currentUser = null; showLoginGate(); }
+  });
+}
 
 const PTS_VALUE = 1;
 let db = { rapels: [], puntos: [], bonus: [], consumo: [], baremo: [], clientes: [] };
@@ -2062,10 +2170,7 @@ async function addRMov() {
 
 async function delRMov(rid,mid,e) {
   e.stopPropagation();
-  const quien=prompt('¿Tu nombre? (obligatorio para eliminar)')?.toUpperCase();
-  if(quien===null) return;
-  if(!quien.trim()){alert('El nombre es obligatorio para eliminar un movimiento');return;}
-  if(!confirm(`¿Eliminar este movimiento? (por: ${quien.trim()})`)) return;
+  if(!confirm(`¿Eliminar este movimiento? (por: ${currentUserName()})`)) return;
   setSaving();
   const{error}=await sb.from('movimientos_rapel').delete().eq('id',mid);
   if(error){alert('Error: '+error.message);setError();return;}
@@ -2087,7 +2192,6 @@ function editRMov(rid, mid, e) {
   document.getElementById('erAlb').value = m.albaran || '';
   document.getElementById('erFec').value = m.fecha || '';
   document.getElementById('erNot').value = m.notas || '';
-  document.getElementById('erPor').value = '';
   document.getElementById('ovlEditMovR').classList.add('open');
 }
 async function saveEditRMov() {
@@ -2095,15 +2199,13 @@ async function saveEditRMov() {
   const mid = document.getElementById('erMovId').value;
   const val = parseFloat(document.getElementById('erImp').value);
   if (isNaN(val) || val <= 0) { alert('Introduce un importe válido'); return; }
-  const por = document.getElementById('erPor').value.trim();
-  if (!por) { alert('El campo "Editado por" es obligatorio'); return; }
   const notBase = document.getElementById('erNot').value.trim();
   const upd = {
     tipo: document.getElementById('erTipo').value,
     importe: val,
     albaran: document.getElementById('erAlb').value.trim(),
     fecha: document.getElementById('erFec').value || null,
-    notas: `EDIT. POR: ${por}`+(notBase?` · ${notBase}`:'')
+    notas: `EDIT. POR: ${currentUserName()}`+(notBase?` · ${notBase}`:'')
   };
   setSaving();
   const { error } = await sb.from('movimientos_rapel').update(upd).eq('id', mid);
@@ -2127,7 +2229,6 @@ function editBMov(bid, mid, e) {
   document.getElementById('ebImp').value = m.importe || '';
   document.getElementById('ebFec').value = m.fecha || '';
   document.getElementById('ebNot').value = m.notas || '';
-  document.getElementById('ebPor').value = '';
   document.getElementById('ovlEditMovB').classList.add('open');
 }
 async function saveEditBMov() {
@@ -2135,14 +2236,12 @@ async function saveEditBMov() {
   const mid = document.getElementById('ebMovId').value;
   const val = parseInt(document.getElementById('ebImp').value);
   if (isNaN(val) || val <= 0) { alert('Introduce un número de puntos válido'); return; }
-  const por = document.getElementById('ebPor').value.trim();
-  if (!por) { alert('El campo "Editado por" es obligatorio'); return; }
   const notBase = document.getElementById('ebNot').value.trim();
   const upd = {
     tipo: document.getElementById('ebTipo').value,
     importe: val,
     fecha: document.getElementById('ebFec').value || null,
-    notas: `EDIT. POR: ${por}`+(notBase?` · ${notBase}`:'')
+    notas: `EDIT. POR: ${currentUserName()}`+(notBase?` · ${notBase}`:'')
   };
   setSaving();
   const { error } = await sb.from('movimientos_bonus').update(upd).eq('id', mid);
@@ -2240,10 +2339,7 @@ async function addPMov() {
 
 async function delPMov(pid,mid,e) {
   e.stopPropagation();
-  const quien=prompt('¿Tu nombre? (obligatorio para eliminar)')?.toUpperCase();
-  if(quien===null) return;
-  if(!quien.trim()){alert('El nombre es obligatorio para eliminar un movimiento');return;}
-  if(!confirm(`¿Eliminar este movimiento? (por: ${quien.trim()})`)) return;
+  if(!confirm(`¿Eliminar este movimiento? (por: ${currentUserName()})`)) return;
   setSaving();
   const{error}=await sb.from('movimientos_puntos').delete().eq('id',mid);
   if(error){alert('Error: '+error.message);setError();return;}
@@ -2265,7 +2361,6 @@ function editPMov(pid, mid, e) {
   document.getElementById('emRef').value = m.referencia || '';
   document.getElementById('emFec').value = m.fecha || '';
   document.getElementById('emNot').value = m.notas || '';
-  document.getElementById('emPor').value = '';
   document.getElementById('ovlEditMov').classList.add('open');
 }
 
@@ -2274,15 +2369,13 @@ async function saveEditPMov() {
   const mid = document.getElementById('emMovId').value;
   const puntos = parseInt(document.getElementById('emPts').value);
   if (isNaN(puntos) || puntos <= 0) { alert('Introduce un número de puntos válido'); return; }
-  const por = document.getElementById('emPor').value.trim();
-  if (!por) { alert('El campo "Editado por" es obligatorio'); return; }
   const notBase = document.getElementById('emNot').value.trim();
   const upd = {
     tipo: document.getElementById('emTipo').value,
     puntos,
     referencia: document.getElementById('emRef').value.trim(),
     fecha: document.getElementById('emFec').value || null,
-    notas: `EDIT. POR: ${por}`+(notBase?` · ${notBase}`:'')
+    notas: `EDIT. POR: ${currentUserName()}`+(notBase?` · ${notBase}`:'')
   };
   setSaving();
   const { error } = await sb.from('movimientos_puntos').update(upd).eq('id', mid);
@@ -2358,10 +2451,7 @@ async function addBMov() {
 
 async function delBMov(bid,mid,e) {
   e.stopPropagation();
-  const quien=prompt('¿Tu nombre? (obligatorio para eliminar)')?.toUpperCase();
-  if(quien===null) return;
-  if(!quien.trim()){alert('El nombre es obligatorio para eliminar un movimiento');return;}
-  if(!confirm(`¿Eliminar este movimiento? (por: ${quien.trim()})`)) return;
+  if(!confirm(`¿Eliminar este movimiento? (por: ${currentUserName()})`)) return;
   setSaving();
   const{error}=await sb.from('movimientos_bonus').delete().eq('id',mid);
   if(error){alert('Error: '+error.message);setError();return;}
@@ -2449,12 +2539,9 @@ async function saveRenombrar() {
 }
 
 async function deleteClient(tipo) {
-  const quien=prompt('¿Tu nombre? (obligatorio para eliminar cliente)')?.toUpperCase();
-  if(quien===null) return;
-  if(!quien.trim()){alert('El nombre es obligatorio para eliminar un cliente');return;}
   if(tipo==='rapel') {
     const r=db.rapels.find(x=>x.id===activeR);
-    if(!r||!confirm(`¿Eliminar a ${r.nombre}? (por: ${quien.trim()})`)) return;
+    if(!r||!confirm(`¿Eliminar a ${r.nombre}? (por: ${currentUserName()})`)) return;
     setSaving();
     const error = await deleteClientMovimientos(activeR, 'movimientos_rapel');
     if(error){alert('Error: '+error.message);setError();return;}
@@ -2462,7 +2549,7 @@ async function deleteClient(tipo) {
     closeDrawer('R');
   } else if(tipo==='puntos') {
     const p=db.puntos.find(x=>x.id===activeP);
-    if(!p||!confirm(`¿Eliminar a ${p.nombre}? (por: ${quien.trim()})`)) return;
+    if(!p||!confirm(`¿Eliminar a ${p.nombre}? (por: ${currentUserName()})`)) return;
     setSaving();
     const error = await deleteClientMovimientos(activeP, 'movimientos_puntos');
     if(error){alert('Error: '+error.message);setError();return;}
@@ -2470,7 +2557,7 @@ async function deleteClient(tipo) {
     closeDrawer('P');
   } else {
     const b=db.bonus.find(x=>x.id===activeB);
-    if(!b||!confirm(`¿Eliminar a ${b.nombre}? (por: ${quien.trim()})`)) return;
+    if(!b||!confirm(`¿Eliminar a ${b.nombre}? (por: ${currentUserName()})`)) return;
     setSaving();
     const error = await deleteClientMovimientos(activeB, 'movimientos_bonus');
     if(error){alert('Error: '+error.message);setError();return;}
@@ -2495,21 +2582,15 @@ function openQuickAction(tipo, subtipo) {
   const isBonus=tipo==='bonus';
   const isGanado=subtipo==='GANADO';
   show('qaAlbRow',isRapel);
-  show('qaRapelIntrodRow', isRapel && subtipo==='INGRESO');
-  show('qaRapelGestRow', isRapel && subtipo==='GASTO');
   show('qaImpRow',isRapel||isBonus);
   const qaImpEl=document.getElementById('qaImp');
   if(isBonus){document.getElementById('qaImpLabel').textContent='Puntos Bonus';qaImpEl.min='1';qaImpEl.step='1';qaImpEl.placeholder='0';}
   else{document.getElementById('qaImpLabel').textContent='Importe (€)';qaImpEl.min='0.01';qaImpEl.step='0.01';qaImpEl.placeholder='0.00';}
   show('qaBonusAlbRow', isBonus && isGanado);
-  show('qaIntrodRow',   isBonus && isGanado);
   show('qaConceptoRow', isBonus && !isGanado);
-  show('qaGestPorRow',  isBonus && !isGanado);
   show('qaCalcSection', !isRapel && !isBonus && isGanado);
   show('qaPtsRow', !isRapel && !isBonus && !isGanado);
   show('qaRefRow', !isRapel && !isBonus);
-  show('qaPtsIntrodRow', !isRapel && !isBonus && isGanado);
-  show('qaPtsGestRow', !isRapel && !isBonus && !isGanado);
   if(!isRapel && !isBonus && isGanado){['qaNeum1','qaNeum2','qaCarr','qaPast','qaAlt','qaExtra'].forEach(id=>{document.getElementById(id).value='';});calcPoints();}
 
   const list=isRapel?db.rapels:isBonus?db.bonus:db.puntos;
@@ -2524,14 +2605,8 @@ function openQuickAction(tipo, subtipo) {
   document.getElementById('qaImp').value='';
   document.getElementById('qaPts').value='';
   document.getElementById('qaRef').value='';
-  document.getElementById('qaRapelIntrod').value='';
-  document.getElementById('qaRapelGest').value='';
   document.getElementById('qaBonusAlb').value='';
-  document.getElementById('qaIntrod').value='';
   document.getElementById('qaConcepto').value='';
-  document.getElementById('qaGestPor').value='';
-  document.getElementById('qaPtsIntrod').value='';
-  document.getElementById('qaPtsGest').value='';
   ['qaNeum1','qaNeum2','qaCarr','qaPast','qaAlt','qaExtra'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   calcPoints();
   document.getElementById('qaFec').value=today();
@@ -2651,14 +2726,10 @@ async function saveQuickAction() {
     if(!(await checkBloqAndProceed(r))) return;
     let notasRapel=notas;
     if(subtipo==='INGRESO'){
-      const introd=document.getElementById('qaRapelIntrod').value.trim();
-      if(!introd){alert('El campo "Introducido por" es obligatorio');return;}
-      notasRapel=`INTROD. POR: ${introd}`+(notas?` · ${notas}`:'');
+      notasRapel=`INTROD. POR: ${currentUserName()}`+(notas?` · ${notas}`:'');
     }
     if(subtipo==='GASTO'){
-      const gest=document.getElementById('qaRapelGest').value.trim();
-      if(!gest){alert('El campo "Gestionado por" es obligatorio');return;}
-      notasRapel=`GESTIONA: ${gest}`+(notas?` · ${notas}`:'');
+      notasRapel=`GESTIONA: ${currentUserName()}`+(notas?` · ${notas}`:'');
     }
     const{data,error}=await sb.from('movimientos_rapel').insert({cliente_id:clienteId,tipo:subtipo,albaran:alb,importe:imp,fecha,notas:notasRapel}).select();
     if(error){alert('Error: '+error.message);setError();return;}
@@ -2669,16 +2740,12 @@ async function saveQuickAction() {
     let notasBonus;
     if(subtipo==='GANADO'){
       const alb=document.getElementById('qaBonusAlb').value.trim();
-      const introd=document.getElementById('qaIntrod').value.trim();
       if(!alb){alert('El número de albarán es obligatorio');return;}
-      if(!introd){alert('El campo "Introducido por" es obligatorio');return;}
-      notasBonus=`ALB. ${alb} · INTRODUCIDO POR: ${introd}`+(notas?`\n${notas}`:'');
+      notasBonus=`ALB. ${alb} · INTRODUCIDO POR: ${currentUserName()}`+(notas?`\n${notas}`:'');
     } else {
       const concepto=document.getElementById('qaConcepto').value.trim();
-      const gestPor=document.getElementById('qaGestPor').value.trim();
       if(!concepto){alert('El campo "Concepto" es obligatorio');return;}
-      if(!gestPor){alert('El campo "Gestionado por" es obligatorio');return;}
-      notasBonus=`CONCEPTO: ${concepto} · GESTIONA: ${gestPor}`+(notas?`\n${notas}`:'');
+      notasBonus=`CONCEPTO: ${concepto} · GESTIONA: ${currentUserName()}`+(notas?`\n${notas}`:'');
     }
     const{data,error}=await sb.from('movimientos_bonus').insert({cliente_id:clienteId,tipo:subtipo,importe:imp,fecha,notas:notasBonus}).select();
     if(error){alert('Error: '+error.message);setError();return;}
@@ -2689,16 +2756,12 @@ async function saveQuickAction() {
     if(subtipo==='GANADO'){
       puntos=getCalcTotal();
       if(puntos===0){alert('Introduce al menos un valor en la calculadora');return;}
-      const introd=document.getElementById('qaPtsIntrod').value.trim();
-      if(!introd){alert('El campo "Introducido por" es obligatorio');return;}
       if(!notasFinal) notasFinal=buildCalcNotas();
-      notasFinal=`INTROD. POR: ${introd}`+(notasFinal?` · ${notasFinal}`:'');
+      notasFinal=`INTROD. POR: ${currentUserName()}`+(notasFinal?` · ${notasFinal}`:'');
     } else {
       puntos=parseInt(document.getElementById('qaPts').value);
       if(isNaN(puntos)||puntos<=0){alert('Introduce un número de puntos válido');return;}
-      const gest=document.getElementById('qaPtsGest').value.trim();
-      if(!gest){alert('El campo "Gestionado por" es obligatorio');return;}
-      notasFinal=`GESTIONA: ${gest}`+(notas?` · ${notas}`:'');
+      notasFinal=`GESTIONA: ${currentUserName()}`+(notas?` · ${notas}`:'');
     }
     const{data,error}=await sb.from('movimientos_puntos').insert({cliente_id:clienteId,tipo:subtipo,puntos,referencia,fecha,notas:notasFinal}).select();
     if(error){alert('Error: '+error.message);setError();return;}
@@ -3706,7 +3769,6 @@ function openBloquear() {
   if (!list.length) { alert('No hay clientes desbloqueados'); return; }
   const sel = document.getElementById('blqCliente');
   sel.innerHTML = '<option value="">— Seleccionar cliente —</option>' + list.map(r=>`<option value="${r.id}">${r.nombre}</option>`).join('');
-  document.getElementById('blqPor').value = '';
   document.getElementById('blqMotivo').value = '';
   document.getElementById('ovlBloquear').classList.add('open');
   setTimeout(()=>sel.focus(),100);
@@ -3714,13 +3776,11 @@ function openBloquear() {
 
 async function saveBloquear() {
   const clienteId = document.getElementById('blqCliente').value;
-  const por = document.getElementById('blqPor').value.trim();
   const motivo = document.getElementById('blqMotivo').value.trim();
   if (!clienteId) { alert('Selecciona un cliente'); return; }
-  if (!por) { alert('El campo "Bloqueado por" es obligatorio'); return; }
   const r = db.rapels.find(x=>x.id===clienteId); if (!r) return;
   setSaving();
-  const newBloqueo = applyBloqNotas(por, motivo);
+  const newBloqueo = applyBloqNotas(currentUserName(), motivo);
   const {error} = await sb.from('clientes').update({bloqueo:newBloqueo}).eq('id',clienteId);
   if (error) { alert('Error: '+error.message); setError(); return; }
   r.bloqueo = newBloqueo;
@@ -3730,10 +3790,7 @@ async function saveBloquear() {
 }
 
 async function desbloquear(id) {
-  const quien=prompt('¿Tu nombre? (obligatorio para desbloquear)')?.toUpperCase();
-  if(quien===null) return;
-  if(!quien.trim()){alert('El nombre es obligatorio para desbloquear');return;}
-  if(!confirm(`¿Desbloquear este rapel? (por: ${quien.trim()})`)) return;
+  if(!confirm(`¿Desbloquear este rapel? (por: ${currentUserName()})`)) return;
   const r = db.rapels.find(x=>x.id===id); if (!r) return;
   setSaving();
   const {error} = await sb.from('clientes').update({bloqueo:null}).eq('id',id);
@@ -3767,7 +3824,6 @@ function openAjuste(preselId) {
   document.getElementById('ajTipo').value = 'INCREMENTO';
   document.getElementById('ajImporte').value = '';
   document.getElementById('ajFecha').value = today();
-  document.getElementById('ajPor').value = '';
   document.getElementById('ajMotivo').value = '';
   document.getElementById('ajNotas').value = '';
   document.getElementById('ajImporteRow').style.display = '';
@@ -3781,12 +3837,10 @@ async function saveAjuste() {
   const clienteId = document.getElementById('ajCliente').value;
   const tipo      = document.getElementById('ajTipo').value;
   const fecha     = document.getElementById('ajFecha').value || today();
-  const por       = document.getElementById('ajPor').value.trim();
   const motivo    = document.getElementById('ajMotivo').value.trim();
   const notas     = document.getElementById('ajNotas').value.trim();
 
   if (!clienteId) { alert('Selecciona un cliente'); return; }
-  if (!por) { alert('El campo "Autorizado por" es obligatorio'); return; }
   if (!motivo) { alert('El campo "Motivo" es obligatorio'); return; }
 
   const r = db.rapels.find(x=>x.id===clienteId); if (!r) return;
@@ -3802,7 +3856,7 @@ async function saveAjuste() {
     if (!importe || importe <= 0) { alert('El importe debe ser mayor que cero'); return; }
     importeSigned = tipo === 'REDUCCION' ? -Math.abs(importe) : Math.abs(importe);
   }
-  const notasCompletas = `Autorizado por: ${por} · ${motivo}` + (notas ? `\n${notas}` : '');
+  const notasCompletas = `Autorizado por: ${currentUserName()} · ${motivo}` + (notas ? `\n${notas}` : '');
 
   setSaving();
   const {data, error} = await sb.from('movimientos_rapel').insert({
@@ -4185,7 +4239,7 @@ document.addEventListener('keydown',e=>{
 });
 
 // ══ INIT ══
-load();
+initAuth();
 </script>
 </body>
 </html>
