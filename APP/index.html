@@ -1893,6 +1893,7 @@ function switchTab(name, btn) {
   document.getElementById('tab-'+name).classList.add('active');
   btn.classList.add('active');
   if (name==='historico') { buildHistClientFilter(); renderHist(); }
+  if (name==='puntos') updateConsumoStickyOffset();
 }
 
 // ══ FORMAT ══
@@ -4103,29 +4104,30 @@ function buildConsumoTable(ant, actual, year, nombre, maxMes, compact) {
     const col = p >= 100 ? 'var(--green)' : 'var(--accent)';
     return `<td class="consumo-pct-num" style="text-align:center"><span style="color:${col}">${p}%</span></td>`;
   }
-  function cmp(old, cur, isSep, oldNote) {
+  function fmtVal(v, isMoney) { return isMoney ? Math.round(v).toLocaleString('es-ES')+' €' : v; }
+  function cmp(old, cur, isSep, oldNote, isMoney) {
     const sepCls = isSep ? ' consumo-sep' : ' consumo-sep-left';
     const note = oldNote ? `<span style="font-size:9px;color:var(--text-dim);vertical-align:super"> est.</span>` : '';
     return `<td class="consumo-num${sepCls}" style="text-align:center;white-space:nowrap">
-      <span style="color:var(--text-dim);font-size:11px;font-weight:400">${old}${note}</span>
+      <span style="color:var(--text-dim);font-size:11px;font-weight:400">${fmtVal(old,isMoney)}${note}</span>
       <span style="margin:0 4px;color:var(--text-dim);font-size:11px">→</span>
-      <span style="font-weight:700;color:var(--text)">${cur}</span>
+      <span style="font-weight:700;color:var(--text)">${fmtVal(cur,isMoney)}</span>
     </td>`;
   }
-  function cierreCell(v) {
+  function cierreCell(v, isMoney) {
     if (v <= 0) return `<td class="consumo-num consumo-sep">—</td>`;
-    return `<td class="consumo-num consumo-sep" style="color:var(--text);font-weight:700">${v}</td>`;
+    return `<td class="consumo-num consumo-sep" style="color:var(--text);font-weight:700">${fmtVal(v,isMoney)}</td>`;
   }
-  function row(icon, label, av, ytdv) {
+  function row(icon, label, av, ytdv, isMoney) {
     const parc25 = parc(av);
     const proyv  = proy(ytdv);
     return `<tr>
       <td>${icon} ${label}</td>
-      ${cmp(parc25, ytdv, false, true)}
+      ${cmp(parc25, ytdv, false, true, isMoney)}
       ${pct(parc25, ytdv)}
-      ${cmp(av, ytdv, true, false)}
+      ${cmp(av, ytdv, true, false, isMoney)}
       ${pct(av, ytdv)}
-      ${cierreCell(proyv)}
+      ${cierreCell(proyv, isMoney)}
     </tr>`;
   }
   const editBtn = nombre
@@ -4155,7 +4157,7 @@ function buildConsumoTable(ant, actual, year, nombre, maxMes, compact) {
         ${row('🏎','Neumáticos', ant.neumaticos, actual.neumaticos)}
         ${row('🛑','Pastillas', ant.pastillas, actual.pastillas)}
         ${row('⚡','Alt./Arr.', ant.alternadores, actual.alternadores)}
-        ${(ant.carroceria||0)>0||(actual.carroceria||0)>0?row('🔧','Carrocería', ant.carroceria||0, actual.carroceria||0):''}
+        ${(ant.carroceria||0)>0||(actual.carroceria||0)>0?row('🔧','Carrocería', ant.carroceria||0, actual.carroceria||0, true):''}
       </tbody>
     </table>`;
 }
