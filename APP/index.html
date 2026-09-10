@@ -82,7 +82,7 @@
   .tbl-wrap{border-radius:8px;border:1px solid var(--border)}
   table{width:100%;border-collapse:collapse;font-family:'JetBrains Mono',monospace;font-size:12px}
   th{background:var(--surface2);padding:10px 14px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--text-dim);border-bottom:1px solid var(--border);white-space:nowrap}
-  .tbl-wrap thead th{position:sticky;top:0;z-index:2}
+  .tbl-wrap thead th{position:sticky;top:var(--sticky-th-top,0px);z-index:2}
   td{padding:11px 14px;border-bottom:1px solid var(--border);vertical-align:middle}
   th.num,td.num{text-align:right}
   tr:last-child td{border-bottom:none}
@@ -4036,7 +4036,9 @@ function applyFontSize(size) {
   localStorage.setItem('ri_rp_fontsize', size);
   document.querySelectorAll('.fs-opt').forEach(b=>b.classList.toggle('active', b.dataset.size===size));
   document.getElementById('optsPop').classList.remove('open');
+  requestAnimationFrame(updateConsumoStickyOffset);
 }
+window.addEventListener('resize', () => updateConsumoStickyOffset());
 (function(){
   const s = localStorage.getItem('ri_rp_fontsize');
   if (s && s!=='normal') applyFontSize(s);
@@ -4200,6 +4202,19 @@ function renderConsumo() {
       .replace('<span class="consumo-title">Evolución de Consumo</span>',
                `<span class="consumo-title">Evolución de Consumo — Total</span><span style="font-size:11px;color:var(--text-dim)">${clientesConDatos}/${db.puntos.length} clientes</span>`);
   }
+  updateConsumoStickyOffset();
+}
+
+// La caja "Evolución de Consumo" ya es sticky por su cuenta (para verse mientras se hace scroll
+// en la lista de clientes) — el encabezado de la tabla de clientes también es sticky, así que si
+// ambos se anclan a top:0 uno queda tapado por el otro. Este offset hace que el encabezado se
+// ancle justo debajo de la caja, en vez de en el mismo sitio.
+function updateConsumoStickyOffset() {
+  const wrap = document.getElementById('consumoWrap');
+  const tab = document.getElementById('tab-puntos');
+  if (!wrap || !tab) return;
+  const h = (!wrap.offsetParent) ? 0 : wrap.offsetHeight;
+  tab.style.setProperty('--sticky-th-top', h + 'px');
 }
 
 function openConsumoEdit(nombre) {
