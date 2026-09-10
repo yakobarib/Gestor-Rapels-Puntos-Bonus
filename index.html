@@ -1312,6 +1312,18 @@
           <label>Periodo *</label>
           <input type="month" id="impPeriodo">
         </div>
+        <div class="fgr full" id="impRangoChkRow" style="flex-direction:row;align-items:center;gap:8px">
+          <input type="checkbox" id="impRangoChk" onchange="onImpRangoChange()" style="width:auto">
+          <label style="margin:0;text-transform:none;font-size:12px">Este fichero cubre varios meses (rango de fechas, no un solo mes — p.ej. un catch-up)</label>
+        </div>
+        <div class="fgr" id="impDesdeRow" style="display:none">
+          <label>Desde *</label>
+          <input type="date" id="impDesde">
+        </div>
+        <div class="fgr" id="impHastaRow" style="display:none">
+          <label>Hasta *</label>
+          <input type="date" id="impHasta">
+        </div>
         <div class="fgr" style="grid-column:1/-1">
           <label>Fichero (.xls / .xlsx) *</label>
           <input type="file" id="impFile" accept=".xls,.xlsx">
@@ -3412,6 +3424,9 @@ function openImportConsumo() {
   importState = null;
   document.getElementById('impTipo').value = 'consumo';
   document.getElementById('impPeriodo').value = prevMonthStr();
+  document.getElementById('impRangoChk').checked = false;
+  document.getElementById('impDesde').value = '';
+  document.getElementById('impHasta').value = '';
   document.getElementById('impFile').value = '';
   document.getElementById('impFileMsg').textContent = '';
   document.getElementById('impFileMsg').style.color = '';
@@ -3422,10 +3437,18 @@ function openImportConsumo() {
 function closeImportConsumo() { closeOverlay('ovlImportConsumo'); importState = null; }
 function onImpTipoChange() {
   const tipo = document.getElementById('impTipo').value;
-  show('impPeriodoRow', tipo==='consumo');
+  show('impRangoChkRow', tipo==='consumo');
+  if (tipo!=='consumo') { show('impPeriodoRow', false); show('impDesdeRow', false); show('impHastaRow', false); }
+  else onImpRangoChange();
   document.getElementById('impSub').textContent = tipo==='consumo'
     ? 'Sube el fichero de ventas del ERP para calcular y añadir los puntos automáticamente'
     : 'Sube el Excel de parejas Marca/Familia → Categoría para crear o actualizar el baremo';
+}
+function onImpRangoChange() {
+  const rango = document.getElementById('impRangoChk').checked;
+  show('impPeriodoRow', !rango);
+  show('impDesdeRow', rango);
+  show('impHastaRow', rango);
 }
 function backToImpStepFile() { show('impStepFile', true); show('impStepReview', false); }
 
@@ -3436,8 +3459,21 @@ function parseImportFile() {
   const msgEl = document.getElementById('impFileMsg');
   msgEl.style.color = '#E20613';
   if (!file) { msgEl.textContent = 'Selecciona un fichero.'; return; }
-  const periodo = document.getElementById('impPeriodo').value;
-  if (tipo==='consumo' && !periodo) { msgEl.textContent = 'Indica el periodo (mes/año).'; return; }
+  const esRango = tipo==='consumo' && document.getElementById('impRangoChk').checked;
+  let periodoInfo = null;
+  if (tipo==='consumo') {
+    if (esRango) {
+      const desde = document.getElementById('impDesde').value;
+      const hasta = document.getElementById('impHasta').value;
+      if (!desde || !hasta) { msgEl.textContent = 'Indica las fechas "Desde" y "Hasta" del rango.'; return; }
+      if (desde > hasta) { msgEl.textContent = 'La fecha "Desde" no puede ser posterior a "Hasta".'; return; }
+      periodoInfo = { mode:'rango', desde, hasta };
+    } else {
+      const periodo = document.getElementById('impPeriodo').value;
+      if (!periodo) { msgEl.textContent = 'Indica el periodo (mes/año).'; return; }
+      periodoInfo = { mode:'mes', periodo };
+    }
+  }
   msgEl.style.color = ''; msgEl.textContent = 'Analizando...';
   const reader = new FileReader();
   reader.onerror = () => { msgEl.style.color='#E20613'; msgEl.textContent = 'Error al leer el fichero.'; };
@@ -3446,7 +3482,7 @@ function parseImportFile() {
       const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array'});
       const ws = wb.Sheets[wb.SheetNames[0]];
       const rows = XLSX.utils.sheet_to_json(ws, {header:1, raw:true, defval:null});
-      if (tipo==='consumo') procesarFicheroConsumo(rows, periodo);
+      if (tipo==='consumo') procesarFicheroConsumo(rows, periodoInfo);
       else procesarFicheroBaremo(rows);
     } catch(err) {
       console.error(err);
@@ -3470,7 +3506,7 @@ function findHeaderCols(rows, wanted) {
   return null;
 }
 
-function procesarFicheroConsumo(rows, periodo) {
+function procesarFicheroConsumo(rows, periodoInfo) {
   const msgEl = document.getElementById('impFileMsg');
   const header = findHeaderCols(rows, [
     {key:'marca',   patterns:[/^MARCA$/i]},
@@ -3524,7 +3560,7 @@ function procesarFicheroConsumo(rows, periodo) {
     c.destino = matchClienteAppInitial(c);
     if (c.destino==='__new__') c.nuevoNombre = stripLegalSuffix(c.erpName) || c.erpName;
   });
-  importState = { tipo:'consumo', periodo, clientes, unmapped };
+  importState = { tipo:'consumo', periodoInfo, clientes, unmapped };
   renderImportReview();
 }
 
@@ -3645,18 +3681,64 @@ function formatPeriodoLabel(periodo) {
   const meses=['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
   return `${meses[parseInt(m,10)-1]} ${y}`;
 }
+function formatDateEs(d) {
+  if (!d) return '';
+  const [y,m,day] = d.split('-');
+  return `${day}/${m}/${y}`;
+}
+function periodoInfoToReferencia(pi) {
+  if (!pi) return 'IMPORT-';
+  return pi.mode==='rango' ? `IMPORT-RANGO-${pi.desde}_${pi.hasta}` : `IMPORT-${pi.periodo||''}`;
+}
+function periodoInfoToLabel(pi) {
+  if (!pi) return '';
+  return pi.mode==='rango' ? `${formatDateEs(pi.desde)} – ${formatDateEs(pi.hasta)}` : formatPeriodoLabel(pi.periodo);
+}
+function periodoInfoToFecha(pi) {
+  if (!pi) return null;
+  return pi.mode==='rango' ? pi.hasta : (pi.periodo ? pi.periodo+'-01' : null);
+}
+// Meses de calendario completos (día 1 al último) que quedan totalmente dentro de [desde,hasta].
+// Un rango de catch-up que empiece o acabe a mitad de mes no "cubre" ese mes parcial.
+function monthsFullyContainedInRange(desde, hasta) {
+  const start = new Date(desde+'T00:00:00');
+  const end = new Date(hasta+'T00:00:00');
+  const months = [];
+  let d = new Date(start.getFullYear(), start.getMonth(), 1);
+  while (d <= end) {
+    const y = d.getFullYear(), m = d.getMonth();
+    const firstOfMonth = new Date(y, m, 1);
+    const lastOfMonth = new Date(y, m+1, 0);
+    if (firstOfMonth >= start && lastOfMonth <= end) months.push(y+'-'+String(m+1).padStart(2,'0'));
+    d = new Date(y, m+1, 1);
+  }
+  return months;
+}
 
 async function confirmImportConsumo() {
   const btn = document.getElementById('impConfirmBtn');
   if (importState.tipo==='consumo') {
-    const referencia = 'IMPORT-'+(importState.periodo||'');
+    const pi = importState.periodoInfo;
+    const referencia = periodoInfoToReferencia(pi);
     const { data: existing, error: eCheck } = await sb.from('movimientos_puntos').select('id').eq('referencia', referencia);
     if (eCheck) { alert('Error comprobando importaciones previas: '+eCheck.message); return; }
+    let msg = '';
     if (existing && existing.length) {
-      const periodoLabel = formatPeriodoLabel(importState.periodo) || importState.periodo;
-      const ok = confirm(`Ya existe una importación para ${periodoLabel} (${existing.length} movimientos).\n\nSi continúas, NO se sumarán puntos: se SOBRESCRIBIRÁN los movimientos existentes de ese periodo con los nuevos cálculos (igual si no cambia, mayor si sube, menor si baja).\n\n¿Continuar?`);
-      if (!ok) return;
+      const periodoLabel = periodoInfoToLabel(pi) || referencia;
+      msg += `Ya existe una importación para ${periodoLabel} (${existing.length} movimientos). Si continúas, NO se sumarán puntos: se SOBRESCRIBIRÁN esos movimientos con los nuevos cálculos (igual si no cambia, mayor si sube, menor si baja).\n\n`;
     }
+    if (pi.mode==='rango') {
+      const meses = monthsFullyContainedInRange(pi.desde, pi.hasta);
+      if (meses.length) {
+        const { data: oldMovs, error: eOld } = await sb.from('movimientos_puntos').select('id').in('referencia', meses.map(m=>'IMPORT-'+m));
+        if (eOld) { alert('Error comprobando importaciones mensuales previas: '+eOld.message); return; }
+        if (oldMovs && oldMovs.length) {
+          const labels = meses.map(m=>formatPeriodoLabel(m)).join(', ');
+          msg += `Este rango incluye meses ya importados por separado (${labels}) — se eliminarán esos ${oldMovs.length} movimiento(s) mensuales y quedarán sustituidos por el nuevo movimiento consolidado del rango.\n\n`;
+        }
+      }
+    }
+    if (msg && !confirm(msg + '¿Continuar?')) return;
   }
   btn.disabled = true;
   setSaving();
@@ -3689,12 +3771,31 @@ async function confirmImportBaremo() {
 }
 
 async function confirmImportConsumoMensual() {
-  const periodo = importState.periodo;
-  const fecha = periodo ? periodo+'-01' : null;
-  const periodoLabel = formatPeriodoLabel(periodo);
-  const referencia = 'IMPORT-'+(periodo||'');
+  const pi = importState.periodoInfo;
+  const fecha = periodoInfoToFecha(pi);
+  const periodoLabel = periodoInfoToLabel(pi);
+  const referencia = periodoInfoToReferencia(pi);
 
-  // Reimportar el mismo periodo nunca suma: sobrescribe (o borra) el movimiento ya existente de esa referencia.
+  // Rango que engloba meses ya importados por separado: esos movimientos mensuales quedan
+  // sustituidos por el nuevo movimiento consolidado del rango (nunca se suman ambos).
+  let supersededCount = 0;
+  if (pi.mode==='rango') {
+    const meses = monthsFullyContainedInRange(pi.desde, pi.hasta);
+    if (meses.length) {
+      const refs = meses.map(m=>'IMPORT-'+m);
+      const { data: oldMovs, error: eOld } = await sb.from('movimientos_puntos').select('id').in('referencia', refs);
+      if (eOld) throw eOld;
+      if (oldMovs && oldMovs.length) {
+        const oldIds = oldMovs.map(m=>m.id);
+        const { error: eDel } = await sb.from('movimientos_puntos').delete().in('id', oldIds);
+        if (eDel) throw eDel;
+        supersededCount = oldIds.length;
+        db.puntos.forEach(p => { p.movimientos = (p.movimientos||[]).filter(m => !oldIds.includes(m.id)); });
+      }
+    }
+  }
+
+  // Reimportar el mismo periodo/rango nunca suma: sobrescribe (o borra) el movimiento ya existente de esa referencia.
   const { data: existingMovs, error: eEx } = await sb.from('movimientos_puntos').select('id, cliente_id').eq('referencia', referencia);
   if (eEx) throw eEx;
   const existingByCliente = new Map((existingMovs||[]).map(m => [String(m.cliente_id), m.id]));
@@ -3758,7 +3859,8 @@ async function confirmImportConsumoMensual() {
   db.clientes.sort((a,b)=>a.nombre.localeCompare(b.nombre));
   renderAll();
   document.getElementById('impDoneMsg').innerHTML =
-    `✓ Importación completada.<br>Clientes actualizados: <strong>${clientesOk}</strong><br>Puntos totales asignados: <strong>${pts(puntosTotal)}</strong>`;
+    `✓ Importación completada.<br>Clientes actualizados: <strong>${clientesOk}</strong><br>Puntos totales asignados: <strong>${pts(puntosTotal)}</strong>` +
+    (supersededCount ? `<br><span style="color:var(--text-dim);font-size:12px">Se sustituyeron ${supersededCount} movimiento(s) mensual(es) ya incluidos en este rango.</span>` : '');
 }
 
 // ══ BLOQUEO ══
