@@ -33,6 +33,7 @@
   [data-theme="dark"] .ad-logo-letters{fill:#FFFFFF}
   .logo-text{font-family:'Inter',sans-serif;font-weight:800;font-size:16px;letter-spacing:-.5px}
   .logo-sub{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-dim);margin-top:-2px}
+  .app-version-badge{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-faint);border:1px solid var(--border);border-radius:6px;padding:2px 7px;margin-left:4px}
   .header-right{display:flex;align-items:center;gap:10px}
   .save-badge{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-dim);background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:5px 12px;transition:all .3s}
   .save-badge.saved{color:var(--green);border-color:rgba(76,175,125,.4);background:rgba(76,175,125,.07)}
@@ -81,6 +82,7 @@
   .tbl-wrap{border-radius:8px;border:1px solid var(--border)}
   table{width:100%;border-collapse:collapse;font-family:'JetBrains Mono',monospace;font-size:12px}
   th{background:var(--surface2);padding:10px 14px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--text-dim);border-bottom:1px solid var(--border);white-space:nowrap}
+  .tbl-wrap thead th{position:sticky;top:0;z-index:2}
   td{padding:11px 14px;border-bottom:1px solid var(--border);vertical-align:middle}
   th.num,td.num{text-align:right}
   tr:last-child td{border-bottom:none}
@@ -323,6 +325,7 @@
     .logo svg{width:28px;height:28px}
     .logo-text{font-size:11px;letter-spacing:.5px}
     .logo-sub{display:none}
+    .app-version-badge{display:none}
     .save-badge{font-size:9px;padding:3px 7px}
     .header-right{gap:4px}
     .icon-btn{width:32px;height:32px;font-size:11px;padding:0 7px}
@@ -344,6 +347,8 @@
     .header,.nav{padding:0 10px}
     /* Tabla con scroll horizontal */
     .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+    /* position:sticky no es compatible con overflow-x:auto en el mismo contenedor (overflow-y pasa a "auto" y rompe el anclaje) */
+    .tbl-wrap thead th{position:static}
     .tbl-wrap table{min-width:500px}
     .tbl-wrap td{white-space:nowrap}
     /* Sum grid drawer */
@@ -411,6 +416,7 @@
       <div class="logo-text">Recambios Ibiza</div>
       <div class="logo-sub">GESTOR DE RAPELS · PUNTOS · BONUS</div>
     </div>
+    <span class="app-version-badge"></span>
   </div>
   <div class="header-right">
     <div class="readonly-badge">
@@ -914,6 +920,18 @@
       <div class="help-ver">
         <div class="help-ver-item">
           <div class="help-ver-head">
+            <span class="help-ver-num">v4.10</span>
+            <span class="help-ver-date">Septiembre 2026</span>
+          </div>
+          <ul class="help-ver-list">
+            <li><strong>Importar Consumo</strong> ahora admite ficheros que cubren varios meses de golpe (catch-up) — casilla "Este fichero cubre varios meses" para indicar un rango de fechas en vez de un solo mes</li>
+            <li>Un rango que engloba meses ya importados por separado los sustituye automáticamente (nunca se duplican puntos)</li>
+            <li>El encabezado de las tablas (Cliente, Puntos, Saldo...) se mantiene fijo al hacer scroll en los listados</li>
+            <li>Número de versión visible en la cabecera de la app y en Ayuda → Acerca de, para identificar si estás en la versión correcta</li>
+          </ul>
+        </div>
+        <div class="help-ver-item">
+          <div class="help-ver-head">
             <span class="help-ver-num">v4.9</span>
             <span class="help-ver-date">Julio 2026</span>
           </div>
@@ -1090,6 +1108,7 @@
         <div class="help-about-box">
           <p>Diseñado por <span>Yakoba Moreno</span></p>
           <p>Desarrollado en <span style="color:#a8e63d">Claude Code</span> · Anthropic Claude Sonnet 4.6</p>
+          <p style="margin-top:4px">Versión: <span id="appVersionAbout" style="color:var(--text-dim);font-weight:normal"></span></p>
           <p style="margin-top:8px;color:var(--text-faint)">Base de datos: <span style="color:var(--text-dim);font-weight:normal">Supabase</span> · Publicación: <span style="color:var(--text-dim);font-weight:normal">GitHub Pages</span></p>
         </div>
         <div class="help-about-footer">© 2026 Recambios Ibiza S.A. · AD Parts Distribución</div>
@@ -1792,6 +1811,13 @@ async function initAuth() {
   sb.auth.onAuthStateChange((event) => {
     if (event === 'SIGNED_OUT') { currentUser = null; showLoginGate(); }
   });
+}
+
+const APP_VERSION = 'v4.10';
+function renderAppVersion() {
+  document.querySelectorAll('.app-version-badge').forEach(el => el.textContent = APP_VERSION);
+  const about = document.getElementById('appVersionAbout');
+  if (about) about.textContent = APP_VERSION;
 }
 
 const PTS_VALUE = 1;
@@ -4363,6 +4389,7 @@ document.addEventListener('keydown',e=>{
 });
 
 // ══ INIT ══
+renderAppVersion();
 initAuth();
 </script>
 </body>
