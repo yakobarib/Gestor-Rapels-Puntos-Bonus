@@ -4068,7 +4068,7 @@ function toggleOpts() {
 }
 function applyFontSize(size) {
   const scales = {small:0.87, normal:1, large:1.13};
-  document.querySelector('.app').style.zoom = scales[size] || 1;
+  document.querySelector('.app-shell').style.zoom = scales[size] || 1;
   localStorage.setItem('ri_rp_fontsize', size);
   document.querySelectorAll('.fs-opt').forEach(b=>b.classList.toggle('active', b.dataset.size===size));
   document.getElementById('optsPop').classList.remove('open');
