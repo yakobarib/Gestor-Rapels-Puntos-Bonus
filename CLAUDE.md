@@ -31,6 +31,12 @@ Tablas:
 ## Arquitectura de la app
 Single HTML file — todo el HTML, CSS y JS inline.
 
+### Layout: panel lateral (sidebar), no cabecera+pestañas horizontales
+Migrado desde un `<header>`+`<nav>` horizontal a un layout `.app-shell` (flex row) con `.sidebar` (marca, `.sidebar-nav` con los 5 `.nav-item`, `.sidebar-footer` con créditos+versión) + `.app-main` (contiene `.app-header` — título de la pantalla activa `#screenTitle` + las mismas acciones de siempre: solo-lectura, guardado, Cierre Año, Ayuda, Opciones, Tema, Cambiar contraseña, Cerrar sesión — y debajo, sin cambios, `.main`/`.scroll`/`.tab`/`.tab-top`/`.tab-scroll`). Inspirado en el mismo patrón ya usado en "Gestor de Tarifas de Lubricantes" (`Optimizador de Precios/Gestor-de-Tarifas-Lubricantes`), adaptado a la paleta de variables CSS propia de esta app (no usa Pico CSS como esa).
+- `switchTab(name, btn)` sigue igual en esencia, pero ahora además actualiza `#screenTitle` desde el mapa `TAB_TITLES`, y el selector de limpieza de estado activo es `.nav-item` (antes `.nav-btn`).
+- Responsive: en `@media(max-width:768px)` la `.sidebar` pasa a franja horizontal arriba (scroll-x, sin `.sidebar-footer`) — mismo patrón de scroll horizontal que ya tenían las pestañas antes de este cambio, así que el comportamiento en móvil es casi idéntico al de antes.
+- Punto de retorno en git: tag `pre-sidebar-redesign` (en el commit justo anterior a este rediseño) — usar `git diff pre-sidebar-redesign` o revertir a él si algo se rompe visualmente y no es evidente qué commit posterior lo causó.
+
 ### Datos en memoria (`db`)
 ```js
 db = { rapels: [], puntos: [], bonus: [], consumo: [], baremo: [], clientes: [] }
