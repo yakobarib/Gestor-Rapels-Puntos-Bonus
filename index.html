@@ -945,6 +945,15 @@
       <div class="help-ver">
         <div class="help-ver-item">
           <div class="help-ver-head">
+            <span class="help-ver-num">v4.15</span>
+            <span class="help-ver-date">Septiembre 2026</span>
+          </div>
+          <ul class="help-ver-list">
+            <li>Corregido: la fila de <strong>Carrocería</strong> en "Evolución de Consumo" mostraba el importe con decimales sueltos en vez de un número entero con €</li>
+          </ul>
+        </div>
+        <div class="help-ver-item">
+          <div class="help-ver-head">
             <span class="help-ver-num">v4.14</span>
             <span class="help-ver-date">Septiembre 2026</span>
           </div>
@@ -1879,7 +1888,7 @@ async function initAuth() {
   });
 }
 
-const APP_VERSION = 'v4.14';
+const APP_VERSION = 'v4.15';
 function renderAppVersion() {
   document.querySelectorAll('.app-version-badge').forEach(el => el.textContent = APP_VERSION);
   const about = document.getElementById('appVersionAbout');
@@ -4253,7 +4262,7 @@ function buildConsumoTable(ant, actual, year, nombre, maxMes, compact) {
         ${row('🏎','Neumáticos', ant.neumaticos, actual.neumaticos, 'uds')}
         ${row('🛑','Pastillas', ant.pastillas, actual.pastillas, 'uds')}
         ${row('⚡','Alt./Arr.', ant.alternadores, actual.alternadores, 'uds')}
-        ${(ant.carroceria||0)>0||(actual.carroceria||0)>0?row('🔧','Carrocería', ant.carroceria||0, actual.carroceria||0, true):''}
+        ${(ant.carroceria||0)>0||(actual.carroceria||0)>0?row('🔧','Carrocería', ant.carroceria||0, actual.carroceria||0, 'money'):''}
       </tbody>
     </table>`;
 }
