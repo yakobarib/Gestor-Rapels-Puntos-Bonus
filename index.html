@@ -37,7 +37,7 @@
   .sidebar-footer{margin-top:auto;padding-top:14px;border-top:1px solid var(--border);text-align:center}
   .sidebar-footer p{margin:0;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-dim);line-height:1.6}
   .sidebar-footer p span{color:var(--text);font-weight:600}
-  .sidebar-footer .app-version-badge{margin:6px 0 0}
+  .sidebar-footer .app-version-badge{margin:6px 0 0;color:var(--text-dim)}
 
   .app-main{flex:1;min-width:0;min-height:0;height:100%;display:flex;flex-direction:column;overflow:hidden}
   .app-header{display:flex;align-items:center;justify-content:space-between;padding:4px 6px 18px;flex-shrink:0}
@@ -113,6 +113,7 @@
   .tag-gray{background:var(--surface2);color:var(--text-dim);border:1px solid var(--border)}
   .tag-ingreso{background:rgba(76,175,125,.12);color:var(--green)}
   .tag-gasto{background:rgba(226,6,19,.12);color:#E20613}
+  .tag-abono{background:rgba(76,175,125,.12);color:var(--green)}
   .tag-ajuste{background:rgba(91,141,239,.12);color:var(--blue)}
   .cierre-section{margin-bottom:18px}
   .cierre-sec-head{display:flex;align-items:center;gap:8px;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border)}
@@ -544,13 +545,13 @@
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 1v10M1 6h10M2.5 3.5L6 1l3.5 2.5M2.5 8.5L6 11l3.5-2.5"/></svg>
           Ajuste Especial
         </button>
-        <button class="btn btn-danger btn-sm" onclick="openQuickAction('rapel','GASTO')">
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 4v5M3.5 6.5L6 9l2.5-2.5"/><rect x="1.5" y="1.5" width="9" height="9" rx="1.5"/></svg>
-          Venta Rapel
-        </button>
         <button class="btn btn-green btn-sm" onclick="openQuickAction('rapel','ABONO')">
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3.3v3h3"/><path d="M3.3 6.2A4 4 0 1 0 4 3"/></svg>
           Abono Rapel
+        </button>
+        <button class="btn btn-danger btn-sm" onclick="openQuickAction('rapel','GASTO')">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 4v5M3.5 6.5L6 9l2.5-2.5"/><rect x="1.5" y="1.5" width="9" height="9" rx="1.5"/></svg>
+          Venta Rapel
         </button>
         <div class="print-menu-wrap" id="printWrapR">
           <button class="btn btn-sm" style="background:rgba(91,141,239,.08);color:var(--text-dim);border:1px solid var(--border)" onclick="togglePrintMenu('R')">
@@ -804,6 +805,7 @@
           <li><strong>Nuevo Rapel (verde)</strong> — carga la bolsa de un cliente (INGRESO). Úsalo al inicio de año o cuando se actualiza el rapel.</li>
           <li><strong>Bloquear Rapel (naranja)</strong> — bloquea el acceso a la bolsa de un cliente. Ver sección de Bloqueo más abajo.</li>
           <li><strong>Venta Rapel (rojo)</strong> — registra un consumo de bolsa (GASTO). Introduce el nº de albarán y el importe.</li>
+          <li><strong>Abono Rapel (verde)</strong> — devuelve total o parcialmente una venta ya registrada. Introduce el importe siempre en positivo y su propio nº de albarán; la app resta el consumo y aumenta el saldo disponible por dentro. Se distingue con la etiqueta "ABONO" en verde en la ficha del cliente, el Histórico y las impresiones.</li>
           <li>También puedes abrir cualquier cliente de la lista y añadir movimientos directamente desde su ficha.</li>
           <li><strong>Ajuste Especial (azul)</strong> — corrección manual del saldo sin seguir fórmulas. Ver sección más abajo.</li>
         </ul>
@@ -941,6 +943,17 @@
     <!-- VERSIONES -->
     <div class="help-body" id="help-versiones" style="display:none">
       <div class="help-ver">
+        <div class="help-ver-item">
+          <div class="help-ver-head">
+            <span class="help-ver-num">v4.13</span>
+            <span class="help-ver-date">Septiembre 2026</span>
+          </div>
+          <ul class="help-ver-list">
+            <li><strong>Abono Rapel</strong> se mueve entre Ajuste Especial y Venta Rapel, para agruparlo con el resto de acciones de bolsa</li>
+            <li>Los abonos ya llevan su propia etiqueta <strong>"ABONO"</strong> en verde (antes seguían apareciendo como "GASTO" en rojo, aunque el importe ya se sumaba bien) — visible en la ficha del cliente, el Histórico y las impresiones</li>
+            <li>El número de versión del panel lateral ahora se lee mejor (mismo color que "Diseñado por")</li>
+          </ul>
+        </div>
         <div class="help-ver-item">
           <div class="help-ver-head">
             <span class="help-ver-num">v4.12</span>
@@ -1857,7 +1870,7 @@ async function initAuth() {
   });
 }
 
-const APP_VERSION = 'v4.12';
+const APP_VERSION = 'v4.13';
 function renderAppVersion() {
   document.querySelectorAll('.app-version-badge').forEach(el => el.textContent = APP_VERSION);
   const about = document.getElementById('appVersionAbout');
@@ -1950,6 +1963,7 @@ function ptsEur(n) { return eur(n*PTS_VALUE); }
 // Un movimiento GASTO con importe negativo es un abono (crédito) — se muestra en verde/"+",
 // al revés que un GASTO normal (rojo/"-"). El resto de tipos siguen su propio signo tal cual.
 function movEsNegativo(m) { return m.tipo==='GASTO' ? Number(m.importe)>=0 : Number(m.importe)<0; }
+function movEsAbono(m) { return m.tipo==='GASTO' && Number(m.importe)<0; }
 
 // ══ STATS ══
 function rStats(r) {
@@ -2185,7 +2199,8 @@ function renderHist() {
   const tM={INGRESO:'tag-ingreso',GASTO:'tag-gasto',AJUSTE:'tag-ajuste',GANADO:'tag-ganado',CANJEADO:'tag-canjeado'};
   const tS={RAPEL:'tag-blue',PUNTOS:'tag-orange',BONUS:'tag-ok'};
   el.innerHTML=items.map(m=>{
-    const tagTipo = m.sistema==='BONUS'
+    const esAbono = m.sistema==='RAPEL' && movEsAbono(m);
+    const tagTipo = esAbono ? 'tag-abono' : m.sistema==='BONUS'
       ? (m.tipo==='GANADO'?'tag-bonus-g':m.tipo==='AJUSTE'?'tag-ajuste':'tag-bonus-c')
       : (tM[m.tipo]||'tag-gray');
     return`<div class="hist-item">
@@ -2193,7 +2208,7 @@ function renderHist() {
       <div><strong style="font-size:12px">${m.cliente}</strong></div>
       <div style="font-family:'JetBrains Mono',monospace;font-size:12px">${m.albaran||'—'}<br><span style="font-size:10px;color:var(--text-dim)">${m.notas||''}</span></div>
       <span class="tag ${tS[m.sistema]}">${m.sistema}</span>
-      <span class="tag ${tagTipo}">${m.tipo}</span>
+      <span class="tag ${tagTipo}">${esAbono?'ABONO':m.tipo}</span>
       <div style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;text-align:right;color:${m._color}">${m._qty}</div>
     </div>`;
   }).join('');
@@ -2241,7 +2256,7 @@ function renderRMovs(r) {
   el.innerHTML=movs.map(m=>`
     <div class="mov-item">
       <div>
-        <div class="mov-ref"><span class="tag ${tc[m.tipo]||'tag-ingreso'}">${m.tipo}</span> ${m.albaran||'—'}</div>
+        <div class="mov-ref"><span class="tag ${movEsAbono(m)?'tag-abono':(tc[m.tipo]||'tag-ingreso')}">${movEsAbono(m)?'ABONO':m.tipo}</span> ${m.albaran||'—'}</div>
         <div class="mov-desc">${m.notas||''} ${m.fecha?'· '+fmtFecha(m.fecha):''}</div>
       </div>
       <div class="mov-amount" style="color:${amountColor(m)}">${amountSign(m)} ${eur(Math.abs(m.importe))}</div>
@@ -3063,7 +3078,7 @@ function printSelected(tipo) {
     pages = sorted.map(r=>{
       const{saldo}=rStats(r);
       const movs=[...(r.movimientos||[])].sort((a,b)=>(a.fecha||'').localeCompare(b.fecha||''));
-      return `<div class="page-header"><div class="logo"><h1>RECAMBIOS IBIZA</h1><p>Extracto de Total Rapel</p></div><div class="doc-meta"><div class="doc-type">Extracto Rapel</div><div class="doc-date">${fecha}</div></div></div><div class="cliente-band"><div><div class="cli-label">Cliente</div><div class="cli-nombre">${r.nombre}</div></div></div><table><thead><tr><th>Fecha</th><th>Tipo</th><th>Albarán</th><th>Notas</th><th style="text-align:right">Importe</th></tr></thead><tbody>${movs.map(m=>{const neg=movEsNegativo(m);return`<tr><td>${fmtFecha(m.fecha)}</td><td>${m.tipo}</td><td>${m.albaran||'—'}</td><td>${m.notas||''}</td><td style="text-align:right;font-weight:600;color:${neg?'#E20613':'#2e7d32'}">${neg?'−':'+'} ${eur(Math.abs(m.importe))}</td></tr>`;}).join('')}<tr class="total-row"><td colspan="4"><strong>SALDO ACTUAL</strong></td><td style="text-align:right;color:${saldo<0?'#E20613':'#2e7d32'}">${eur(saldo)}</td></tr></tbody></table><div class="footer"><div class="firma-box">Firma cliente</div><div class="firma-box">Firma Recambios Ibiza</div></div>`;
+      return `<div class="page-header"><div class="logo"><h1>RECAMBIOS IBIZA</h1><p>Extracto de Total Rapel</p></div><div class="doc-meta"><div class="doc-type">Extracto Rapel</div><div class="doc-date">${fecha}</div></div></div><div class="cliente-band"><div><div class="cli-label">Cliente</div><div class="cli-nombre">${r.nombre}</div></div></div><table><thead><tr><th>Fecha</th><th>Tipo</th><th>Albarán</th><th>Notas</th><th style="text-align:right">Importe</th></tr></thead><tbody>${movs.map(m=>{const neg=movEsNegativo(m);return`<tr><td>${fmtFecha(m.fecha)}</td><td>${movEsAbono(m)?'ABONO':m.tipo}</td><td>${m.albaran||'—'}</td><td>${m.notas||''}</td><td style="text-align:right;font-weight:600;color:${neg?'#E20613':'#2e7d32'}">${neg?'−':'+'} ${eur(Math.abs(m.importe))}</td></tr>`;}).join('')}<tr class="total-row"><td colspan="4"><strong>SALDO ACTUAL</strong></td><td style="text-align:right;color:${saldo<0?'#E20613':'#2e7d32'}">${eur(saldo)}</td></tr></tbody></table><div class="footer"><div class="firma-box">Firma cliente</div><div class="firma-box">Firma Recambios Ibiza</div></div>`;
     }).join(SEP);
   } else {
     titulo=`Bonus — ${sorted.length} cliente${sorted.length!==1?'s':''}`;
@@ -3095,7 +3110,7 @@ function printAllTab(tipo) {
     pages = sorted.map(r=>{
       const{saldo}=rStats(r);
       const movs=[...(r.movimientos||[])].sort((a,b)=>(a.fecha||'').localeCompare(b.fecha||''));
-      return `<div class="page-header"><div class="logo"><h1>RECAMBIOS IBIZA</h1><p>Extracto de Total Rapel</p></div><div class="doc-meta"><div class="doc-type">Extracto Rapel</div><div class="doc-date">${fecha}</div></div></div><div class="cliente-band"><div><div class="cli-label">Cliente</div><div class="cli-nombre">${r.nombre}</div></div></div><table><thead><tr><th>Fecha</th><th>Tipo</th><th>Albarán</th><th>Notas</th><th style="text-align:right">Importe</th></tr></thead><tbody>${movs.map(m=>{const neg=movEsNegativo(m);return`<tr><td>${fmtFecha(m.fecha)}</td><td>${m.tipo}</td><td>${m.albaran||'—'}</td><td>${m.notas||''}</td><td style="text-align:right;font-weight:600;color:${neg?'#E20613':'#2e7d32'}">${neg?'−':'+'} ${eur(Math.abs(m.importe))}</td></tr>`;}).join('')}<tr class="total-row"><td colspan="4"><strong>SALDO ACTUAL</strong></td><td style="text-align:right;color:${saldo<0?'#E20613':'#2e7d32'}">${eur(saldo)}</td></tr></tbody></table><div class="footer"><div class="firma-box">Firma cliente</div><div class="firma-box">Firma Recambios Ibiza</div></div>`;
+      return `<div class="page-header"><div class="logo"><h1>RECAMBIOS IBIZA</h1><p>Extracto de Total Rapel</p></div><div class="doc-meta"><div class="doc-type">Extracto Rapel</div><div class="doc-date">${fecha}</div></div></div><div class="cliente-band"><div><div class="cli-label">Cliente</div><div class="cli-nombre">${r.nombre}</div></div></div><table><thead><tr><th>Fecha</th><th>Tipo</th><th>Albarán</th><th>Notas</th><th style="text-align:right">Importe</th></tr></thead><tbody>${movs.map(m=>{const neg=movEsNegativo(m);return`<tr><td>${fmtFecha(m.fecha)}</td><td>${movEsAbono(m)?'ABONO':m.tipo}</td><td>${m.albaran||'—'}</td><td>${m.notas||''}</td><td style="text-align:right;font-weight:600;color:${neg?'#E20613':'#2e7d32'}">${neg?'−':'+'} ${eur(Math.abs(m.importe))}</td></tr>`;}).join('')}<tr class="total-row"><td colspan="4"><strong>SALDO ACTUAL</strong></td><td style="text-align:right;color:${saldo<0?'#E20613':'#2e7d32'}">${eur(saldo)}</td></tr></tbody></table><div class="footer"><div class="firma-box">Firma cliente</div><div class="firma-box">Firma Recambios Ibiza</div></div>`;
     }).join(SEP);
   } else {
     titulo='Bonus — Todos';
@@ -3359,7 +3374,7 @@ function printClientRapel(){
   h+=`<style>.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:22px}.stat-card{border-radius:8px;padding:14px 16px;text-align:center}.stat-card.ingreso{background:#f0fdf4;border:1.5px solid #22c55e}.stat-card.gasto{background:#fff1f2;border:1.5px solid #E20613}.stat-card.saldo-ok{background:#f0fdf4;border:1.5px solid #22c55e}.stat-card.saldo-neg{background:#fff1f2;border:1.5px solid #E20613}.stat-label{font-size:10px;text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:6px}.stat-val{font-size:20px;font-weight:800;font-family:monospace}.stat-card.ingreso .stat-label,.stat-card.ingreso .stat-val{color:#15803d}.stat-card.gasto .stat-label,.stat-card.gasto .stat-val{color:#E20613}.stat-card.saldo-ok .stat-label,.stat-card.saldo-ok .stat-val{color:#15803d}.stat-card.saldo-neg .stat-label,.stat-card.saldo-neg .stat-val{color:#E20613}</style>`;
   h+=`<div class="stats-row"><div class="stat-card ingreso"><div class="stat-label">📦 Total Rapel</div><div class="stat-val">${eur(ingreso)}</div></div><div class="stat-card gasto"><div class="stat-label">⬇ Consumido</div><div class="stat-val">${eur(gasto)}</div></div><div class="stat-card ${saldo>=0?'saldo-ok':'saldo-neg'}"><div class="stat-label">◆ Saldo</div><div class="stat-val">${eur(saldo)}</div></div></div>`;
   h+=`<table><thead><tr><th>Fecha</th><th>Tipo</th><th>Albarán</th><th>Notas</th><th style="text-align:right">Importe</th></tr></thead><tbody>`;
-  for(const m of movs){const neg=movEsNegativo(m);h+=`<tr><td>${fmtFecha(m.fecha)}</td><td>${m.tipo}</td><td>${m.albaran||'—'}</td><td>${m.notas||''}</td><td style="text-align:right;font-weight:600;color:${neg?'#E20613':'#2e7d32'}">${neg?'-':'+'} ${eur(Math.abs(m.importe))}</td></tr>`;}
+  for(const m of movs){const neg=movEsNegativo(m);h+=`<tr><td>${fmtFecha(m.fecha)}</td><td>${movEsAbono(m)?'ABONO':m.tipo}</td><td>${m.albaran||'—'}</td><td>${m.notas||''}</td><td style="text-align:right;font-weight:600;color:${neg?'#E20613':'#2e7d32'}">${neg?'-':'+'} ${eur(Math.abs(m.importe))}</td></tr>`;}
   h+=`<tr class="total-row"><td colspan="4"><strong>SALDO ACTUAL</strong></td><td style="text-align:right;color:${saldo<0?'#E20613':'#2e7d32'}">${eur(saldo)}</td></tr></tbody></table>`;
   h+=`<div class="footer"><div class="firma-box">Firma cliente</div><div class="firma-box">Firma Recambios Ibiza</div></div></body></html>`;
   printDoc(h);
@@ -3370,9 +3385,10 @@ function printRMov(rid,mid,e){
   const r=db.rapels.find(x=>x.id===rid);
   const m=r?.movimientos.find(x=>x.id===mid); if(!r||!m) return;
   const{saldo}=rStats(r);
-  let h=printHeader(r.nombre,`${m.tipo} RAPEL · ${m.albaran||''}`,`Justificante de ${m.tipo}`);
+  const tipoLabel = movEsAbono(m) ? 'ABONO' : m.tipo;
+  let h=printHeader(r.nombre,`${tipoLabel} RAPEL · ${m.albaran||''}`,`Justificante de ${tipoLabel}`);
   const negM=movEsNegativo(m);
-  h+=`<table><thead><tr><th>Campo</th><th>Valor</th></tr></thead><tbody><tr><td>Tipo</td><td><strong>${m.tipo}</strong></td></tr><tr><td>Albarán</td><td>${m.albaran||'—'}</td></tr><tr><td>Fecha</td><td>${fmtFecha(m.fecha)}</td></tr><tr><td>Notas</td><td>${m.notas||'—'}</td></tr><tr class="total-row"><td>Importe</td><td style="color:${negM?'#E20613':'#2e7d32'};font-size:15px">${negM?'-':'+'} ${eur(Math.abs(m.importe))}</td></tr><tr><td>Saldo bolsa</td><td>${eur(saldo)}</td></tr></tbody></table>`;
+  h+=`<table><thead><tr><th>Campo</th><th>Valor</th></tr></thead><tbody><tr><td>Tipo</td><td><strong>${tipoLabel}</strong></td></tr><tr><td>Albarán</td><td>${m.albaran||'—'}</td></tr><tr><td>Fecha</td><td>${fmtFecha(m.fecha)}</td></tr><tr><td>Notas</td><td>${m.notas||'—'}</td></tr><tr class="total-row"><td>Importe</td><td style="color:${negM?'#E20613':'#2e7d32'};font-size:15px">${negM?'-':'+'} ${eur(Math.abs(m.importe))}</td></tr><tr><td>Saldo bolsa</td><td>${eur(saldo)}</td></tr></tbody></table>`;
   h+=`<div class="footer"><div class="firma-box">Firma cliente</div><div class="firma-box">Firma Recambios Ibiza</div></div></body></html>`;
   printDoc(h);
 }
