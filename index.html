@@ -1250,7 +1250,7 @@
       </div>
       <div class="fgr">
         <label>Importe (€)</label>
-        <input type="number" id="erImp" min="0.01" step="0.01" placeholder="0.00">
+        <input type="number" id="erImp" step="0.01" placeholder="0.00">
       </div>
       <div class="fgr">
         <label>Nº Albarán</label>
@@ -2281,7 +2281,7 @@ function editRMov(rid, mid, e) {
   document.getElementById('erClienteId').value = rid;
   document.getElementById('erMovId').value = mid;
   document.getElementById('erTipo').value = m.tipo || 'INGRESO';
-  document.getElementById('erImp').value = Math.abs(m.importe) || '';
+  document.getElementById('erImp').value = m.importe ?? '';
   document.getElementById('erAlb').value = m.albaran || '';
   document.getElementById('erFec').value = m.fecha || '';
   document.getElementById('erNot').value = m.notas || '';
@@ -2291,7 +2291,7 @@ async function saveEditRMov() {
   const rid = document.getElementById('erClienteId').value;
   const mid = document.getElementById('erMovId').value;
   const val = parseFloat(document.getElementById('erImp').value);
-  if (isNaN(val) || val <= 0) { alert('Introduce un importe válido'); return; }
+  if (isNaN(val) || val === 0) { alert('Introduce un importe válido'); return; }
   const notBase = document.getElementById('erNot').value.trim();
   const upd = {
     tipo: document.getElementById('erTipo').value,
