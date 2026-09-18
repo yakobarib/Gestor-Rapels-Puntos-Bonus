@@ -56,6 +56,8 @@ Cada cliente tiene array `movimientos` embebido. `db.baremo` es el baremo Marca/
 - `checkDesktop()` → devuelve false + alert si ancho < 1024px (guard para acciones de escritura)
 - `renderAll()` → re-renderiza todo
 - `printDoc(html)` → abre ventana de impresión
+- `movEsNegativo(m)` → un movimiento GASTO con `importe` negativo es un **abono** (crédito) y se muestra en verde/"+", al revés que un GASTO normal (rojo/"-"); el resto de tipos siguen su propio signo tal cual. Usado en el cajón lateral de Rapel, en los 3 flujos de impresión (extracto individual, justificante de un movimiento, impresión masiva) — si se añade un cuarto sitio que muestre movimientos de Rapel, debe usar este helper, no repetir `m.tipo==='GASTO'` a mano.
+- **Abono Rapel**: botón verde en el panel Rapel (`openQuickAction('rapel','ABONO')`, reutiliza el modal de Quick Action) — el usuario introduce el importe siempre en positivo (con su albarán, como Venta Rapel); `saveQuickAction()` lo guarda como un movimiento `tipo:'GASTO'` con `importe` **negativo** (`-imp`), notas `ABONO · GESTIONA: <usuario>`. No existe un tipo `ABONO` en la base de datos — es puramente un GASTO negativo, así que `rStats()`/histórico/impresión lo entienden sin ningún cambio adicional, solo hacía falta que la parte visual (`movEsNegativo`) no asumiera que todo GASTO es siempre negativo.
 
 ### Formatters de impresión
 - `printHeader(cliente, titulo, subtitulo)` → HTML cabecera página de impresión
