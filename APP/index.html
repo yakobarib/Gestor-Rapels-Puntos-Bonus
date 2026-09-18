@@ -945,6 +945,15 @@
       <div class="help-ver">
         <div class="help-ver-item">
           <div class="help-ver-head">
+            <span class="help-ver-num">v4.14</span>
+            <span class="help-ver-date">Septiembre 2026</span>
+          </div>
+          <ul class="help-ver-list">
+            <li>La <strong>Importación de Consumo</strong> mensual ya respeta los grupos Millennium: los talleres clasificados como "solo Mecánica" o "solo Carrocería" solo acumulan puntos en la categoría que les corresponde</li>
+          </ul>
+        </div>
+        <div class="help-ver-item">
+          <div class="help-ver-head">
             <span class="help-ver-num">v4.13</span>
             <span class="help-ver-date">Septiembre 2026</span>
           </div>
@@ -1870,7 +1879,7 @@ async function initAuth() {
   });
 }
 
-const APP_VERSION = 'v4.13';
+const APP_VERSION = 'v4.14';
 function renderAppVersion() {
   document.querySelectorAll('.app-version-badge').forEach(el => el.textContent = APP_VERSION);
   const about = document.getElementById('appVersionAbout');
@@ -3718,6 +3727,16 @@ function computeClientCat(client) {
     else if (u.categoria==='AA') cat.alt += u.uds;
     else if (u.categoria==='CR') cat.carr += u.importe;
   });
+  // Grupos Millennium (según clasificación del jefe): un cliente "solo mecánica"
+  // o "solo carrocería" no puntúa en la categoría que no le corresponde. Un
+  // cliente sin clasificar (destino nuevo, o columna aún sin backfill) puntúa
+  // en todo, igual que siempre — solo se resta explícitamente con `=== false`.
+  const destId = client.destino;
+  const destCliente = (destId && destId!=='__new__') ? db.clientes.find(x=>String(x.id)===String(destId)) : null;
+  if (destCliente) {
+    if (destCliente.puntos_mecanica === false) { cat.n1=0; cat.n2=0; cat.past=0; cat.alt=0; }
+    if (destCliente.puntos_carroceria === false) { cat.carr=0; }
+  }
   return cat;
 }
 
