@@ -115,3 +115,28 @@ join (values
   ('0682'),('0723'),('1979'),('0365'),('3018'),('0381'),('0604'),('0704'),('0685'),('0718'),
   ('3025'),('1275'),('1324'),('2336'),('1921'),('3041'),('0558')
 ) as v(codigo) on regexp_replace(c.codigo_erp, '^0+', '') = regexp_replace(v.codigo, '^0+', '');
+
+-- 4. Casos especiales resueltos a mano: 10 códigos del Excel no coincidieron
+--    en el paso 2 (67/77). Revisados uno a uno contra clientes reales:
+--    - 5 clientes ya existían en la app pero nunca habían tenido codigo_erp
+--      (nunca les llegó una importación de Puntos): AUTOMAGIC, REPARAUTO,
+--      INSTITUTO MACABICH, MASTER AUTOS, QUIÑOBUS. Se les asigna el código
+--      del Excel directamente por id, y de paso se clasifican.
+--    - GARCIA SERVICE: el Excel decía 1661, pero el código real en la app
+--      es 1961 (typo en el Excel del jefe) — se clasifica por su código real.
+--    - CRUZ MOTOR: el Excel decía 1240 (código antiguo, antes de que el ERP
+--      renumerara al cliente al pasar a "Cruz Motor Hijos S.L."); no existe
+--      ninguna fila huérfana con codigo_erp=1240 (comprobado), así que es
+--      un único cliente activo con código actual 0769 — se clasifica por
+--      su código real, sin nada que fusionar.
+--    - FLASHAUTO, JOSE FELIZ PEDROSA, VICTOR GABRIEL MENDOZA: no existen
+--      todavía como clientes en la app (nunca tuvieron consumo de Puntos).
+--      No requieren ninguna acción — se crearán solos, sin clasificar
+--      (puntos completos por defecto), en cuanto llegue su primer consumo.
+update clientes set codigo_erp = '0368', puntos_mecanica = true,  puntos_carroceria = false where id = '7d72e6e0-7b2e-49bd-96ca-8999d9296e57'; -- AUTOMAGIC
+update clientes set codigo_erp = '4621', puntos_mecanica = false, puntos_carroceria = true  where id = '3833ec93-54f9-4fcc-a167-cd433d821a30'; -- REPARAUTO
+update clientes set codigo_erp = '1308', puntos_mecanica = true,  puntos_carroceria = false where id = '8aabb8e8-e7d0-424f-bce2-b1c35151a804'; -- INSTITUTO MACABICH
+update clientes set codigo_erp = '0779', puntos_mecanica = true,  puntos_carroceria = false where id = '3f555d1e-3461-471d-88b2-e9b31c9ebd74'; -- MASTER AUTOS
+update clientes set codigo_erp = '0568', puntos_mecanica = true,  puntos_carroceria = true  where id = 'cce3b43d-fba2-48a6-b47b-c6479e3c39a1'; -- QUIÑOBUS
+update clientes set puntos_mecanica = true, puntos_carroceria = false where id = 'e7414b05-be6b-4da2-8508-ba0b86b9a083'; -- GARCIA SERVICE (código real 1961)
+update clientes set puntos_mecanica = true, puntos_carroceria = true  where id = '114558de-3ce7-4662-b711-5c8b8f62b717'; -- CRUZ MOTOR (código real 0769)
