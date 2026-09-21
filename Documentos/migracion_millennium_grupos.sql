@@ -68,7 +68,7 @@ from (values
   ('1295', true, false),
   ('1873', true, false),
   ('0568', true, true),
-  ('4621', false, true),
+  ('4621', true, true),
   ('1202', true, false),
   ('4106', true, false),
   ('0417', true, true),
@@ -81,12 +81,12 @@ from (values
   ('2349', true, false),
   ('0624', true, false),
   ('0682', true, false),
-  ('0723', false, true),
+  ('0723', true, true),
   ('1979', true, false),
   ('0365', true, false),
   ('3018', true, true),
   ('0381', true, true),
-  ('0604', false, true),
+  ('0604', true, true),
   ('0704', true, false),
   ('0685', true, false),
   ('0718', true, false),
@@ -134,9 +134,21 @@ join (values
 --      No requieren ninguna acción — se crearán solos, sin clasificar
 --      (puntos completos por defecto), en cuanto llegue su primer consumo.
 update clientes set codigo_erp = '0368', puntos_mecanica = true,  puntos_carroceria = false where id = '7d72e6e0-7b2e-49bd-96ca-8999d9296e57'; -- AUTOMAGIC
-update clientes set codigo_erp = '4621', puntos_mecanica = false, puntos_carroceria = true  where id = '3833ec93-54f9-4fcc-a167-cd433d821a30'; -- REPARAUTO
+update clientes set codigo_erp = '4621', puntos_mecanica = true,  puntos_carroceria = true  where id = '3833ec93-54f9-4fcc-a167-cd433d821a30'; -- REPARAUTO
 update clientes set codigo_erp = '1308', puntos_mecanica = true,  puntos_carroceria = false where id = '8aabb8e8-e7d0-424f-bce2-b1c35151a804'; -- INSTITUTO MACABICH
 update clientes set codigo_erp = '0779', puntos_mecanica = true,  puntos_carroceria = false where id = '3f555d1e-3461-471d-88b2-e9b31c9ebd74'; -- MASTER AUTOS
 update clientes set codigo_erp = '0568', puntos_mecanica = true,  puntos_carroceria = true  where id = 'cce3b43d-fba2-48a6-b47b-c6479e3c39a1'; -- QUIÑOBUS
 update clientes set puntos_mecanica = true, puntos_carroceria = false where id = 'e7414b05-be6b-4da2-8508-ba0b86b9a083'; -- GARCIA SERVICE (código real 1961)
 update clientes set puntos_mecanica = true, puntos_carroceria = true  where id = '114558de-3ce7-4662-b711-5c8b8f62b717'; -- CRUZ MOTOR (código real 0769)
+
+-- 5. Corrección posterior del jefe (tras revisar la comparativa con el
+--    cálculo manual de la compañera): Reparauto, Taller Dos Torres/Oskar
+--    Franch y Taller Rubiu SÍ tenían derecho a puntos de mecánica — la
+--    versión anterior del Excel los marcaba por error como "solo
+--    carrocería". Quedan igual que la mayoría de clientes: puntúan en todo.
+--    (Los VALUES de las secciones 2 y 4 de arriba ya se actualizaron a
+--    juego con esto; estas 3 líneas son el UPDATE real a ejecutar porque
+--    esos clientes ya se habían migrado con el valor antiguo.)
+update clientes set puntos_mecanica = true, puntos_carroceria = true where id = '3833ec93-54f9-4fcc-a167-cd433d821a30'; -- REPARAUTO
+update clientes set puntos_mecanica = true, puntos_carroceria = true where codigo_erp in ('0723','00723'); -- TALLER DOS TORRES / OSKAR FRANCH
+update clientes set puntos_mecanica = true, puntos_carroceria = true where codigo_erp in ('0604','00604'); -- TALLER RUBIU
