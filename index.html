@@ -622,9 +622,13 @@
           </button>
           <div class="print-dropdown" id="printDropP">
             <button class="print-dropdown-item" onclick="printAllTab('puntos')">🖨 Imprimir Todos</button>
+            <button class="print-dropdown-item" onclick="exportExcelAllPuntos()">📊 Exportar Excel (Todos)</button>
             <div class="print-dropdown-sep"></div>
             <div class="print-dropdown-clients" id="printClientsP"></div>
-            <div class="print-dropdown-foot"><button class="print-sel-btn" onclick="printSelected('puntos')">Imprimir seleccionados</button></div>
+            <div class="print-dropdown-foot">
+              <button class="print-sel-btn" data-label="Imprimir" onclick="printSelected('puntos')">Imprimir seleccionados</button>
+              <button class="print-sel-btn" data-label="Exportar Excel" onclick="exportExcelSelectedPuntos()">Exportar Excel</button>
+            </div>
           </div>
         </div>
       </div>
@@ -943,6 +947,15 @@
     <!-- VERSIONES -->
     <div class="help-body" id="help-versiones" style="display:none">
       <div class="help-ver">
+        <div class="help-ver-item">
+          <div class="help-ver-head">
+            <span class="help-ver-num">v4.18</span>
+            <span class="help-ver-date">Septiembre 2026</span>
+          </div>
+          <ul class="help-ver-list">
+            <li>Panel <strong>Puntos</strong> → botón "Imprimir" → ahora también permite <strong>Exportar Excel</strong> (todos o solo los clientes seleccionados), con una hoja de resumen por cliente y otra con el detalle de movimientos</li>
+          </ul>
+        </div>
         <div class="help-ver-item">
           <div class="help-ver-head">
             <span class="help-ver-num">v4.17</span>
@@ -1910,7 +1923,7 @@ async function initAuth() {
   });
 }
 
-const APP_VERSION = 'v4.17';
+const APP_VERSION = 'v4.18';
 function renderAppVersion() {
   document.querySelectorAll('.app-version-badge').forEach(el => el.textContent = APP_VERSION);
   const about = document.getElementById('appVersionAbout');
@@ -3093,8 +3106,10 @@ function updatePrintSelBtn(tab) {
   const total = document.querySelectorAll('.pchk-'+tab).length;
   const allChk = document.getElementById('chkAll'+tab);
   if (allChk) allChk.checked = n === total;
-  const foot = document.querySelector(`#printDrop${tab} .print-sel-btn`);
-  if (foot) foot.textContent = n ? `Imprimir ${n} cliente${n!==1?'s':''}` : 'Imprimir seleccionados';
+  document.querySelectorAll(`#printDrop${tab} .print-sel-btn`).forEach(btn => {
+    const label = btn.dataset.label || 'Imprimir';
+    btn.textContent = n ? `${label} ${n} cliente${n!==1?'s':''}` : `${label} seleccionados`;
+  });
 }
 function printSelected(tipo) {
   const tab = tipo==='rapel'?'R':tipo==='puntos'?'P':'B';
@@ -3130,6 +3145,34 @@ function printSelected(tipo) {
   }
   w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${titulo}</title><style>*{box-sizing:border-box}${BASE_CSS}${extraCss}</style></head><body>${pages}</body></html>`);
   w.document.close(); setTimeout(()=>{w.focus();w.print();},400);
+}
+// Excel de Puntos: una fila de resumen por cliente + una fila por movimiento, mismos datos que la impresión.
+function buildExcelPuntos(clientes) {
+  const resumenRows = [['Código ERP','Cliente','Puntos Ganados','Puntos Canjeados','Saldo Actual']];
+  const movRows = [['Cliente','Fecha','Tipo','Referencia','Descripción','Puntos']];
+  clientes.forEach(p => {
+    const {ganado, canjeado, saldo} = pStats(p);
+    resumenRows.push([p.codigo_erp||'', p.nombre, ganado, canjeado, saldo]);
+    const movs = [...(p.movimientos||[])].sort((a,b)=>(a.fecha||'').localeCompare(b.fecha||''));
+    movs.forEach(m => movRows.push([p.nombre, fmtFecha(m.fecha), m.tipo, formatReferenciaLabel(m.referencia), m.notas||'', m.puntos]));
+  });
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(resumenRows), 'Resumen');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(movRows), 'Movimientos');
+  return wb;
+}
+function exportExcelAllPuntos() {
+  ['R','P','B'].forEach(t => document.getElementById('printDrop'+t).classList.remove('open'));
+  const sorted = [...db.puntos].sort((a,b)=>a.nombre.localeCompare(b.nombre,'es'));
+  if (!sorted.length) { alert('No hay clientes'); return; }
+  XLSX.writeFile(buildExcelPuntos(sorted), `Puntos - ${sorted.length} clientes.xlsx`);
+}
+function exportExcelSelectedPuntos() {
+  const ids = [...document.querySelectorAll('.pchk-P:checked')].map(c=>c.dataset.id);
+  ['R','P','B'].forEach(t => document.getElementById('printDrop'+t).classList.remove('open'));
+  if (!ids.length) { alert('Selecciona al menos un cliente'); return; }
+  const sorted = ids.map(id=>db.puntos.find(x=>x.id===id)).filter(Boolean).sort((a,b)=>a.nombre.localeCompare(b.nombre,'es'));
+  XLSX.writeFile(buildExcelPuntos(sorted), `Puntos - ${sorted.length} clientes.xlsx`);
 }
 function printAllTab(tipo) {
   ['R','P','B'].forEach(t => document.getElementById('printDrop'+t).classList.remove('open'));
