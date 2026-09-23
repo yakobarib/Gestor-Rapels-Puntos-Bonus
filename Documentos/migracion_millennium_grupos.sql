@@ -23,7 +23,7 @@ from (values
   ('5155', true, true),
   ('0463', true, true),
   ('0647', true, false),
-  ('0368', true, false),
+  ('0368', true, true),
   ('1380', true, true),
   ('4055', true, true),
   ('3020', true, true),
@@ -133,7 +133,7 @@ join (values
 --      todavía como clientes en la app (nunca tuvieron consumo de Puntos).
 --      No requieren ninguna acción — se crearán solos, sin clasificar
 --      (puntos completos por defecto), en cuanto llegue su primer consumo.
-update clientes set codigo_erp = '0368', puntos_mecanica = true,  puntos_carroceria = false where id = '7d72e6e0-7b2e-49bd-96ca-8999d9296e57'; -- AUTOMAGIC
+update clientes set codigo_erp = '0368', puntos_mecanica = true,  puntos_carroceria = true  where id = '7d72e6e0-7b2e-49bd-96ca-8999d9296e57'; -- AUTOMAGIC
 update clientes set codigo_erp = '4621', puntos_mecanica = true,  puntos_carroceria = true  where id = '3833ec93-54f9-4fcc-a167-cd433d821a30'; -- REPARAUTO
 update clientes set codigo_erp = '1308', puntos_mecanica = true,  puntos_carroceria = false where id = '8aabb8e8-e7d0-424f-bce2-b1c35151a804'; -- INSTITUTO MACABICH
 update clientes set codigo_erp = '0779', puntos_mecanica = true,  puntos_carroceria = false where id = '3f555d1e-3461-471d-88b2-e9b31c9ebd74'; -- MASTER AUTOS
@@ -159,3 +159,9 @@ update clientes set puntos_mecanica = true, puntos_carroceria = true where codig
 --    ya se actualizo a juego; esta linea es el UPDATE real porque ya se
 --    habia migrado con el valor antiguo.
 update clientes set puntos_mecanica = true, puntos_carroceria = true where codigo_erp in ('0463','00463'); -- AUTOCOLOR
+
+-- 7. Tercera correccion tras revisar el ERP: Automagic (0368) SI produce
+--    puntos de carroceria ademas de mecanica (8 lineas CR reales, 3.589,62€,
+--    coincide con el calculo manual de la compañera). El Excel del jefe lo
+--    tenia marcado como "solo mecanica" por error.
+update clientes set puntos_mecanica = true, puntos_carroceria = true where codigo_erp in ('0368','00368'); -- AUTOMAGIC
