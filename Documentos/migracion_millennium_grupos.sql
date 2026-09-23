@@ -1,5 +1,5 @@
 -- Filtro de puntos por grupo Millennium (Mecánica / Carrocería) — según el
--- listado revisado por el jefe (Documentos/Grupos_Millenium_Maestro.xlsx).
+-- listado revisado por el jefe (Documentos/grupos_millenium_MAESTRO.xlsx).
 -- Ejecutar en el SQL Editor de Supabase. No requiere ninguna coordinación
 -- especial de tiempo con el push del código: las columnas nuevas tienen
 -- default true (comportamiento actual, sin cambios) hasta que esta misma
@@ -21,7 +21,7 @@ update clientes c set
   puntos_carroceria = v.carroceria
 from (values
   ('5155', true, true),
-  ('0463', true, false),
+  ('0463', true, true),
   ('0647', true, false),
   ('0368', true, false),
   ('1380', true, true),
@@ -152,3 +152,10 @@ update clientes set puntos_mecanica = true, puntos_carroceria = true  where id =
 update clientes set puntos_mecanica = true, puntos_carroceria = true where id = '3833ec93-54f9-4fcc-a167-cd433d821a30'; -- REPARAUTO
 update clientes set puntos_mecanica = true, puntos_carroceria = true where codigo_erp in ('0723','00723'); -- TALLER DOS TORRES / OSKAR FRANCH
 update clientes set puntos_mecanica = true, puntos_carroceria = true where codigo_erp in ('0604','00604'); -- TALLER RUBIU
+
+-- 6. Segunda correccion tras revisar el ERP: Autocolor (0463) SI produce
+--    puntos de carroceria ademas de mecanica (el Excel del jefe lo tenia
+--    marcado como "solo mecanica" por error). El VALUES de la seccion 2
+--    ya se actualizo a juego; esta linea es el UPDATE real porque ya se
+--    habia migrado con el valor antiguo.
+update clientes set puntos_mecanica = true, puntos_carroceria = true where codigo_erp in ('0463','00463'); -- AUTOCOLOR
