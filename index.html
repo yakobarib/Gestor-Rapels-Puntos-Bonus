@@ -613,7 +613,7 @@
         </button>
         <button class="btn btn-sm" style="background:rgba(46,125,50,.08);color:#2e7d32;border:1px solid var(--border)" onclick="openImportConsumo()">
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 1v7M3 5l3 3 3-3M2 10h8"/></svg>
-          Importar Consumo
+          Importar
         </button>
         <div class="print-menu-wrap" id="printWrapP">
           <button class="btn btn-sm" style="background:rgba(91,141,239,.08);color:var(--text-dim);border:1px solid var(--border)" onclick="togglePrintMenu('P')">
@@ -947,6 +947,15 @@
     <!-- VERSIONES -->
     <div class="help-body" id="help-versiones" style="display:none">
       <div class="help-ver">
+        <div class="help-ver-item">
+          <div class="help-ver-head">
+            <span class="help-ver-num">v4.21</span>
+            <span class="help-ver-date">Septiembre 2026</span>
+          </div>
+          <ul class="help-ver-list">
+            <li>Botón "Importar Consumo" renombrado a <strong>"Importar"</strong> en el panel Puntos — ahora también sube el baremo y la clasificación Millennium, no solo el consumo. El título de la ventana cambia según el tipo de fichero elegido</li>
+          </ul>
+        </div>
         <div class="help-ver-item">
           <div class="help-ver-head">
             <span class="help-ver-num">v4.20</span>
@@ -1442,7 +1451,7 @@
 <!-- MODAL IMPORTAR CONSUMO / BAREMO -->
 <div class="overlay" id="ovlImportConsumo">
   <div class="modal" style="max-width:960px">
-    <div class="modal-title">Importar Consumo Mensual</div>
+    <div class="modal-title" id="impTitle">Importar Consumo Mensual</div>
     <div class="modal-sub" id="impSub">Sube el fichero de ventas del ERP para calcular y añadir los puntos automáticamente</div>
 
     <!-- PASO 1: FICHERO -->
@@ -1953,7 +1962,7 @@ async function initAuth() {
   });
 }
 
-const APP_VERSION = 'v4.20';
+const APP_VERSION = 'v4.21';
 function renderAppVersion() {
   document.querySelectorAll('.app-version-badge').forEach(el => el.textContent = APP_VERSION);
   const about = document.getElementById('appVersionAbout');
@@ -3656,6 +3665,11 @@ function onImpTipoChange() {
   show('impRangoChkRow', tipo==='consumo');
   if (tipo!=='consumo') { show('impPeriodoRow', false); show('impDesdeRow', false); show('impHastaRow', false); }
   else onImpRangoChange();
+  document.getElementById('impTitle').textContent = tipo==='consumo'
+    ? 'Importar Consumo Mensual'
+    : tipo==='baremo'
+    ? 'Importar Baremo Marca/Familia'
+    : 'Importar Clasificación Millennium';
   document.getElementById('impSub').textContent = tipo==='consumo'
     ? 'Sube el fichero de ventas del ERP para calcular y añadir los puntos automáticamente'
     : tipo==='baremo'
