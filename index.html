@@ -949,6 +949,15 @@
       <div class="help-ver">
         <div class="help-ver-item">
           <div class="help-ver-head">
+            <span class="help-ver-num">v4.20</span>
+            <span class="help-ver-date">Septiembre 2026</span>
+          </div>
+          <ul class="help-ver-list">
+            <li>Nuevo tipo de fichero en <strong>Importar Consumo</strong>: "Clasificación Millennium (Mecánica/Carrocería)" — sube directamente el Excel maestro de grupos Millennium para actualizar los derechos de cada cliente, sin pasar por SQL</li>
+          </ul>
+        </div>
+        <div class="help-ver-item">
+          <div class="help-ver-head">
             <span class="help-ver-num">v4.19</span>
             <span class="help-ver-date">Septiembre 2026</span>
           </div>
@@ -1444,6 +1453,7 @@
           <select id="impTipo" onchange="onImpTipoChange()">
             <option value="consumo">Consumo mensual de clientes (Marca/Familia)</option>
             <option value="baremo">Baremo Marca/Familia → Categoría (carga inicial o actualización)</option>
+            <option value="millennium">Clasificación Millennium (Mecánica/Carrocería)</option>
           </select>
         </div>
         <div class="fgr" id="impPeriodoRow">
@@ -1493,6 +1503,17 @@
           <table>
             <thead><tr><th>Cliente</th><th>Desglose</th><th class="num">Total pts</th></tr></thead>
             <tbody id="impClientBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="impMillenniumSection" style="display:none">
+        <div id="impMillenniumSummary" style="margin-bottom:12px;font-size:14px"></div>
+        <div style="font-weight:700;margin:16px 0 8px">Clientes del maestro (<span id="impMillenniumCount">0</span>)</div>
+        <div class="tbl-wrap" style="max-height:320px;overflow-y:auto">
+          <table>
+            <thead><tr><th>Código</th><th>Cliente</th><th>Mecánica</th><th>Carrocería</th><th>Estado</th></tr></thead>
+            <tbody id="impMillenniumBody"></tbody>
           </table>
         </div>
       </div>
@@ -1932,7 +1953,7 @@ async function initAuth() {
   });
 }
 
-const APP_VERSION = 'v4.19';
+const APP_VERSION = 'v4.20';
 function renderAppVersion() {
   document.querySelectorAll('.app-version-badge').forEach(el => el.textContent = APP_VERSION);
   const about = document.getElementById('appVersionAbout');
@@ -3637,7 +3658,9 @@ function onImpTipoChange() {
   else onImpRangoChange();
   document.getElementById('impSub').textContent = tipo==='consumo'
     ? 'Sube el fichero de ventas del ERP para calcular y añadir los puntos automáticamente'
-    : 'Sube el Excel de parejas Marca/Familia → Categoría para crear o actualizar el baremo';
+    : tipo==='baremo'
+    ? 'Sube el Excel de parejas Marca/Familia → Categoría para crear o actualizar el baremo'
+    : 'Sube el Excel maestro de grupos Millennium (Mecánica/Carrocería) para actualizar los derechos de cada cliente';
 }
 function onImpRangoChange() {
   const rango = document.getElementById('impRangoChk').checked;
@@ -3678,6 +3701,7 @@ function parseImportFile() {
       const ws = wb.Sheets[wb.SheetNames[0]];
       const rows = XLSX.utils.sheet_to_json(ws, {header:1, raw:true, defval:null});
       if (tipo==='consumo') procesarFicheroConsumo(rows, periodoInfo);
+      else if (tipo==='millennium') procesarFicheroMillennium(rows);
       else procesarFicheroBaremo(rows);
     } catch(err) {
       console.error(err);
@@ -3759,6 +3783,38 @@ function procesarFicheroConsumo(rows, periodoInfo) {
   renderImportReview();
 }
 
+// Clasificación Millennium: el Excel maestro (CODIGO/CLIENTE/MECÁNICA/CHAPA, valores SI/NO) es la
+// fuente de verdad de los derechos de cada cliente — un cliente sin fila en el maestro sigue puntuando
+// en todo por defecto (ver computeClientCat), esto solo actualiza a los que SÍ aparecen en el fichero.
+function procesarFicheroMillennium(rows) {
+  const msgEl = document.getElementById('impFileMsg');
+  let headerIdx = -1, cCodigo=-1, cCliente=-1, cMec=-1, cCha=-1;
+  for (let i=0;i<Math.min(rows.length,20);i++) {
+    const row = rows[i]||[];
+    const idxCodigo = row.findIndex(c => c!=null && /^C[OÓ]DIGO$/i.test(String(c).trim()));
+    const idxCliente = row.findIndex(c => c!=null && /^CLIENTE$/i.test(String(c).trim()));
+    const idxMec = row.findIndex(c => c!=null && /MEC[AÁ]NICA/i.test(String(c).trim()));
+    const idxCha = row.findIndex(c => c!=null && /CHAPA|CARROCER[IÍ]A/i.test(String(c).trim()));
+    if (idxCodigo>=0 && idxCliente>=0 && idxMec>=0 && idxCha>=0) { headerIdx=i; cCodigo=idxCodigo; cCliente=idxCliente; cMec=idxMec; cCha=idxCha; break; }
+  }
+  if (headerIdx<0) { msgEl.style.color='#E20613'; msgEl.textContent='No se han encontrado las columnas CÓDIGO/CLIENTE/MECÁNICA/CHAPA en el fichero.'; return; }
+
+  const parsed = [];
+  for (let i=headerIdx+1; i<rows.length; i++) {
+    const row = rows[i]||[];
+    const codigo = row[cCodigo];
+    if (codigo==null || String(codigo).trim()==='') continue;
+    const nombre = row[cCliente]!=null ? String(row[cCliente]).trim() : '';
+    const mecanica = /^S[IÍ]$/i.test(String(row[cMec]||'').trim());
+    const carroceria = /^S[IÍ]$/i.test(String(row[cCha]||'').trim());
+    const cliente = db.clientes.find(x => x.codigo_erp && normCode(x.codigo_erp)===normCode(codigo));
+    parsed.push({ codigo: String(codigo).trim(), nombre, mecanica, carroceria, clienteId: cliente?cliente.id:null, clienteNombreApp: cliente?cliente.nombre:null });
+  }
+  if (!parsed.length) { msgEl.style.color='#E20613'; msgEl.textContent='No se han encontrado filas válidas.'; return; }
+  importState = { tipo:'millennium', rows:parsed };
+  renderImportReview();
+}
+
 function procesarFicheroBaremo(rows) {
   const msgEl = document.getElementById('impFileMsg');
   let headerIdx = -1;
@@ -3829,16 +3885,35 @@ function computeClientCat(client) {
 function renderImportReview() {
   show('impStepFile', false); show('impStepReview', true);
   const isBaremo = importState.tipo==='baremo';
+  const isMillennium = importState.tipo==='millennium';
   show('impBaremoSummary', isBaremo);
-  show('impClientSection', !isBaremo);
+  show('impClientSection', !isBaremo && !isMillennium);
+  show('impMillenniumSection', isMillennium);
   show('impUnmappedSection', false);
   if (isBaremo) {
     document.getElementById('impBaremoSummary').innerHTML = `Se van a crear/actualizar <strong>${importState.rows.length}</strong> parejas Marca/Familia en el baremo.`;
+  } else if (isMillennium) {
+    renderImpMillennium();
   } else {
     renderImpClients();
   }
   document.getElementById('impReviewMsg').textContent = '';
   validateImpReview();
+}
+function renderImpMillennium() {
+  const rows = importState.rows;
+  const matched = rows.filter(r => r.clienteId);
+  const unmatched = rows.filter(r => !r.clienteId);
+  document.getElementById('impMillenniumSummary').innerHTML = `<strong>${matched.length}</strong> clientes del maestro coinciden con un cliente ya existente y se actualizarán.${unmatched.length ? ` <strong>${unmatched.length}</strong> códigos del maestro no tienen todavía cliente en la app (sin consumo previo) — se ignoran, no requieren ninguna acción.` : ''}`;
+  document.getElementById('impMillenniumCount').textContent = rows.length;
+  document.getElementById('impMillenniumBody').innerHTML = rows.map(r => `
+    <tr${r.clienteId?'':' style="opacity:.5"'}>
+      <td>${r.codigo}</td>
+      <td>${r.clienteNombreApp || r.nombre}</td>
+      <td>${r.mecanica ? 'SÍ' : 'NO'}</td>
+      <td>${r.carroceria ? 'SÍ' : 'NO'}</td>
+      <td style="font-size:11px;color:var(--text-dim)">${r.clienteId ? 'Se actualiza' : 'Sin cliente todavía'}</td>
+    </tr>`).join('');
 }
 
 function renderImpUnmapped() {
@@ -3977,6 +4052,7 @@ async function confirmImportConsumo() {
   setSaving();
   try {
     if (importState.tipo==='baremo') await confirmImportBaremo();
+    else if (importState.tipo==='millennium') await confirmImportMillennium();
     else await confirmImportConsumoMensual();
     setSynced();
   } catch (err) {
@@ -4001,6 +4077,20 @@ async function confirmImportBaremo() {
   if (error) throw error;
   await reloadBaremo();
   document.getElementById('impDoneMsg').innerHTML = `✓ Baremo actualizado: <strong>${rows.length}</strong> parejas Marca/Familia procesadas.`;
+}
+
+// El maestro Millennium es la fuente de verdad de los derechos de cada cliente (ver nota en
+// procesarFicheroMillennium): solo actualiza a los clientes que ya existen en la app, por codigo_erp.
+async function confirmImportMillennium() {
+  const rows = importState.rows.filter(r => r.clienteId);
+  for (const r of rows) {
+    const { error } = await sb.from('clientes').update({ puntos_mecanica: r.mecanica, puntos_carroceria: r.carroceria }).eq('id', r.clienteId);
+    if (error) throw error;
+    const cliente = db.clientes.find(x => String(x.id)===String(r.clienteId));
+    if (cliente) { cliente.puntos_mecanica = r.mecanica; cliente.puntos_carroceria = r.carroceria; }
+  }
+  const skipped = importState.rows.length - rows.length;
+  document.getElementById('impDoneMsg').innerHTML = `✓ Clasificación actualizada: <strong>${rows.length}</strong> clientes procesados.${skipped ? ` ${skipped} código(s) del maestro sin cliente todavía en la app (sin acción).` : ''}`;
 }
 
 async function confirmImportConsumoMensual() {
