@@ -50,7 +50,7 @@ from (values
   ('5122', true, false),
   ('0516', true, false),
   ('1250', true, false),
-  ('0405', true, false),
+  ('0405', true, true),
   ('0262', true, false),
   ('4148', true, true),
   ('4010', true, false),
@@ -165,3 +165,7 @@ update clientes set puntos_mecanica = true, puntos_carroceria = true where codig
 --    coincide con el calculo manual de la compañera). El Excel del jefe lo
 --    tenia marcado como "solo mecanica" por error.
 update clientes set puntos_mecanica = true, puntos_carroceria = true where codigo_erp in ('0368','00368'); -- AUTOMAGIC
+
+-- 8. Cuarta correccion tras revisar el ERP: Le Cercle (0405) SI produce
+--    puntos de carroceria ademas de mecanica (3 lineas CR reales, 1.141,82€).
+update clientes set puntos_mecanica = true, puntos_carroceria = true where codigo_erp in ('0405','00405'); -- LE CERCLE
