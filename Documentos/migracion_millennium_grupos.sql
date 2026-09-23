@@ -169,3 +169,7 @@ update clientes set puntos_mecanica = true, puntos_carroceria = true where codig
 -- 8. Cuarta correccion tras revisar el ERP: Le Cercle (0405) SI produce
 --    puntos de carroceria ademas de mecanica (3 lineas CR reales, 1.141,82€).
 update clientes set puntos_mecanica = true, puntos_carroceria = true where codigo_erp in ('0405','00405'); -- LE CERCLE
+
+-- 9. Cliente nuevo en el maestro (no estaba entre los 77 originales, el jefe
+--    lo añadió despues): Nicolae Negut / Extreme (0436) -> solo mecanica.
+update clientes set puntos_mecanica = true, puntos_carroceria = false where codigo_erp in ('0436','00436'); -- NICOLAE NEGUT (EXTREME)
