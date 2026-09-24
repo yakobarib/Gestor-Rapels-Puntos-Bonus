@@ -949,6 +949,15 @@
       <div class="help-ver">
         <div class="help-ver-item">
           <div class="help-ver-head">
+            <span class="help-ver-num">v4.23</span>
+            <span class="help-ver-date">Septiembre 2026</span>
+          </div>
+          <ul class="help-ver-list">
+            <li>La importación de <strong>Clasificación Millennium</strong> ahora avisa si un código sin coincidencia tiene un nombre parecido a un cliente ya existente (posible código antiguo o error de tecleo) en vez de crear un cliente duplicado a ciegas — lo deja fuera hasta que corrijas el código en el maestro</li>
+          </ul>
+        </div>
+        <div class="help-ver-item">
+          <div class="help-ver-head">
             <span class="help-ver-num">v4.22</span>
             <span class="help-ver-date">Septiembre 2026</span>
           </div>
@@ -1971,7 +1980,7 @@ async function initAuth() {
   });
 }
 
-const APP_VERSION = 'v4.22';
+const APP_VERSION = 'v4.23';
 function renderAppVersion() {
   document.querySelectorAll('.app-version-badge').forEach(el => el.textContent = APP_VERSION);
   const about = document.getElementById('appVersionAbout');
@@ -3833,11 +3842,18 @@ function procesarFicheroMillennium(rows) {
     const carroceria = /^S[IÍ]$/i.test(String(row[cCha]||'').trim());
     const codigoNorm = String(codigo).trim();
     const cliente = db.clientes.find(x => x.codigo_erp && normCode(x.codigo_erp)===normCode(codigoNorm));
-    let accion;
-    if (!cliente) accion = 'crear';
+    let accion, posibleDuplicado = null;
+    if (!cliente) {
+      // Código no encontrado — antes de crear un cliente nuevo, comprobar por nombre que no sea
+      // en realidad un cliente ya existente con otro código (típico: código antiguo o typo en el
+      // maestro, como pasó con Cruz Motor/Garcia Service). Nunca se fusiona solo, se avisa.
+      const posible = fuzzyMatchCliente(nombre);
+      if (posible) { accion = 'duplicado'; posibleDuplicado = posible; }
+      else accion = 'crear';
+    }
     else if (cliente.nombre!==nombre || cliente.puntos_mecanica!==mecanica || cliente.puntos_carroceria!==carroceria) accion = 'actualizar';
     else accion = 'sin_cambios';
-    parsed.push({ codigo: codigoNorm, nombre, mecanica, carroceria, clienteId: cliente?cliente.id:null, nombreActual: cliente?cliente.nombre:null, accion });
+    parsed.push({ codigo: codigoNorm, nombre, mecanica, carroceria, clienteId: cliente?cliente.id:null, nombreActual: cliente?cliente.nombre:null, accion, posibleDuplicado });
   }
   if (!parsed.length) { msgEl.style.color='#E20613'; msgEl.textContent='No se han encontrado filas válidas.'; return; }
   importState = { tipo:'millennium', rows:parsed };
@@ -3934,14 +3950,16 @@ function renderImpMillennium() {
   const crear = rows.filter(r => r.accion==='crear').length;
   const actualizar = rows.filter(r => r.accion==='actualizar').length;
   const sinCambios = rows.filter(r => r.accion==='sin_cambios').length;
+  const duplicados = rows.filter(r => r.accion==='duplicado').length;
   document.getElementById('impMillenniumSummary').innerHTML =
-    `<strong>${actualizar}</strong> clientes existentes se actualizarán (nombre y/o derechos) · <strong>${crear}</strong> clientes nuevos se crearán · <strong>${sinCambios}</strong> ya estaban al día.`;
+    `<strong>${actualizar}</strong> clientes existentes se actualizarán (nombre y/o derechos) · <strong>${crear}</strong> clientes nuevos se crearán · <strong>${sinCambios}</strong> ya estaban al día.` +
+    (duplicados ? `<br><span style="color:#f59e0b">⚠ <strong>${duplicados}</strong> código(s) del maestro no coinciden con ningún cliente, pero el nombre se parece a uno ya existente — revisa si es un código antiguo/typo antes de confirmar. Se omiten de la importación (no se crean ni se tocan) hasta que corrijas el código en el maestro.</span>` : '');
   document.getElementById('impMillenniumCount').textContent = rows.length;
-  const estadoLabel = { crear:'Cliente nuevo', actualizar:'Se actualiza', sin_cambios:'Sin cambios' };
+  const estadoLabel = { crear:'Cliente nuevo', actualizar:'Se actualiza', sin_cambios:'Sin cambios', duplicado:'⚠ Posible duplicado' };
   document.getElementById('impMillenniumBody').innerHTML = rows.map(r => `
-    <tr${r.accion==='sin_cambios'?' style="opacity:.5"':''}>
+    <tr${r.accion==='sin_cambios'?' style="opacity:.5"':''}${r.accion==='duplicado'?' style="background:rgba(245,158,11,.1)"':''}>
       <td>${r.codigo}</td>
-      <td>${r.nombreActual && r.nombreActual!==r.nombre ? `${r.nombreActual} → <strong>${r.nombre}</strong>` : r.nombre}</td>
+      <td>${r.nombreActual && r.nombreActual!==r.nombre ? `${r.nombreActual} → <strong>${r.nombre}</strong>` : r.nombre}${r.posibleDuplicado ? `<br><span style="font-size:10px;color:#f59e0b">¿Es "${r.posibleDuplicado.nombre}" (código ${r.posibleDuplicado.codigo_erp||'—'})?</span>` : ''}</td>
       <td>${r.mecanica ? 'SÍ' : 'NO'}</td>
       <td>${r.carroceria ? 'SÍ' : 'NO'}</td>
       <td style="font-size:11px;color:var(--text-dim)">${estadoLabel[r.accion]}</td>
@@ -4116,8 +4134,9 @@ async function confirmImportBaremo() {
 // ya existentes (por codigo_erp) y crea los que falten, igual que un alta manual pero por lote.
 async function confirmImportMillennium() {
   let creados = 0, actualizados = 0;
+  const duplicados = importState.rows.filter(r => r.accion==='duplicado').length;
   for (const r of importState.rows) {
-    if (r.accion === 'sin_cambios') continue;
+    if (r.accion === 'sin_cambios' || r.accion === 'duplicado') continue;
     if (r.accion === 'crear') {
       const { data, error } = await sb.from('clientes').insert({ nombre: r.nombre, codigo_erp: r.codigo, notas:'', en_puntos:true, puntos_mecanica: r.mecanica, puntos_carroceria: r.carroceria }).select();
       if (error) throw error;
@@ -4138,7 +4157,8 @@ async function confirmImportMillennium() {
   db.puntos.sort((a,b)=>a.nombre.localeCompare(b.nombre));
   db.bonus.sort((a,b)=>a.nombre.localeCompare(b.nombre));
   db.clientes.sort((a,b)=>a.nombre.localeCompare(b.nombre));
-  document.getElementById('impDoneMsg').innerHTML = `✓ Clasificación Millennium actualizada: <strong>${actualizados}</strong> clientes actualizados, <strong>${creados}</strong> clientes nuevos creados.`;
+  document.getElementById('impDoneMsg').innerHTML = `✓ Clasificación Millennium actualizada: <strong>${actualizados}</strong> clientes actualizados, <strong>${creados}</strong> clientes nuevos creados.` +
+    (duplicados ? `<br><span style="color:#f59e0b">⚠ ${duplicados} código(s) se omitieron por posible duplicado — corrige el código en el maestro y vuelve a importar.</span>` : '');
 }
 
 async function confirmImportConsumoMensual() {
