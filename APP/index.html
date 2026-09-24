@@ -949,6 +949,15 @@
       <div class="help-ver">
         <div class="help-ver-item">
           <div class="help-ver-head">
+            <span class="help-ver-num">v4.22</span>
+            <span class="help-ver-date">Septiembre 2026</span>
+          </div>
+          <ul class="help-ver-list">
+            <li>La importación de <strong>Clasificación Millennium</strong> ahora también actualiza el nombre del cliente y <strong>crea los clientes nuevos</strong> que aparezcan en el Excel maestro pero no existan todavía en la app — antes solo actualizaba mecánica/carrocería de clientes ya existentes</li>
+          </ul>
+        </div>
+        <div class="help-ver-item">
+          <div class="help-ver-head">
             <span class="help-ver-num">v4.21</span>
             <span class="help-ver-date">Septiembre 2026</span>
           </div>
@@ -1962,7 +1971,7 @@ async function initAuth() {
   });
 }
 
-const APP_VERSION = 'v4.21';
+const APP_VERSION = 'v4.22';
 function renderAppVersion() {
   document.querySelectorAll('.app-version-badge').forEach(el => el.textContent = APP_VERSION);
   const about = document.getElementById('appVersionAbout');
@@ -3818,11 +3827,17 @@ function procesarFicheroMillennium(rows) {
     const row = rows[i]||[];
     const codigo = row[cCodigo];
     if (codigo==null || String(codigo).trim()==='') continue;
-    const nombre = row[cCliente]!=null ? String(row[cCliente]).trim() : '';
+    const nombre = (row[cCliente]!=null ? String(row[cCliente]).trim() : '').toUpperCase();
+    if (!nombre) continue;
     const mecanica = /^S[IÍ]$/i.test(String(row[cMec]||'').trim());
     const carroceria = /^S[IÍ]$/i.test(String(row[cCha]||'').trim());
-    const cliente = db.clientes.find(x => x.codigo_erp && normCode(x.codigo_erp)===normCode(codigo));
-    parsed.push({ codigo: String(codigo).trim(), nombre, mecanica, carroceria, clienteId: cliente?cliente.id:null, clienteNombreApp: cliente?cliente.nombre:null });
+    const codigoNorm = String(codigo).trim();
+    const cliente = db.clientes.find(x => x.codigo_erp && normCode(x.codigo_erp)===normCode(codigoNorm));
+    let accion;
+    if (!cliente) accion = 'crear';
+    else if (cliente.nombre!==nombre || cliente.puntos_mecanica!==mecanica || cliente.puntos_carroceria!==carroceria) accion = 'actualizar';
+    else accion = 'sin_cambios';
+    parsed.push({ codigo: codigoNorm, nombre, mecanica, carroceria, clienteId: cliente?cliente.id:null, nombreActual: cliente?cliente.nombre:null, accion });
   }
   if (!parsed.length) { msgEl.style.color='#E20613'; msgEl.textContent='No se han encontrado filas válidas.'; return; }
   importState = { tipo:'millennium', rows:parsed };
@@ -3916,17 +3931,20 @@ function renderImportReview() {
 }
 function renderImpMillennium() {
   const rows = importState.rows;
-  const matched = rows.filter(r => r.clienteId);
-  const unmatched = rows.filter(r => !r.clienteId);
-  document.getElementById('impMillenniumSummary').innerHTML = `<strong>${matched.length}</strong> clientes del maestro coinciden con un cliente ya existente y se actualizarán.${unmatched.length ? ` <strong>${unmatched.length}</strong> códigos del maestro no tienen todavía cliente en la app (sin consumo previo) — se ignoran, no requieren ninguna acción.` : ''}`;
+  const crear = rows.filter(r => r.accion==='crear').length;
+  const actualizar = rows.filter(r => r.accion==='actualizar').length;
+  const sinCambios = rows.filter(r => r.accion==='sin_cambios').length;
+  document.getElementById('impMillenniumSummary').innerHTML =
+    `<strong>${actualizar}</strong> clientes existentes se actualizarán (nombre y/o derechos) · <strong>${crear}</strong> clientes nuevos se crearán · <strong>${sinCambios}</strong> ya estaban al día.`;
   document.getElementById('impMillenniumCount').textContent = rows.length;
+  const estadoLabel = { crear:'Cliente nuevo', actualizar:'Se actualiza', sin_cambios:'Sin cambios' };
   document.getElementById('impMillenniumBody').innerHTML = rows.map(r => `
-    <tr${r.clienteId?'':' style="opacity:.5"'}>
+    <tr${r.accion==='sin_cambios'?' style="opacity:.5"':''}>
       <td>${r.codigo}</td>
-      <td>${r.clienteNombreApp || r.nombre}</td>
+      <td>${r.nombreActual && r.nombreActual!==r.nombre ? `${r.nombreActual} → <strong>${r.nombre}</strong>` : r.nombre}</td>
       <td>${r.mecanica ? 'SÍ' : 'NO'}</td>
       <td>${r.carroceria ? 'SÍ' : 'NO'}</td>
-      <td style="font-size:11px;color:var(--text-dim)">${r.clienteId ? 'Se actualiza' : 'Sin cliente todavía'}</td>
+      <td style="font-size:11px;color:var(--text-dim)">${estadoLabel[r.accion]}</td>
     </tr>`).join('');
 }
 
@@ -4093,18 +4111,34 @@ async function confirmImportBaremo() {
   document.getElementById('impDoneMsg').innerHTML = `✓ Baremo actualizado: <strong>${rows.length}</strong> parejas Marca/Familia procesadas.`;
 }
 
-// El maestro Millennium es la fuente de verdad de los derechos de cada cliente (ver nota en
-// procesarFicheroMillennium): solo actualiza a los clientes que ya existen en la app, por codigo_erp.
+// El maestro Millennium es la fuente de verdad de cada cliente (código, nombre y derechos de
+// Mecánica/Carrocería) — ver procesarFicheroMillennium. Actualiza nombre+derechos de los clientes
+// ya existentes (por codigo_erp) y crea los que falten, igual que un alta manual pero por lote.
 async function confirmImportMillennium() {
-  const rows = importState.rows.filter(r => r.clienteId);
-  for (const r of rows) {
-    const { error } = await sb.from('clientes').update({ puntos_mecanica: r.mecanica, puntos_carroceria: r.carroceria }).eq('id', r.clienteId);
-    if (error) throw error;
-    const cliente = db.clientes.find(x => String(x.id)===String(r.clienteId));
-    if (cliente) { cliente.puntos_mecanica = r.mecanica; cliente.puntos_carroceria = r.carroceria; }
+  let creados = 0, actualizados = 0;
+  for (const r of importState.rows) {
+    if (r.accion === 'sin_cambios') continue;
+    if (r.accion === 'crear') {
+      const { data, error } = await sb.from('clientes').insert({ nombre: r.nombre, codigo_erp: r.codigo, notas:'', en_puntos:true, puntos_mecanica: r.mecanica, puntos_carroceria: r.carroceria }).select();
+      if (error) throw error;
+      db.clientes.push(data[0]);
+      db.puntos.push({ ...data[0], movimientos:[] });
+      creados++;
+    } else {
+      const { error } = await sb.from('clientes').update({ nombre: r.nombre, puntos_mecanica: r.mecanica, puntos_carroceria: r.carroceria }).eq('id', r.clienteId);
+      if (error) throw error;
+      [db.rapels, db.puntos, db.bonus, db.clientes].forEach(list => {
+        const c = list.find(x=>String(x.id)===String(r.clienteId));
+        if (c) { c.nombre = r.nombre; c.puntos_mecanica = r.mecanica; c.puntos_carroceria = r.carroceria; }
+      });
+      actualizados++;
+    }
   }
-  const skipped = importState.rows.length - rows.length;
-  document.getElementById('impDoneMsg').innerHTML = `✓ Clasificación actualizada: <strong>${rows.length}</strong> clientes procesados.${skipped ? ` ${skipped} código(s) del maestro sin cliente todavía en la app (sin acción).` : ''}`;
+  db.rapels.sort((a,b)=>a.nombre.localeCompare(b.nombre));
+  db.puntos.sort((a,b)=>a.nombre.localeCompare(b.nombre));
+  db.bonus.sort((a,b)=>a.nombre.localeCompare(b.nombre));
+  db.clientes.sort((a,b)=>a.nombre.localeCompare(b.nombre));
+  document.getElementById('impDoneMsg').innerHTML = `✓ Clasificación Millennium actualizada: <strong>${actualizados}</strong> clientes actualizados, <strong>${creados}</strong> clientes nuevos creados.`;
 }
 
 async function confirmImportConsumoMensual() {
