@@ -1967,6 +1967,8 @@ async function saveChangePwd() {
 }
 async function initAuth() {
   const { data: { session } } = await sb.auth.getSession();
+  // Limpia tokens de enlaces de recuperacion/magic link que queden en la URL
+  if (/access_token=|error_code=/.test(location.hash)) history.replaceState(null, '', location.pathname + location.search);
   if (session) {
     currentUser = session.user;
     showApp();
@@ -1980,7 +1982,7 @@ async function initAuth() {
   });
 }
 
-const APP_VERSION = 'v4.23';
+const APP_VERSION = 'v4.24';
 function renderAppVersion() {
   document.querySelectorAll('.app-version-badge').forEach(el => el.textContent = APP_VERSION);
   const about = document.getElementById('appVersionAbout');
