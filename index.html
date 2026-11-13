@@ -128,6 +128,14 @@
   .consumo-head{display:flex;align-items:center;gap:10px;margin-bottom:12px}
   .consumo-title{font-family:'Syne',sans-serif;font-weight:700;font-size:14px;flex:1}
   .consumo-years{font-size:11px;color:var(--text-dim);font-family:'JetBrains Mono',monospace}
+  .meses-grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:8px}
+  .mes-card{border:1px solid var(--border);border-radius:8px;padding:10px 4px;text-align:center;cursor:default}
+  .mes-name{font-family:'Syne',sans-serif;font-weight:700;font-size:13px;letter-spacing:.5px}
+  .mes-state{font-family:'JetBrains Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.2px;margin-top:4px;white-space:nowrap}
+  .mes-ok{background:rgba(76,175,125,.12);border-color:rgba(76,175,125,.35);color:var(--green)}
+  .mes-pend{background:rgba(245,158,11,.12);border-color:rgba(245,158,11,.35);color:var(--orange)}
+  .mes-late{background:var(--accent-dim,rgba(226,6,19,.12));border-color:rgba(226,6,19,.35);color:var(--accent)}
+  @media(max-width:1100px){.meses-grid{grid-template-columns:repeat(6,minmax(0,1fr))}}
   .consumo-tbl{width:100%;border-collapse:collapse;font-size:13px}
   .consumo-tbl th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--text-dim);padding:4px 10px 8px;border-bottom:1px solid var(--border)}
   .consumo-tbl th:not(:first-child){text-align:right}
@@ -643,6 +651,10 @@
     </div>
   </div>
   <div class="tab-scroll">
+    <div id="mesesWrap" class="consumo-wrap" style="display:none">
+      <div class="consumo-head"><span class="consumo-title" id="mesesTitle">Meses Importados</span></div>
+      <div id="mesesGrid" class="meses-grid"></div>
+    </div>
     <div id="consumoWrap" class="consumo-wrap" style="display:none"><div id="consumoTable"></div></div>
     <div class="tbl-wrap">
       <table>
@@ -947,6 +959,15 @@
     <!-- VERSIONES -->
     <div class="help-body" id="help-versiones" style="display:none">
       <div class="help-ver">
+        <div class="help-ver-item">
+          <div class="help-ver-head">
+            <span class="help-ver-num">v4.25</span>
+            <span class="help-ver-date">Noviembre 2026</span>
+          </div>
+          <ul class="help-ver-list">
+            <li>Panel <strong>Puntos</strong>: nueva caja <strong>"Meses Importados"</strong> con 12 tarjetas, una por mes del año — <strong style="color:var(--green)">verde</strong> si el mes ya está importado, <strong style="color:var(--accent)">rojo</strong> si ya terminó y falta importarlo (o está solo a medias), <strong style="color:var(--orange)">naranja</strong> si aún no toca. Pasa el ratón por encima de una tarjeta para ver el detalle</li>
+          </ul>
+        </div>
         <div class="help-ver-item">
           <div class="help-ver-head">
             <span class="help-ver-num">v4.23</span>
@@ -1982,7 +2003,7 @@ async function initAuth() {
   });
 }
 
-const APP_VERSION = 'v4.24';
+const APP_VERSION = 'v4.25';
 function renderAppVersion() {
   document.querySelectorAll('.app-version-badge').forEach(el => el.textContent = APP_VERSION);
   const about = document.getElementById('appVersionAbout');
@@ -2121,7 +2142,7 @@ function updateBadges() {
 }
 
 // ══ RENDER ALL ══
-function renderAll() { renderDashboard(); renderRapels(); renderPuntos(); renderBonus(); renderConsumo(); updateBadges(); }
+function renderAll() { renderDashboard(); renderRapels(); renderPuntos(); renderBonus(); renderConsumo(); renderMesesImportados(); updateBadges(); }
 
 // ══ DASHBOARD ══
 function renderDashboard() {
@@ -4575,6 +4596,58 @@ function renderConsumo() {
                `<span class="consumo-title">Evolución de Consumo — Total</span><span style="font-size:11px;color:var(--text-dim)">${clientesConDatos}/${db.puntos.length} clientes</span>`);
   }
   updateConsumoStickyOffset();
+}
+
+// Tarjetas "Meses Importados": una por mes del año en curso. Verde = mes completo importado,
+// rojo = ya terminó y no está importado (o solo parcialmente), naranja = aún no toca. Se calcula
+// uniendo los tramos de fechas de todas las referencias IMPORT-* (un rango 01/01–26/08 más otro
+// 27/08–30/09 cubren agosto entero, aunque ninguno lo abarque por sí solo).
+function renderMesesImportados() {
+  const wrap = document.getElementById('mesesWrap');
+  const grid = document.getElementById('mesesGrid');
+  if (!wrap || !grid) return;
+  const now = new Date();
+  const year = now.getFullYear();
+  const iso = (y, m, d) => y + '-' + String(m).padStart(2,'0') + '-' + String(d).padStart(2,'0');
+  const today = iso(year, now.getMonth()+1, now.getDate());
+  const nextDay = s => { const d = new Date(s+'T00:00:00'); d.setDate(d.getDate()+1); return iso(d.getFullYear(), d.getMonth()+1, d.getDate()); };
+
+  const refs = new Set();
+  db.puntos.forEach(p => (p.movimientos||[]).forEach(m => { if (m.referencia && m.referencia.startsWith('IMPORT-')) refs.add(m.referencia); }));
+  const tramos = [];
+  refs.forEach(r => {
+    let m = r.match(/^IMPORT-RANGO-(\d{4}-\d{2}-\d{2})_(\d{4}-\d{2}-\d{2})$/);
+    if (m) { tramos.push([m[1], m[2]]); return; }
+    m = r.match(/^IMPORT-(\d{4})-(\d{2})$/);
+    if (m) tramos.push([iso(+m[1], +m[2], 1), iso(+m[1], +m[2], new Date(+m[1], +m[2], 0).getDate())]);
+  });
+  tramos.sort((a,b) => a[0]<b[0] ? -1 : a[0]>b[0] ? 1 : 0);
+  const unidos = [];
+  tramos.forEach(t => {
+    const last = unidos[unidos.length-1];
+    if (last && t[0] <= nextDay(last[1])) { if (t[1] > last[1]) last[1] = t[1]; }
+    else unidos.push([t[0], t[1]]);
+  });
+
+  const nombres = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
+  document.getElementById('mesesTitle').textContent = 'Meses Importados ' + year;
+  grid.innerHTML = nombres.map((n, i) => {
+    const mm = i+1;
+    const ini = iso(year, mm, 1), fin = iso(year, mm, new Date(year, mm, 0).getDate());
+    const completo = unidos.some(t => t[0] <= ini && t[1] >= fin);
+    const parciales = completo ? [] : unidos.filter(t => t[0] <= fin && t[1] >= ini).map(t => [t[0] > ini ? t[0] : ini, t[1] < fin ? t[1] : fin]);
+    const vencido = fin < today;
+    let cls, estado, tip;
+    if (completo) { cls = 'mes-ok'; estado = 'Importado'; tip = 'Mes completo importado'; }
+    else if (parciales.length) {
+      cls = vencido ? 'mes-late' : 'mes-pend'; estado = 'Parcial';
+      tip = 'Importado solo parcialmente: ' + parciales.map(t => formatDateEs(t[0]) + ' – ' + formatDateEs(t[1])).join(', ');
+    }
+    else if (vencido) { cls = 'mes-late'; estado = 'Atrasado'; tip = 'Sin importar — el mes ya terminó, debería estar importado'; }
+    else { cls = 'mes-pend'; estado = 'Pendiente'; tip = 'Aún no toca importarlo (el mes no ha terminado)'; }
+    return `<div class="mes-card ${cls}" title="${n} ${year} — ${tip}"><div class="mes-name">${n}</div><div class="mes-state">${estado}</div></div>`;
+  }).join('');
+  wrap.style.display = '';
 }
 
 // La caja "Evolución de Consumo" ya es sticky por su cuenta (para verse mientras se hace scroll
