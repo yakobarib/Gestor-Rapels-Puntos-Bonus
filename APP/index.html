@@ -963,6 +963,15 @@
       <div class="help-ver">
         <div class="help-ver-item">
           <div class="help-ver-head">
+            <span class="help-ver-num">v4.27</span>
+            <span class="help-ver-date">Noviembre 2026</span>
+          </div>
+          <ul class="help-ver-list">
+            <li><strong>Importar consumo</strong> ahora avisa cuando las fechas del fichero se <strong>solapan</strong> con otra importación ya hecha (por ejemplo, importar agosto completo cuando ya está importado hasta el 26/08): esos días se contarían dos veces. El aviso indica desde qué fecha conviene importar y permite cancelar</li>
+          </ul>
+        </div>
+        <div class="help-ver-item">
+          <div class="help-ver-head">
             <span class="help-ver-num">v4.26</span>
             <span class="help-ver-date">Noviembre 2026</span>
           </div>
@@ -2014,7 +2023,7 @@ async function initAuth() {
   });
 }
 
-const APP_VERSION = 'v4.26';
+const APP_VERSION = 'v4.27';
 function renderAppVersion() {
   document.querySelectorAll('.app-version-badge').forEach(el => el.textContent = APP_VERSION);
   const about = document.getElementById('appVersionAbout');
@@ -4130,6 +4139,14 @@ async function confirmImportConsumo() {
         }
       }
     }
+    const { solapes, sugerencia } = solapesImportacion(pi, referencia);
+    if (solapes.length) {
+      msg += `⚠ SOLAPE DE FECHAS: esta importación (${periodoInfoToLabel(pi)}) coincide en fechas con otras ya hechas:\n` +
+        solapes.map(t => `  • ${formatReferenciaLabel(t.ref)}`).join('\n') +
+        `\nSi continúas, los puntos de esos días se contarán DOS veces.\n` +
+        (sugerencia ? `Lo habitual es importar solo el tramo que falta: un fichero que empiece el ${formatDateEs(sugerencia)}.\n` : '') +
+        `Pulsa Cancelar para no importar nada.\n\n`;
+    }
     if (msg && !confirm(msg + '¿Continuar?')) return;
   }
   btn.disabled = true;
@@ -4609,6 +4626,43 @@ function renderConsumo() {
   updateConsumoStickyOffset();
 }
 
+const isoFecha = (y, m, d) => y + '-' + String(m).padStart(2,'0') + '-' + String(d).padStart(2,'0');
+function diaSiguienteISO(s) { const d = new Date(s+'T00:00:00'); d.setDate(d.getDate()+1); return isoFecha(d.getFullYear(), d.getMonth()+1, d.getDate()); }
+
+// Tramo de fechas [desde, hasta] de cada referencia IMPORT-* distinta que hay en db.puntos
+// (IMPORT-RANGO-<desde>_<hasta> → ese rango; IMPORT-YYYY-MM → el mes entero).
+function tramosImportados() {
+  const refs = new Set();
+  db.puntos.forEach(p => (p.movimientos||[]).forEach(m => { if (m.referencia && m.referencia.startsWith('IMPORT-')) refs.add(m.referencia); }));
+  const out = [];
+  refs.forEach(r => {
+    let m = r.match(/^IMPORT-RANGO-(\d{4}-\d{2}-\d{2})_(\d{4}-\d{2}-\d{2})$/);
+    if (m) { out.push({ ref:r, desde:m[1], hasta:m[2] }); return; }
+    m = r.match(/^IMPORT-(\d{4})-(\d{2})$/);
+    if (m) out.push({ ref:r, desde:isoFecha(+m[1], +m[2], 1), hasta:isoFecha(+m[1], +m[2], new Date(+m[1], +m[2], 0).getDate()) });
+  });
+  return out;
+}
+
+// Importaciones ya hechas cuyas fechas se solapan con la que se va a confirmar. Las ya hechas
+// con la misma referencia se excluyen (se sobrescriben, ya se avisa aparte), igual que los mensuales
+// que un rango nuevo sustituye por completo. Las demás sumarían los mismos días dos veces.
+function solapesImportacion(pi, referencia) {
+  let nuevo;
+  if (pi.mode==='rango') nuevo = [pi.desde, pi.hasta];
+  else { const [y,m] = pi.periodo.split('-').map(Number); nuevo = [isoFecha(y,m,1), isoFecha(y,m,new Date(y,m,0).getDate())]; }
+  const sustituidos = pi.mode==='rango' ? monthsFullyContainedInRange(pi.desde, pi.hasta) : [];
+  const solapes = tramosImportados().filter(t => {
+    if (t.ref === referencia) return false;
+    const mm = t.ref.match(/^IMPORT-(\d{4}-\d{2})$/);
+    if (mm && sustituidos.includes(mm[1])) return false;
+    return t.desde <= nuevo[1] && nuevo[0] <= t.hasta;
+  });
+  const ultimo = solapes.map(t => t.hasta).sort().pop();
+  const sugerencia = ultimo && diaSiguienteISO(ultimo) <= nuevo[1] ? diaSiguienteISO(ultimo) : null;
+  return { solapes, sugerencia };
+}
+
 // Tarjetas "Meses Importados": una por mes del año en curso. Verde = mes completo importado,
 // rojo = ya terminó y no está importado (o solo parcialmente), naranja = aún no toca. Se calcula
 // uniendo los tramos de fechas de todas las referencias IMPORT-* (un rango 01/01–26/08 más otro
@@ -4619,19 +4673,11 @@ function renderMesesImportados() {
   if (!wrap || !grid) return;
   const now = new Date();
   const year = now.getFullYear();
-  const iso = (y, m, d) => y + '-' + String(m).padStart(2,'0') + '-' + String(d).padStart(2,'0');
+  const iso = isoFecha;
   const today = iso(year, now.getMonth()+1, now.getDate());
-  const nextDay = s => { const d = new Date(s+'T00:00:00'); d.setDate(d.getDate()+1); return iso(d.getFullYear(), d.getMonth()+1, d.getDate()); };
+  const nextDay = diaSiguienteISO;
 
-  const refs = new Set();
-  db.puntos.forEach(p => (p.movimientos||[]).forEach(m => { if (m.referencia && m.referencia.startsWith('IMPORT-')) refs.add(m.referencia); }));
-  const tramos = [];
-  refs.forEach(r => {
-    let m = r.match(/^IMPORT-RANGO-(\d{4}-\d{2}-\d{2})_(\d{4}-\d{2}-\d{2})$/);
-    if (m) { tramos.push([m[1], m[2]]); return; }
-    m = r.match(/^IMPORT-(\d{4})-(\d{2})$/);
-    if (m) tramos.push([iso(+m[1], +m[2], 1), iso(+m[1], +m[2], new Date(+m[1], +m[2], 0).getDate())]);
-  });
+  const tramos = tramosImportados().map(t => [t.desde, t.hasta]);
   tramos.sort((a,b) => a[0]<b[0] ? -1 : a[0]>b[0] ? 1 : 0);
   const unidos = [];
   tramos.forEach(t => {
