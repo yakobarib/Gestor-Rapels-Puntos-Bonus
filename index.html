@@ -134,7 +134,9 @@
   .mes-state{font-family:'JetBrains Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.2px;margin-top:4px;white-space:nowrap}
   .mes-ok{background:rgba(76,175,125,.12);border-color:rgba(76,175,125,.35);color:var(--green)}
   .mes-pend{background:rgba(245,158,11,.12);border-color:rgba(245,158,11,.35);color:var(--orange)}
-  .mes-late{background:var(--accent-dim,rgba(226,6,19,.12));border-color:rgba(226,6,19,.35);color:var(--accent)}
+  .mes-late{background:var(--accent-dim,rgba(226,6,19,.12));border-color:rgba(226,6,19,.35);color:var(--accent);animation:mesPulse 1.6s ease-in-out infinite}
+  @keyframes mesPulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(226,6,19,0)}50%{opacity:.6;box-shadow:0 0 10px 2px rgba(226,6,19,.55)}}
+  @media(prefers-reduced-motion:reduce){.mes-late{animation:none}}
   @media(max-width:1100px){.meses-grid{grid-template-columns:repeat(6,minmax(0,1fr))}}
   .consumo-tbl{width:100%;border-collapse:collapse;font-size:13px}
   .consumo-tbl th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--text-dim);padding:4px 10px 8px;border-bottom:1px solid var(--border)}
@@ -959,6 +961,15 @@
     <!-- VERSIONES -->
     <div class="help-body" id="help-versiones" style="display:none">
       <div class="help-ver">
+        <div class="help-ver-item">
+          <div class="help-ver-head">
+            <span class="help-ver-num">v4.26</span>
+            <span class="help-ver-date">Noviembre 2026</span>
+          </div>
+          <ul class="help-ver-list">
+            <li>Las tarjetas <strong style="color:var(--accent)">rojas</strong> de "Meses Importados" ahora <strong>parpadean</strong> para avisar de que falta algo por importar (se desactiva solo si el sistema tiene activada la opción de reducir animaciones)</li>
+          </ul>
+        </div>
         <div class="help-ver-item">
           <div class="help-ver-head">
             <span class="help-ver-num">v4.25</span>
@@ -2003,7 +2014,7 @@ async function initAuth() {
   });
 }
 
-const APP_VERSION = 'v4.25';
+const APP_VERSION = 'v4.26';
 function renderAppVersion() {
   document.querySelectorAll('.app-version-badge').forEach(el => el.textContent = APP_VERSION);
   const about = document.getElementById('appVersionAbout');
