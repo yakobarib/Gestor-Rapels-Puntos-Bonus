@@ -180,6 +180,8 @@
   .print-dropdown-item{display:block;width:100%;text-align:left;padding:9px 14px;font-size:12px;font-weight:600;color:var(--text);background:none;border:none;cursor:pointer;font-family:'Syne',sans-serif}
   .print-dropdown-item:hover{background:var(--surface2)}
   .print-dropdown-sep{height:1px;background:var(--border);margin:2px 0}
+  .print-resumen-mes{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:2px 14px 8px;font-size:11px;color:var(--text-dim)}
+  .print-resumen-mes input{background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:3px 6px;font-size:12px;font-family:inherit}
   .print-dropdown-clients{max-height:220px;overflow-y:auto;flex:1}
   .print-chk-row{display:flex;align-items:center;gap:8px;padding:6px 14px;cursor:pointer;font-size:12px;color:var(--text)}
   .print-chk-row:hover{background:var(--surface2)}
@@ -633,6 +635,8 @@
           <div class="print-dropdown" id="printDropP">
             <button class="print-dropdown-item" onclick="printAllTab('puntos')">🖨 Imprimir Todos</button>
             <button class="print-dropdown-item" onclick="exportExcelAllPuntos()">📊 Excel Todos</button>
+            <button class="print-dropdown-item" onclick="printResumenPuntos()">📋 Imprimir Resumen (1 página)</button>
+            <div class="print-resumen-mes"><label for="resumenMes">Mes del resumen</label><input type="month" id="resumenMes"></div>
             <div class="print-dropdown-sep"></div>
             <div class="print-dropdown-clients" id="printClientsP"></div>
             <div class="print-dropdown-foot">
@@ -961,6 +965,15 @@
     <!-- VERSIONES -->
     <div class="help-body" id="help-versiones" style="display:none">
       <div class="help-ver">
+        <div class="help-ver-item">
+          <div class="help-ver-head">
+            <span class="help-ver-num">v4.28</span>
+            <span class="help-ver-date">Noviembre 2026</span>
+          </div>
+          <ul class="help-ver-list">
+            <li>Nuevo <strong>Imprimir Resumen</strong> en el menú Imprimir de Puntos: una sola página con los puntos <strong>ganados por categoría</strong> y los <strong>canjeados</strong> del mes elegido (por defecto, el último mes importado) y el <strong>acumulado del año</strong>, con tarjetas grandes y tabla de desglose. Los canjes no se registran por categoría, por eso solo se muestra su total</li>
+          </ul>
+        </div>
         <div class="help-ver-item">
           <div class="help-ver-head">
             <span class="help-ver-num">v4.27</span>
@@ -2023,7 +2036,7 @@ async function initAuth() {
   });
 }
 
-const APP_VERSION = 'v4.27';
+const APP_VERSION = 'v4.28';
 function renderAppVersion() {
   document.querySelectorAll('.app-version-badge').forEach(el => el.textContent = APP_VERSION);
   const about = document.getElementById('appVersionAbout');
@@ -3170,6 +3183,7 @@ function togglePrintMenu(tab) {
   if (!isOpen) {
     drop.classList.add('open');
     populatePrintClients(tab);
+    if (tab==='P') initResumenMes();
   }
 }
 document.addEventListener('click', e => {
@@ -3246,6 +3260,119 @@ function printSelected(tipo) {
   w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${titulo}</title><style>*{box-sizing:border-box}${BASE_CSS}${extraCss}</style></head><body>${pages}</body></html>`);
   w.document.close(); setTimeout(()=>{w.focus();w.print();},400);
 }
+// ── Resumen de Puntos (1 página): ganados por categoría y canjeados, del mes elegido y acumulado del año ──
+// El mes por defecto es el último con puntos ganados del año en curso (si no hay, el mes anterior al actual).
+function initResumenMes() {
+  const el = document.getElementById('resumenMes');
+  if (!el || el.value) return;
+  const mm = getMaxMes2026();
+  el.value = mm > 0 ? new Date().getFullYear() + '-' + String(mm).padStart(2,'0') : prevMonthStr();
+}
+// Suma puntos ganados por categoría (leyendo el desglose que queda en las notas del movimiento) y canjeados entre dos fechas ISO.
+// Lo que las notas no desglosan (adicionales, movimientos editados a mano) va a 'otros' para que el total siempre cuadre con los movimientos.
+function resumenPuntosAgg(desde, hasta) {
+  const A = {n1:{u:0,p:0}, n2:{u:0,p:0}, past:{u:0,p:0}, alt:{u:0,p:0}, carr:{u:0,p:0}, otros:{u:0,p:0}};
+  let ganado = 0, canjeado = 0;
+  const cliG = new Set(), cliC = new Set();
+  const grab = (nt, re, key) => {
+    const m = nt.match(re); if (!m) return 0;
+    const u = parseFloat(m[1]) || 0, p = parseInt(m[2]) || 0;
+    A[key].u += u; A[key].p += p; return p;
+  };
+  db.puntos.forEach(c => (c.movimientos||[]).forEach(m => {
+    const f = (m.fecha||'').slice(0,10);
+    if (!f || f < desde || f > hasta) return;
+    const pts = Number(m.puntos) || 0;
+    if (m.tipo === 'CANJEADO') { canjeado += pts; cliC.add(c.id); return; }
+    if (m.tipo !== 'GANADO') return;
+    ganado += pts; cliG.add(c.id);
+    const nt = m.notas || '';
+    const parsed = grab(nt,/Neum\.1ª:\s*(\d+)×\d+=(\d+)pts/,'n1') + grab(nt,/Neum\.2ª:\s*(\d+)×\d+=(\d+)pts/,'n2')
+      + grab(nt,/Pastillas:\s*(\d+)×\d+=(\d+)pts/,'past') + grab(nt,/Alt\/Arr:\s*(\d+)×\d+=(\d+)pts/,'alt')
+      + grab(nt,/Carrocer[ií]a:\s*([\d.]+)€=(\d+)pts/,'carr');
+    A.otros.p += pts - parsed;
+  }));
+  return {cat:A, ganado, canjeado, neto:ganado-canjeado, nGanan:cliG.size, nCanjean:cliC.size};
+}
+function printResumenPuntos() {
+  ['R','P','B'].forEach(t => document.getElementById('printDrop'+t).classList.remove('open'));
+  if (!db.puntos.length) { alert('No hay clientes'); return; }
+  let ym = (document.getElementById('resumenMes')||{}).value;
+  if (!/^\d{4}-\d{2}$/.test(ym||'')) { initResumenMes(); ym = document.getElementById('resumenMes').value; }
+  const [yStr, mStr] = ym.split('-'); const mes = parseInt(mStr);
+  const MES = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const mesNom = MES[mes] + ' ' + yStr;
+  const M = resumenPuntosAgg(`${ym}-01`, `${ym}-31`);
+  const Y = resumenPuntosAgg(`${yStr}-01-01`, `${ym}-31`);
+  const saldoTotal = db.puntos.reduce((s,c) => s + pStats(c).saldo, 0);
+  const n = v => Math.round(v).toLocaleString('es-ES');
+  const sg = v => (v>0?'+':v<0?'−':'') + n(Math.abs(v));
+  const colNeto = v => v>=0 ? '#15803d' : '#dc2626';
+  const fecha = new Date().toLocaleDateString('es-ES',{day:'2-digit',month:'long',year:'numeric'});
+  const rango = mes === 1 ? MES[1] : `Enero – ${MES[mes]}`;
+
+  const cards = (D, titulo, sub) => `<div class="blk"><div class="blk-t">${titulo} <span>${sub}</span></div><div class="cards">
+    <div class="card g"><div class="cl">★ Puntos ganados</div><div class="cv">${n(D.ganado)}</div><div class="cs">${D.nGanan} cliente${D.nGanan!==1?'s':''}</div></div>
+    <div class="card c"><div class="cl">⇄ Puntos canjeados</div><div class="cv">${n(D.canjeado)}</div><div class="cs">${D.nCanjean} cliente${D.nCanjean!==1?'s':''}</div></div>
+    <div class="card s"><div class="cl">◆ Diferencia</div><div class="cv" style="color:${colNeto(D.neto)}">${sg(D.neto)}</div><div class="cs">ganados − canjeados</div></div></div></div>`;
+
+  const filas = [
+    {k:'n1',  l:'Neumáticos 1ª marca', u:'uds'},
+    {k:'n2',  l:'Neumáticos 2ª marca', u:'uds'},
+    {k:'past',l:'Pastillas de freno',  u:'uds'},
+    {k:'alt', l:'Alternadores / Arranques', u:'uds'},
+    {k:'carr',l:'Carrocería',          u:'€'},
+    {k:'otros',l:'Adicionales / otros', u:''}
+  ].filter(f => M.cat[f.k].p !== 0 || Y.cat[f.k].p !== 0);
+  const celda = (D, k, u) => {
+    const x = D.cat[k];
+    const sub = u && x.u ? `<div class="su">${n(x.u)} ${u}</div>` : '';
+    return `<div class="pv">${n(x.p)}</div>${sub}`;
+  };
+  const pct = (k) => Y.ganado > 0 ? Math.round(Y.cat[k].p / Y.ganado * 100) + '%' : '—';
+  const tabla = `<table><thead><tr><th style="text-align:left">Categoría</th><th>${MES[mes]} ${yStr}<br><small>puntos ganados</small></th><th>Acumulado ${yStr}<br><small>${rango}</small></th><th>% del año</th></tr></thead><tbody>
+    ${filas.map(f => `<tr><td class="cat">${f.l}</td><td class="num">${celda(M,f.k,f.u)}</td><td class="num">${celda(Y,f.k,f.u)}</td><td class="num pc">${pct(f.k)}</td></tr>`).join('')}
+    <tr class="tot g"><td class="cat">TOTAL PUNTOS GANADOS</td><td class="num">${n(M.ganado)}</td><td class="num">${n(Y.ganado)}</td><td class="num pc">100%</td></tr>
+    <tr class="tot c"><td class="cat">TOTAL PUNTOS CANJEADOS<div class="su" style="font-weight:400">sin desglose por categoría</div></td><td class="num">${n(M.canjeado)}</td><td class="num">${n(Y.canjeado)}</td><td class="num pc"></td></tr>
+    <tr class="tot s"><td class="cat">DIFERENCIA</td><td class="num" style="color:${colNeto(M.neto)}">${sg(M.neto)}</td><td class="num" style="color:${colNeto(Y.neto)}">${sg(Y.neto)}</td><td class="num pc"></td></tr>
+  </tbody></table>`;
+
+  const css = `*{box-sizing:border-box}body{font-family:Arial,sans-serif;margin:0;padding:22px 30px;color:#000}
+.hd{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #E20613;padding-bottom:10px;margin-bottom:14px}
+.hd h1{font-size:22px;font-weight:900;margin:0;color:#E20613}.hd p{font-size:11px;color:#777;margin:3px 0 0}
+.hm{text-align:right}.hm .t{font-size:15px;font-weight:700;color:#002D5A;text-transform:uppercase}.hm .d{font-size:11px;color:#888;margin-top:3px}
+.blk{margin-bottom:16px}.blk-t{font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;color:#002D5A;border-bottom:2px solid #002D5A;padding-bottom:5px;margin-bottom:10px}
+.blk-t span{font-weight:600;color:#667;letter-spacing:.5px;margin-left:8px;text-transform:none}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.card{border-radius:10px;padding:14px 12px;text-align:center}
+.card.g{background:#fff8ec;border:2px solid #f59e0b}.card.c{background:#eff6ff;border:2px solid #3b82f6}.card.s{background:#f0fdf4;border:2px solid #22c55e}
+.cl{font-size:11px;text-transform:uppercase;letter-spacing:1.2px;font-weight:800}
+.card.g .cl{color:#b45309}.card.c .cl{color:#1d4ed8}.card.s .cl{color:#15803d}
+.cv{font-size:40px;font-weight:900;line-height:1.15;margin:6px 0 2px}
+.card.g .cv{color:#b45309}.card.c .cv{color:#1d4ed8}
+.cs{font-size:10px;color:#777}
+table{width:100%;border-collapse:collapse;margin-top:4px}
+th{background:#002D5A;color:#fff;padding:9px 12px;text-align:center;font-size:12px;text-transform:uppercase;letter-spacing:.6px}
+th small{font-weight:400;text-transform:none;letter-spacing:0;opacity:.8}
+td{padding:9px 12px;border-bottom:1px solid #e5e8ee;vertical-align:middle}
+td.cat{font-size:15px;font-weight:700}.num{text-align:right}.pv{font-size:18px;font-weight:800}.su{font-size:10px;color:#889;margin-top:1px}.pc{color:#667;font-weight:700;font-size:14px}
+tr.tot td{font-size:19px;font-weight:900;border-bottom:none}tr.tot td.cat{font-size:14px}
+tr.tot.g td{background:#fff3d6;color:#b45309;border-top:2px solid #002D5A}tr.tot.c td{background:#e3eeff;color:#1d4ed8}tr.tot.s td{background:#e6f7ec}
+.ft{margin-top:12px;font-size:11px;color:#667;display:flex;justify-content:space-between;gap:20px}
+@media print{body{padding:0}@page{size:A4;margin:12mm}}`;
+
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Resumen Puntos — ${mesNom}</title><style>${css}</style></head><body>
+    <div class="hd"><div><h1>RECAMBIOS IBIZA</h1><p>Programa de Puntos de Fidelización</p></div><div class="hm"><div class="t">Resumen de Puntos · ${mesNom}</div><div class="d">${fecha}</div></div></div>
+    ${cards(M, MES[mes].toUpperCase()+' '+yStr, 'puntos del mes')}
+    ${cards(Y, 'ACUMULADO '+yStr, rango.toLowerCase())}
+    <div class="blk"><div class="blk-t">Desglose por categoría <span>puntos ganados</span></div>${tabla}</div>
+    <div class="ft"><div>Los puntos canjeados no se registran por categoría, por eso solo se muestra su total.</div><div style="white-space:nowrap"><strong>Saldo total pendiente de canje (todos los clientes): ${n(saldoTotal)} pts</strong></div></div>
+  </body></html>`;
+  const w = window.open('','_blank','width=850,height=1000');
+  w.document.write(html); w.document.close();
+  setTimeout(()=>{w.focus();w.print();},400);
+}
+
 // Excel de Puntos: una fila de resumen por cliente + una fila por movimiento, mismos datos que la impresión.
 function buildExcelPuntos(clientes) {
   const resumenRows = [['Código ERP','Cliente','Puntos Ganados','Puntos Canjeados','Saldo Actual']];
