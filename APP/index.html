@@ -967,6 +967,15 @@
       <div class="help-ver">
         <div class="help-ver-item">
           <div class="help-ver-head">
+            <span class="help-ver-num">v4.30</span>
+            <span class="help-ver-date">Noviembre 2026</span>
+          </div>
+          <ul class="help-ver-list">
+            <li><strong>Abonos y devoluciones en cada cliente</strong>: el Desglose Mensual y la Evolución de Consumo de la ficha/impresión de cada cliente ahora tienen en cuenta las categorías con abono neto (negativas): restan en el mes en que se hicieron, se muestran en <strong style="color:#dc2626">rojo</strong> y la hoja lo indica con una nota. Antes esos puntos negativos se ignoraban en esas tablas</li>
+          </ul>
+        </div>
+        <div class="help-ver-item">
+          <div class="help-ver-head">
             <span class="help-ver-num">v4.29</span>
             <span class="help-ver-date">Noviembre 2026</span>
           </div>
@@ -2045,7 +2054,7 @@ async function initAuth() {
   });
 }
 
-const APP_VERSION = 'v4.29';
+const APP_VERSION = 'v4.30';
 function renderAppVersion() {
   document.querySelectorAll('.app-version-badge').forEach(el => el.textContent = APP_VERSION);
   const about = document.getElementById('appVersionAbout');
@@ -3377,7 +3386,7 @@ tr.tot.g td{background:#fff3d6;color:#b45309;border-top:2px solid #002D5A}tr.tot
     ${cards(M, MES[mes].toUpperCase()+' '+yStr, 'puntos del mes')}
     ${cards(Y, 'ACUMULADO '+yStr, rango.toLowerCase())}
     <div class="blk"><div class="blk-t">Desglose por categoría <span>puntos ganados</span></div>${tabla}</div>
-    <div class="ft"><div>Los puntos canjeados no se registran por categoría, por eso solo se muestra su total.</div><div style="white-space:nowrap"><strong>Saldo total pendiente de canje (todos los clientes): ${n(saldoTotal)} pts</strong></div></div>
+    <div class="ft"><div>Cifras netas: ya descuentan los abonos y devoluciones de cada mes.<br>Los puntos canjeados no se registran por categoría, por eso solo se muestra su total.</div><div style="white-space:nowrap"><strong>Saldo total pendiente de canje (todos los clientes): ${n(saldoTotal)} pts</strong></div></div>
   </body></html>`;
   const w = window.open('','_blank','width=850,height=1000');
   w.document.write(html); w.document.close();
@@ -3481,11 +3490,12 @@ function buildMonthlyPtsTable(movimientos, year, maxMes) {
   (movimientos||[]).filter(m=>m.tipo==='GANADO'&&(m.fecha||'').startsWith(yStr)).forEach(m=>{
     const mes=parseInt((m.fecha||'').slice(5,7))||0; if(!mes)return;
     const nt=m.notas||'';
-    const n1=parseInt(nt.match(/Neum\.1ª:\s*(\d+)×/)?.[1])||0;
-    const n2=parseInt(nt.match(/Neum\.2ª:\s*(\d+)×/)?.[1])||0;
-    const past=parseInt(nt.match(/Pastillas:\s*(\d+)×/)?.[1])||0;
-    const alt=parseInt(nt.match(/Alt\/Arr:\s*(\d+)×/)?.[1])||0;
-    const cm=nt.match(/Carrocer[ií]a:\s*([\d.-]+)€=(\d+)pts/);
+    // Admiten negativos: un abono/devolución neta se guarda como "Neum.1ª: -2×3=-6pts" y resta en el mes en que se hizo.
+    const n1=parseInt(nt.match(/Neum\.1ª:\s*(-?\d+)×/)?.[1])||0;
+    const n2=parseInt(nt.match(/Neum\.2ª:\s*(-?\d+)×/)?.[1])||0;
+    const past=parseInt(nt.match(/Pastillas:\s*(-?\d+)×/)?.[1])||0;
+    const alt=parseInt(nt.match(/Alt\/Arr:\s*(-?\d+)×/)?.[1])||0;
+    const cm=nt.match(/Carrocer[ií]a:\s*(-?[\d.]+)€=(-?\d+)pts/);
     const ce=parseFloat(cm?.[1])||0, cp=parseInt(cm?.[2])||0;
     d.n1[mes]+=n1; d.n2[mes]+=n2; d.past[mes]+=past; d.alt[mes]+=alt;
     d.carr_eur[mes]+=ce; d.carr_pts[mes]+=cp;
@@ -3495,10 +3505,10 @@ function buildMonthlyPtsTable(movimientos, year, maxMes) {
   const sum=key=>d[key].reduce((s,v)=>s+v,0);
   const tN1=sum('n1'),tN2=sum('n2'),tPast=sum('past'),tAlt=sum('alt'),tCe=sum('carr_eur'),tCp=sum('carr_pts'),tEx=sum('extra_pts');
   const rows=[
-    {label:'Neumáticos 1ª marca',key:'n1',total:tN1,pts:tN1*3,hasData:tN1>0},
-    {label:'Neumáticos 2ª marca',key:'n2',total:tN2,pts:tN2*2,hasData:tN2>0},
-    {label:'Pastillas de freno',key:'past',total:tPast,pts:tPast*2,hasData:tPast>0},
-    {label:'Alternadores / Arr.',key:'alt',total:tAlt,pts:tAlt*2,hasData:tAlt>0},
+    {label:'Neumáticos 1ª marca',key:'n1',total:tN1,pts:tN1*3,hasData:tN1!==0},
+    {label:'Neumáticos 2ª marca',key:'n2',total:tN2,pts:tN2*2,hasData:tN2!==0},
+    {label:'Pastillas de freno',key:'past',total:tPast,pts:tPast*2,hasData:tPast!==0},
+    {label:'Alternadores / Arr.',key:'alt',total:tAlt,pts:tAlt*2,hasData:tAlt!==0},
     {label:'Carrocería',key:'carr_eur',ptsKey:'carr_pts',total:tCe,pts:tCp,isEur:true,hasData:tCe!==0||tCp>0},
     {label:'Pts. adicionales',key:'extra_pts',total:tEx,pts:tEx,hasData:tEx>0},
   ].filter(r=>r.hasData);
@@ -3524,14 +3534,14 @@ function buildMonthlyPtsTable(movimientos, year, maxMes) {
             const v=d[r.key][m];
             const dim=m>maxMes;
             const vStr=r.isEur?Math.round(v).toLocaleString('es-ES'):v;
-            return`<td style="padding:5px 3px;text-align:center;font-size:9px;${dim?'color:#ccc':''}${v===0?';color:#ddd':';font-weight:600'}">${v!==0?vStr:'·'}</td>`;
+            return`<td style="padding:5px 3px;text-align:center;font-size:9px;${dim?'color:#ccc':''}${v===0?';color:#ddd':v<0?';color:#dc2626;font-weight:700':';font-weight:600'}">${v!==0?vStr:'·'}</td>`;
           }).join('');
           const totalStr=r.isEur?`${r.total.toLocaleString('es-ES',{maximumFractionDigits:0})}€`:String(r.total);
           return`<tr style="background:${bg};border-bottom:1px solid #eee">
             <td style="padding:5px 6px;font-weight:600;font-size:9px">${r.label}</td>
             ${cells}
             <td style="padding:5px 6px;text-align:right;font-weight:700;font-size:9px;border-left:1px solid #dde">${totalStr}</td>
-            <td style="padding:5px 6px;text-align:right;font-weight:700;font-size:9px;color:#b45309;border-left:1px solid #dde">${r.pts}</td>
+            <td style="padding:5px 6px;text-align:right;font-weight:700;font-size:9px;color:${r.pts<0?'#dc2626':'#b45309'};border-left:1px solid #dde">${r.pts}</td>
           </tr>`;
         }).join('')}
       </tbody>
@@ -3543,6 +3553,7 @@ function buildMonthlyPtsTable(movimientos, year, maxMes) {
         </tr>
       </tfoot>
     </table>
+    ${rows.some(r=>meses.some(m=>d[r.key][m]<0))?`<div style="font-size:9px;color:#dc2626;margin-top:5px">Los valores en rojo y negativos son <strong>abonos o devoluciones</strong>: restan puntos en la categoría y el mes en que se hicieron.</div>`:''}
   </div>`;
 }
 
@@ -4606,11 +4617,12 @@ document.addEventListener('click', e => {
 // ══ CONSUMO CATEGORÍAS ══
 function parseCalcNotas(notas) {
   if (!notas) return { neumaticos: 0, pastillas: 0, alternadores: 0, carroceria: 0 };
-  const n1   = parseInt((notas.match(/Neum\.1ª:\s*(\d+)×/) || [])[1]) || 0;
-  const n2   = parseInt((notas.match(/Neum\.2ª:\s*(\d+)×/) || [])[1]) || 0;
-  const past = parseInt((notas.match(/Pastillas:\s*(\d+)×/) || [])[1]) || 0;
-  const alt  = parseInt((notas.match(/Alt\/Arr:\s*(\d+)×/) || [])[1]) || 0;
-  const carr = parseFloat((notas.match(/Carrocer[ií]a:\s*([\d.]+)€/) || [])[1]) || 0;
+  // Admiten negativos: un abono/devolución neta en el mes se guarda como "Neum.1ª: -2×3=-6pts" y debe restar.
+  const n1   = parseInt((notas.match(/Neum\.1ª:\s*(-?\d+)×/) || [])[1]) || 0;
+  const n2   = parseInt((notas.match(/Neum\.2ª:\s*(-?\d+)×/) || [])[1]) || 0;
+  const past = parseInt((notas.match(/Pastillas:\s*(-?\d+)×/) || [])[1]) || 0;
+  const alt  = parseInt((notas.match(/Alt\/Arr:\s*(-?\d+)×/) || [])[1]) || 0;
+  const carr = parseFloat((notas.match(/Carrocer[ií]a:\s*(-?[\d.]+)€/) || [])[1]) || 0;
   return { neumaticos: n1 + n2, pastillas: past, alternadores: alt, carroceria: carr };
 }
 
