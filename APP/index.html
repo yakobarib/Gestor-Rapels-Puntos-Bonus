@@ -891,6 +891,19 @@
         </ul>
       </div>
       <div class="help-section">
+        <h3>Abonos y devoluciones en Puntos</h3>
+        <p>Un abono o devolución <strong>descuenta puntos</strong>, igual que una compra los suma. No hay que registrarlo a mano: viene en el fichero de ventas del ERP como líneas con unidades e importe en negativo y la importación lo tiene en cuenta sola.</p>
+        <ul>
+          <li><strong>Cómo se calcula:</strong> dentro del periodo importado, y para cada cliente, las compras y los abonos de una misma categoría se <strong>compensan</strong> (neumáticos, pastillas y alternadores por unidades; carrocería por euros). Sobre ese neto se aplica el baremo de siempre. Ejemplo: 10 neumáticos de 1ª marca comprados y 2 abonados en el mismo periodo = 8 × 3 = <strong>24 puntos</strong>.</li>
+          <li><strong>En qué mes descuenta:</strong> en el periodo del fichero en el que viene el abono, no en el mes de la compra original. Si se compró en septiembre y se abona en octubre, septiembre conserva sus puntos y octubre resta.</li>
+          <li><strong>Si el neto de una categoría sale negativo</strong> (se abona más de lo comprado ese periodo), esa categoría resta puntos. En carrocería se redondea hacia abajo también en negativo: un abono neto de −35 € resta <strong>4 puntos</strong>.</li>
+          <li><strong>Queda escrito en el propio movimiento:</strong> las notas muestran el desglose con signo, por ejemplo <em>Neum.1ª: -2×3=-6pts</em>. Si el total del movimiento es negativo, aparece con la etiqueta <strong style="color:var(--accent)">ABONO</strong>, en rojo y con signo "−", y resta del saldo del cliente.</li>
+          <li><strong>Dónde se ve:</strong> en la ficha del cliente y en el Histórico (etiqueta ABONO); en el <strong>Desglose Mensual</strong> impreso, las cifras negativas salen en <strong style="color:var(--accent)">rojo</strong> con una nota al pie; la <strong>Evolución de Consumo</strong> y el <strong>Resumen</strong> muestran cifras netas, ya con los abonos descontados.</li>
+          <li><strong>Talleres con solo Mecánica o solo Carrocería:</strong> una categoría sin derecho a puntos no puntúa, ni suma por compras ni resta por abonos.</li>
+          <li>Si quieres corregir un abono ya importado, vuelve a importar ese mismo periodo: se sustituye el cálculo, no se suma.</li>
+        </ul>
+      </div>
+      <div class="help-section">
         <h3>Bonus de Fidelización</h3>
         <ul>
           <li><strong>Añadir Bonus (verde)</strong> — registra euros ganados por fidelidad para un cliente.</li>
@@ -965,6 +978,16 @@
     <!-- VERSIONES -->
     <div class="help-body" id="help-versiones" style="display:none">
       <div class="help-ver">
+        <div class="help-ver-item">
+          <div class="help-ver-head">
+            <span class="help-ver-num">v4.31</span>
+            <span class="help-ver-date">Noviembre 2026</span>
+          </div>
+          <ul class="help-ver-list">
+            <li>Nueva sección en el Manual: <strong>Abonos y devoluciones en Puntos</strong>, que explica que descuentan puntos, cómo se calculan y dónde se ven</li>
+            <li>Un movimiento de Puntos con total negativo (abono neto del periodo) ahora se muestra como <strong>ABONO</strong>, en rojo y con signo "−", en la ficha del cliente, el Histórico y la impresión (antes aparecía como "+ -6 pts")</li>
+          </ul>
+        </div>
         <div class="help-ver-item">
           <div class="help-ver-head">
             <span class="help-ver-num">v4.30</span>
@@ -2054,7 +2077,7 @@ async function initAuth() {
   });
 }
 
-const APP_VERSION = 'v4.30';
+const APP_VERSION = 'v4.31';
 function renderAppVersion() {
   document.querySelectorAll('.app-version-badge').forEach(el => el.textContent = APP_VERSION);
   const about = document.getElementById('appVersionAbout');
@@ -2144,6 +2167,9 @@ function eur(n)    { return Number(n).toLocaleString('es-ES',{minimumFractionDig
 function pts(n)    { return Number(n).toLocaleString('es-ES')+' pts'; }
 function checkDesktop(){if(window.innerWidth<1024){alert('Esta acción solo está disponible desde ordenador o tablet en modo horizontal.');return false;}return true;}
 function ptsEur(n) { return eur(n*PTS_VALUE); }
+// Un movimiento GANADO de Puntos con puntos negativos es un abono/devolución neto del periodo: resta puntos.
+// Se muestra como "ABONO" y con signo "−" (en vez de "+ -6 pts"). Ver sección "Abonos y devoluciones" de la Ayuda.
+function movPtsEsAbono(m) { return m.tipo==='GANADO' && Number(m.puntos)<0; }
 // Un movimiento GASTO con importe negativo es un abono (crédito) — se muestra en verde/"+",
 // al revés que un GASTO normal (rojo/"-"). El resto de tipos siguen su propio signo tal cual.
 function movEsNegativo(m) { return m.tipo==='GASTO' ? Number(m.importe)>=0 : Number(m.importe)<0; }
@@ -2357,7 +2383,7 @@ function renderHist() {
         if(q&&!p.nombre.toLowerCase().includes(q)&&!(m.referencia||'').toLowerCase().includes(q)&&!(m.notas||'').toLowerCase().includes(q)) return;
         const pv = m.tipo==='GANADO' ? Number(m.puntos) : m.tipo==='AJUSTE' ? Number(m.puntos) : -Number(m.puntos);
         const pc = pv>0?'var(--orange)':pv<0?'var(--accent)':'var(--text-dim)';
-        const pSign = pv>=0?'+':'';
+        const pSign = movPtsEsAbono(m)?'−':pv>=0?'+':'';
         items.push({sistema:'PUNTOS',cliente:p.nombre,cid:p.id,...m,albaran:m.referencia,_qty:pSign+pts(Math.abs(Number(m.puntos))),_color:pc});
       });
     });
@@ -2384,7 +2410,8 @@ function renderHist() {
   const tS={RAPEL:'tag-blue',PUNTOS:'tag-orange',BONUS:'tag-ok'};
   el.innerHTML=items.map(m=>{
     const esAbono = m.sistema==='RAPEL' && movEsAbono(m);
-    const tagTipo = esAbono ? 'tag-abono' : m.sistema==='BONUS'
+    const esAbonoP = m.sistema==='PUNTOS' && movPtsEsAbono(m); // abono neto de Puntos: etiqueta roja ABONO, resta puntos
+    const tagTipo = esAbono ? 'tag-abono' : esAbonoP ? 'tag-gasto' : m.sistema==='BONUS'
       ? (m.tipo==='GANADO'?'tag-bonus-g':m.tipo==='AJUSTE'?'tag-ajuste':'tag-bonus-c')
       : (tM[m.tipo]||'tag-gray');
     return`<div class="hist-item">
@@ -2392,7 +2419,7 @@ function renderHist() {
       <div><strong style="font-size:12px">${m.cliente}</strong></div>
       <div style="font-family:'JetBrains Mono',monospace;font-size:12px">${m.albaran||'—'}<br><span style="font-size:10px;color:var(--text-dim)">${m.notas||''}</span></div>
       <span class="tag ${tS[m.sistema]}">${m.sistema}</span>
-      <span class="tag ${tagTipo}">${esAbono?'ABONO':m.tipo}</span>
+      <span class="tag ${tagTipo}">${esAbono||esAbonoP?'ABONO':m.tipo}</span>
       <div style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;text-align:right;color:${m._color}">${m._qty}</div>
     </div>`;
   }).join('');
@@ -2608,13 +2635,13 @@ function renderPMovs(p) {
   const movs=[...(p.movimientos||[])].reverse();
   if(!movs.length){el.innerHTML=emptyState('Sin movimientos','Añade el primer movimiento');return;}
   const tc={GANADO:'tag-ganado',CANJEADO:'tag-canjeado'};
-  el.innerHTML=movs.map(m=>`
+  el.innerHTML=movs.map(m=>{const ab=movPtsEsAbono(m);return`
     <div class="mov-item">
       <div>
-        <div class="mov-ref"><span class="tag ${tc[m.tipo]}">${m.tipo}</span> ${m.referencia||'—'}</div>
+        <div class="mov-ref"><span class="tag ${ab?'tag-gasto':tc[m.tipo]}">${ab?'ABONO':m.tipo}</span> ${m.referencia||'—'}</div>
         <div class="mov-desc">${m.notas||''} ${m.fecha?'· '+fmtFecha(m.fecha):''}</div>
       </div>
-      <div class="mov-amount" style="color:${m.tipo==='CANJEADO'?'var(--blue)':'var(--orange)'}">${m.tipo==='CANJEADO'?'-':'+'} ${pts(m.puntos)}</div>
+      <div class="mov-amount" style="color:${ab?'var(--accent)':m.tipo==='CANJEADO'?'var(--blue)':'var(--orange)'}">${ab?'−':m.tipo==='CANJEADO'?'-':'+'} ${pts(ab?Math.abs(m.puntos):m.puntos)}</div>
       <div style="display:flex;gap:4px;align-items:center">
         <button class="btn btn-ghost btn-sm mov-del" onclick="printPMov('${p.id}','${m.id}',event)" title="Imprimir">
           <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><rect x="2" y="1" width="7" height="4.5"/><path d="M2 6H1v3.5h9V6H8"/><rect x="3" y="7" width="5" height="2.5"/></svg>
@@ -2626,7 +2653,7 @@ function renderPMovs(p) {
           <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M2 2.5h7M4 2.5V2a.3.3 0 0 1 .3-.3h2.4a.3.3 0 0 1 .3.3v.5M8.5 2.5l-.5 6.2a.5.5 0 0 1-.5.5H3.5a.5.5 0 0 1-.5-.5L2.5 2.5"/></svg>
         </button>
       </div>
-    </div>`).join('');
+    </div>`;}).join('');
 }
 
 async function addPMov() {
@@ -3682,10 +3709,10 @@ function printClientPuntos(){
       <tbody>
         ${movs.map(m=>`<tr>
           <td>${fmtFecha(m.fecha)}</td>
-          <td><span class="badge badge-${m.tipo.toLowerCase()}">${m.tipo}</span></td>
+          <td><span class="badge badge-${movPtsEsAbono(m)?'canjeado':m.tipo.toLowerCase()}">${movPtsEsAbono(m)?'ABONO':m.tipo}</span></td>
           <td>${formatReferenciaLabel(m.referencia)}</td>
           <td style="color:#555">${formatDescripcionPuntos(m.notas)}</td>
-          <td style="text-align:right;font-weight:700;color:${m.tipo==='CANJEADO'?'#1d4ed8':'#b45309'}">${m.tipo==='CANJEADO'?'−':'+'}${m.puntos.toLocaleString('es-ES')}</td>
+          <td style="text-align:right;font-weight:700;color:${movPtsEsAbono(m)?'#dc2626':m.tipo==='CANJEADO'?'#1d4ed8':'#b45309'}">${movPtsEsAbono(m)||m.tipo==='CANJEADO'?'−':'+'}${Math.abs(m.puntos).toLocaleString('es-ES')}</td>
         </tr>`).join('')}
         <tr class="total-row">
           <td colspan="4"><strong>SALDO ACTUAL</strong></td>
