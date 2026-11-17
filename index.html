@@ -11,14 +11,14 @@
   :root {
     --bg:#0e0f11;--surface:#16181c;--surface2:#1e2128;--border:#2a2d35;
     --accent:#E20613;--accent-dim:rgba(226,6,19,.12);--accent-glow:rgba(226,6,19,.3);
-    --green:#4caf7d;--blue:#5b8def;--orange:#f59e0b;
+    --green:#4caf7d;--blue:#5b8def;--orange:#f59e0b;--neg:#ff2b36;
     --text:#e8eaf0;--text-dim:#7a7f8e;--text-faint:#454952;
     --blue2:#002D5A;
     --shadow-float:0 4px 20px rgba(0,0,0,.35),0 1px 3px rgba(0,0,0,.3);
   }
   [data-theme="light"]{
     --bg:#F4F4F4;--surface:#fff;--surface2:#F4F4F4;--border:#D8D8D8;
-    --green:#2e7d32;--blue:#002D5A;--orange:#b45309;
+    --green:#2e7d32;--blue:#002D5A;--orange:#b45309;--neg:#d00014;
     --text:#002D5A;--text-dim:#4a5568;--text-faint:#a0aec0;
     --shadow-float:0 4px 16px rgba(15,23,42,.08),0 1px 3px rgba(15,23,42,.06);
   }
@@ -113,6 +113,7 @@
   .tag-gray{background:var(--surface2);color:var(--text-dim);border:1px solid var(--border)}
   .tag-ingreso{background:rgba(76,175,125,.12);color:var(--green)}
   .tag-gasto{background:rgba(226,6,19,.12);color:#E20613}
+  .tag-neg{background:rgba(255,43,54,.16);color:var(--neg);border:1px solid var(--neg);font-weight:800}
   .tag-abono{background:rgba(76,175,125,.12);color:var(--green)}
   .tag-ajuste{background:rgba(91,141,239,.12);color:var(--blue)}
   .cierre-section{margin-bottom:18px}
@@ -653,6 +654,7 @@
         <option value="all">Todos</option>
         <option value="pos">Con saldo</option>
         <option value="zero">Sin puntos</option>
+        <option value="neg">Saldo negativo</option>
       </select>
     </div>
   </div>
@@ -978,6 +980,15 @@
     <!-- VERSIONES -->
     <div class="help-body" id="help-versiones" style="display:none">
       <div class="help-ver">
+        <div class="help-ver-item">
+          <div class="help-ver-head">
+            <span class="help-ver-num">v4.32</span>
+            <span class="help-ver-date">Noviembre 2026</span>
+          </div>
+          <ul class="help-ver-list">
+            <li>En Puntos, un cliente con <strong>saldo negativo</strong> se ve ahora con el saldo en rojo intenso y la etiqueta <strong>SALDO NEGATIVO</strong> (antes aparecía en gris como "SIN SALDO"). Nuevo filtro "Saldo negativo" en la lista</li>
+          </ul>
+        </div>
         <div class="help-ver-item">
           <div class="help-ver-head">
             <span class="help-ver-num">v4.31</span>
@@ -2077,7 +2088,7 @@ async function initAuth() {
   });
 }
 
-const APP_VERSION = 'v4.31';
+const APP_VERSION = 'v4.32';
 function renderAppVersion() {
   document.querySelectorAll('.app-version-badge').forEach(el => el.textContent = APP_VERSION);
   const about = document.getElementById('appVersionAbout');
@@ -2290,6 +2301,7 @@ function renderPuntos() {
   let list=db.puntos.filter(p=>!q||p.nombre.toLowerCase().includes(q));
   if(f==='pos')  list=list.filter(p=>pStats(p).saldo>0);
   if(f==='zero') list=list.filter(p=>pStats(p).saldo===0);
+  if(f==='neg')  list=list.filter(p=>pStats(p).saldo<0);
   const tb=document.getElementById('tbodyP');
   if(!list.length){tb.innerHTML=`<tr><td colspan="5">${emptyState('Ningún cliente',q?'Sin resultados':'Sin clientes aún')}</td></tr>`;return;}
   tb.innerHTML=list.map(p=>{
@@ -2298,8 +2310,8 @@ function renderPuntos() {
       <td><strong>${p.nombre}</strong></td>
       <td class="num" style="color:var(--orange)">${pts(ganado)}</td>
       <td class="num" style="color:var(--blue)">${pts(canjeado)}</td>
-      <td class="num" style="font-weight:700;color:${saldo>0?'var(--orange)':'var(--text-dim)'}">${pts(saldo)}</td>
-      <td><span class="tag ${saldo>0?'tag-orange':'tag-gray'}">${saldo>0?'CON SALDO':'SIN SALDO'}</span></td>
+      <td class="num" style="font-weight:700;color:${saldo>0?'var(--orange)':saldo<0?'var(--neg)':'var(--text-dim)'}">${pts(saldo)}</td>
+      <td><span class="tag ${saldo>0?'tag-orange':saldo<0?'tag-neg':'tag-gray'}">${saldo>0?'CON SALDO':saldo<0?'SALDO NEGATIVO':'SIN SALDO'}</span></td>
     </tr>`;
   }).join('');
   updateBadges();
@@ -2623,7 +2635,7 @@ function openDrawerP(id) {
   document.getElementById('drPSum').innerHTML=`
     <div class="sum-card"><div class="sum-label">Ganados</div><div class="sum-val" style="color:var(--orange)">${pts(ganado)}</div></div>
     <div class="sum-card"><div class="sum-label">Canjeados</div><div class="sum-val" style="color:var(--blue)">${pts(canjeado)}</div></div>
-    <div class="sum-card"><div class="sum-label">Saldo</div><div class="sum-val" style="color:${saldo>0?'var(--orange)':'var(--text-dim)'}">${pts(saldo)}</div></div>`;
+    <div class="sum-card"><div class="sum-label">Saldo</div><div class="sum-val" style="color:${saldo>0?'var(--orange)':saldo<0?'var(--neg)':'var(--text-dim)'}">${pts(saldo)}</div></div>`;
   renderPMovs(p);
   renderConsumoCliente(p);
   document.getElementById('bgP').classList.add('open');
