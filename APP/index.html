@@ -348,19 +348,21 @@
   @media(max-width:768px){
     /* Layout general: la barra lateral pasa a franja horizontal arriba, sin flotar */
     .app-shell{flex-direction:column;padding:0;gap:0}
-    .sidebar{width:100%;height:auto;flex-direction:row;align-items:center;padding:8px 10px;gap:10px;border:none;border-bottom:1px solid var(--border);border-radius:0;box-shadow:none;overflow-x:auto;scrollbar-width:none}
-    .sidebar::-webkit-scrollbar{display:none}
-    .sidebar-brand{padding:0 10px 0 0;border-bottom:none;border-right:1px solid var(--border);margin-bottom:0;flex-shrink:0}
+    /* Marca arriba y, debajo, las 5 pestañas repartidas a partes iguales (todas visibles sin scroll).
+       Antes cada .nav-item heredaba width:100% y, con flex-shrink:0, solo se veía la primera pestaña. */
+    .sidebar{width:100%;height:auto;flex-direction:column;align-items:stretch;padding:8px 6px;gap:6px;border:none;border-bottom:1px solid var(--border);border-radius:0;box-shadow:none;overflow:visible}
+    .sidebar-brand{padding:0 6px;border-bottom:none;border-right:none;margin-bottom:0;flex-shrink:0}
     .logo svg{width:28px;height:28px}
     .logo-text{font-size:11px;letter-spacing:.5px}
     .logo-sub{display:none}
     .app-version-badge{display:none}
-    .sidebar-nav{flex-direction:row;flex-wrap:nowrap}
-    .nav-item{flex-shrink:0;padding:8px 10px;font-size:12px;white-space:nowrap}
+    .sidebar-nav{width:100%;flex-direction:row;flex-wrap:nowrap;gap:2px}
+    .nav-item{flex:1 1 0;min-width:0;width:auto;flex-direction:column;justify-content:center;align-items:center;gap:3px;padding:6px 2px;font-size:11px;text-align:center;white-space:nowrap}
+    .nav-item .nav-badge{display:none}
     .sidebar-footer{display:none}
     .app-header{padding:0 10px;height:auto;min-height:48px;flex-wrap:wrap;gap:6px}
     .save-badge{font-size:9px;padding:3px 7px}
-    .header-right{gap:4px}
+    .header-right{gap:4px;flex-wrap:wrap}
     .icon-btn{width:32px;height:32px;font-size:11px;padding:0 7px}
     /* Tab padding reducido */
     .tab-top{padding:10px 10px 0}
@@ -980,6 +982,15 @@
     <!-- VERSIONES -->
     <div class="help-body" id="help-versiones" style="display:none">
       <div class="help-ver">
+        <div class="help-ver-item">
+          <div class="help-ver-head">
+            <span class="help-ver-num">v4.33</span>
+            <span class="help-ver-date">Noviembre 2026</span>
+          </div>
+          <ul class="help-ver-list">
+            <li>En el móvil, ahora se ven las 5 pestañas (Dashboard, Rapels, Puntos, Bonus, Histórico) repartidas en una fila bajo el logo. Antes solo se veía Dashboard y no se podía llegar a Puntos, Rapels ni a ningún cliente</li>
+          </ul>
+        </div>
         <div class="help-ver-item">
           <div class="help-ver-head">
             <span class="help-ver-num">v4.32</span>
@@ -2088,7 +2099,7 @@ async function initAuth() {
   });
 }
 
-const APP_VERSION = 'v4.32';
+const APP_VERSION = 'v4.33';
 function renderAppVersion() {
   document.querySelectorAll('.app-version-badge').forEach(el => el.textContent = APP_VERSION);
   const about = document.getElementById('appVersionAbout');
