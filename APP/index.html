@@ -208,6 +208,27 @@
   textarea{resize:vertical;min-height:60px}
   .form-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
 
+  /* Diálogo "Crear" (cliente / marca-familia de Puntos) */
+  .cr-tabs{display:flex;gap:6px;margin-bottom:18px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:4px}
+  .cr-tab{flex:1;padding:9px 10px;border:none;border-radius:7px;background:none;color:var(--text-dim);font-family:'Syne',sans-serif;font-weight:700;font-size:13px;cursor:pointer;transition:all .15s}
+  .cr-tab.active{background:var(--surface);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.25)}
+  .cr-hint{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-dim);line-height:1.5}
+  .cr-opts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .cr-opt{display:flex;flex-direction:column;gap:4px;padding:12px;border:1.5px solid var(--border);border-radius:10px;cursor:pointer;background:var(--surface2);text-transform:none;letter-spacing:0;transition:all .15s}
+  .cr-opt:hover{border-color:var(--text-faint)}
+  .cr-opt input{display:none}
+  .cr-opt .cr-opt-t{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--text)}
+  .cr-opt .cr-opt-s{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-dim);line-height:1.4}
+  .cr-opt.sel{border-color:var(--orange);background:rgba(245,158,11,.1)}
+  .cr-summary{margin-top:16px;padding:12px 14px;border-radius:10px;background:var(--surface2);border:1px dashed var(--border);font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text);line-height:1.6}
+  .cr-fam-head,.cr-fam-row{display:grid;grid-template-columns:90px 1fr 1.25fr 30px;gap:8px;align-items:center}
+  .cr-fam-head{font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--text-dim);margin-bottom:6px}
+  .cr-fam-row{margin-bottom:8px}
+  .cr-fam-row .cr-del{width:30px;height:34px;padding:0;border:1px solid var(--border);border-radius:8px;background:none;color:var(--text-dim);cursor:pointer;font-size:14px}
+  .cr-fam-row .cr-del:hover{color:var(--neg);border-color:var(--neg)}
+  .cr-warn{color:var(--orange)}
+  @media(max-width:768px){.cr-opts{grid-template-columns:1fr}.cr-fam-head{display:none}.cr-fam-row{grid-template-columns:1fr 30px}.cr-fam-row input,.cr-fam-row select{grid-column:1}}
+
   .drawer-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:150;display:none}
   .drawer-bg.open{display:block}
   .drawer{position:fixed;right:0;top:0;bottom:0;width:680px;max-width:96vw;background:var(--surface);border-left:1px solid var(--border);z-index:160;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .25s ease}
@@ -630,6 +651,10 @@
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 1v7M3 5l3 3 3-3M2 10h8"/></svg>
           Importar
         </button>
+        <button class="btn btn-sm edit-only" style="background:rgba(245,158,11,.1);color:var(--orange);border:1px solid var(--border)" onclick="openCrear()">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 1.5v9M1.5 6h9"/></svg>
+          Crear
+        </button>
         <div class="print-menu-wrap" id="printWrapP">
           <button class="btn btn-sm" style="background:rgba(91,141,239,.08);color:var(--text-dim);border:1px solid var(--border)" onclick="togglePrintMenu('P')">
             <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="1" y="3" width="10" height="7" rx="1"/><path d="M3 3V1.5h6V3"/><path d="M3 8.5h6M3 6.5h4"/></svg>
@@ -895,6 +920,16 @@
         </ul>
       </div>
       <div class="help-section">
+        <h3>Crear clientes y marcas/familias de Puntos</h3>
+        <p>El botón <strong>Crear</strong> (naranja, en pestaña Puntos, entre Importar e Imprimir) da de alta dos cosas sin tener que subir ningún Excel:</p>
+        <ul>
+          <li><strong>Cliente</strong>: nombre, código ERP (el que le da el ERP; sin él la importación mensual no lo reconoce) y qué compras le dan puntos — <em>mecánica y carrocería</em>, <em>solo mecánica</em> o <em>solo carrocería</em> (el equivalente a la clasificación Millennium). Si ya existe uno con el mismo nombre o código, la app lo avisa y no lo duplica.</li>
+          <li><strong>Marca / Familia</strong>: el prefijo de la marca en el ERP (p.ej. FIG), su nombre (FIGORIG) y una lista de familias, cada una con su categoría de puntos: neumáticos 1ª marca ×3, neumáticos 2ª marca ×2, pastillas ×2, alternadores/arranques ×2 o carrocería (1 pt por cada 10 €). Con "+ Añadir otra familia" se dan de alta varias de golpe. Si una pareja marca/familia ya existía con otra categoría, se avisa antes de cambiarla.</li>
+          <li>Los puntos de una marca/familia nueva se aplican desde la <strong>siguiente importación</strong>; los meses ya importados no se recalculan (reimporta ese periodo si hace falta).</li>
+          <li>Solo disponible desde ordenador. Rapel no tiene marcas ni familias, por eso no aparece aquí.</li>
+        </ul>
+      </div>
+      <div class="help-section">
         <h3>Abonos y devoluciones en Puntos</h3>
         <p>Un abono o devolución <strong>descuenta puntos</strong>, igual que una compra los suma. No hay que registrarlo a mano: viene en el fichero de ventas del ERP como líneas con unidades e importe en negativo y la importación lo tiene en cuenta sola.</p>
         <ul>
@@ -982,6 +1017,15 @@
     <!-- VERSIONES -->
     <div class="help-body" id="help-versiones" style="display:none">
       <div class="help-ver">
+        <div class="help-ver-item">
+          <div class="help-ver-head">
+            <span class="help-ver-num">v4.34</span>
+            <span class="help-ver-date">Noviembre 2026</span>
+          </div>
+          <ul class="help-ver-list">
+            <li>Nuevo botón <strong>Crear</strong> en Puntos (entre Importar e Imprimir): alta de un cliente con su código ERP y su tipo (mecánica y carrocería / solo mecánica / solo carrocería), y alta de una marca con sus familias y categoría de puntos, sin pasar por Excel</li>
+          </ul>
+        </div>
         <div class="help-ver-item">
           <div class="help-ver-head">
             <span class="help-ver-num">v4.33</span>
@@ -1583,6 +1627,76 @@
   </div>
 </div>
 
+<!-- MODAL CREAR (cliente de Puntos / marca-familia del baremo) -->
+<div class="overlay" id="ovlCrear">
+  <div class="modal" style="max-width:660px">
+    <div class="modal-title">Crear</div>
+    <div class="modal-sub">Altas de Puntos: un cliente nuevo o una marca con sus familias</div>
+    <div class="cr-tabs">
+      <button class="cr-tab active" id="crTabCliente" onclick="crearTab('cliente')">👤 Cliente</button>
+      <button class="cr-tab" id="crTabFamilia" onclick="crearTab('familia')">🏷 Marca / Familia</button>
+    </div>
+
+    <!-- PESTAÑA CLIENTE -->
+    <div id="crPaneCliente">
+      <div class="fg">
+        <div class="fgr full">
+          <label>Nombre del cliente *</label>
+          <input id="crCliNombre" placeholder="Ej: TALLER SAN PEDRO" style="text-transform:uppercase" list="dlClientesExistentes" autocomplete="off" oninput="crearCliResumen()">
+        </div>
+        <div class="fgr full">
+          <label>Código ERP del cliente</label>
+          <input id="crCliCodigo" placeholder="Ej: 1234" autocomplete="off" oninput="crearCliResumen()">
+          <div class="cr-hint">Es el código con el que el ERP identifica al cliente. <strong>Sin él, la importación mensual no sabrá que ese cliente es este</strong> y le creará otro duplicado. Puedes dejarlo vacío solo si todavía no lo tienes.</div>
+        </div>
+        <div class="fgr full">
+          <label>¿Qué compras le dan puntos?</label>
+          <div class="cr-opts">
+            <label class="cr-opt sel" id="crOptAmbas"><input type="radio" name="crCliTipo" value="ambas" checked onchange="crearCliResumen()"><span class="cr-opt-t">🔧🎨 Mecánica y carrocería</span><span class="cr-opt-s">Recibe puntos de todo</span></label>
+            <label class="cr-opt" id="crOptMec"><input type="radio" name="crCliTipo" value="mec" onchange="crearCliResumen()"><span class="cr-opt-t">🔧 Solo mecánica</span><span class="cr-opt-s">Neumáticos, pastillas, alternadores/arranques</span></label>
+            <label class="cr-opt" id="crOptCar"><input type="radio" name="crCliTipo" value="car" onchange="crearCliResumen()"><span class="cr-opt-t">🎨 Solo carrocería</span><span class="cr-opt-s">Pintura y chapa: 1 pt por cada 10 €</span></label>
+          </div>
+        </div>
+      </div>
+      <div class="cr-summary" id="crCliResumen"></div>
+    </div>
+
+    <!-- PESTAÑA MARCA / FAMILIA -->
+    <div id="crPaneFamilia" style="display:none">
+      <div class="fg">
+        <div class="fgr">
+          <label>Prefijo de la marca (Skrit) *</label>
+          <input id="crMarca" placeholder="Ej: FIG" style="text-transform:uppercase" autocomplete="off" oninput="crearMarcaCheck()">
+        </div>
+        <div class="fgr">
+          <label>Nombre de la marca</label>
+          <input id="crMarcaDesc" placeholder="Ej: FIGORIG" style="text-transform:uppercase" autocomplete="off">
+        </div>
+        <div class="fgr full"><div class="cr-hint" id="crMarcaHint"></div></div>
+        <div class="fgr full">
+          <label>Familias de esa marca que dan puntos</label>
+          <div class="cr-fam-head"><span>Familia *</span><span>Descripción</span><span>Categoría de puntos *</span><span></span></div>
+          <div id="crFamRows"></div>
+          <button class="btn btn-ghost btn-sm" type="button" onclick="crearAddFamilia()" style="align-self:flex-start">+ Añadir otra familia</button>
+          <div class="cr-hint" style="margin-top:8px">Ratios: neumáticos 1ª marca ×3 · neumáticos 2ª marca ×2 · pastillas ×2 · alternadores/arranques ×2 · carrocería 1 pt por cada 10 €. Las familias que no se den de alta aquí no puntúan.</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="crDone" style="display:none">
+      <div class="cr-summary" id="crDoneMsg" style="border-style:solid"></div>
+    </div>
+    <div class="form-actions" id="crActions">
+      <button class="btn btn-ghost" onclick="closeOverlay('ovlCrear')">Cancelar</button>
+      <button class="btn btn-primary" id="crSaveBtn" onclick="crearGuardar()">✓ Crear cliente</button>
+    </div>
+    <div class="form-actions" id="crActionsDone" style="display:none">
+      <button class="btn btn-ghost" onclick="crearOtro()">Crear otro</button>
+      <button class="btn btn-primary" onclick="closeOverlay('ovlCrear')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL IMPORTAR CONSUMO / BAREMO -->
 <div class="overlay" id="ovlImportConsumo">
   <div class="modal" style="max-width:960px">
@@ -2099,7 +2213,7 @@ async function initAuth() {
   });
 }
 
-const APP_VERSION = 'v4.33';
+const APP_VERSION = 'v4.34';
 function renderAppVersion() {
   document.querySelectorAll('.app-version-badge').forEach(el => el.textContent = APP_VERSION);
   const about = document.getElementById('appVersionAbout');
@@ -4377,6 +4491,190 @@ async function confirmImportBaremo() {
   if (error) throw error;
   await reloadBaremo();
   document.getElementById('impDoneMsg').innerHTML = `✓ Baremo actualizado: <strong>${rows.length}</strong> parejas Marca/Familia procesadas.`;
+}
+
+// ══ CREAR: cliente de Puntos y marca/familia del baremo ══
+// Solo Puntos (Rapel no tiene marcas/familias y se da de alta por su propio modal). Ver "Crear" en CLAUDE.md.
+const CR_CATEGORIAS = [
+  { v:'N3', t:'Neumáticos 1ª marca (×3)' },
+  { v:'N2', t:'Neumáticos 2ª marca (×2)' },
+  { v:'PF', t:'Pastillas de freno (×2)' },
+  { v:'AA', t:'Alternadores / arranques (×2)' },
+  { v:'CR', t:'Carrocería (1 pt por 10 €)' }
+];
+function crEsc(s) { return String(s==null?'':s).replace(/[&<>"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch])); }
+function crCatLabel(v) { const c = CR_CATEGORIAS.find(x=>x.v===v); return c ? c.t : v; }
+let crTab = 'cliente';
+
+function openCrear() {
+  if (!checkDesktop()) return;
+  populateClientesDatalist();
+  crearReset();
+  crearTab('cliente');
+  document.getElementById('ovlCrear').classList.add('open');
+  setTimeout(() => document.getElementById('crCliNombre').focus(), 50);
+}
+function crearReset() {
+  ['crCliNombre','crCliCodigo','crMarca','crMarcaDesc'].forEach(id => document.getElementById(id).value = '');
+  document.querySelector('input[name="crCliTipo"][value="ambas"]').checked = true;
+  document.getElementById('crFamRows').innerHTML = '';
+  crearAddFamilia();
+  show('crDone', false); show('crActionsDone', false); show('crActions', true);
+  crearCliResumen(); crearMarcaCheck();
+}
+function crearOtro() { const t = crTab; crearReset(); crearTab(t); }
+function crearTab(t) {
+  if (document.getElementById('crDone').style.display !== 'none') crearReset();
+  crTab = t;
+  document.getElementById('crTabCliente').classList.toggle('active', t==='cliente');
+  document.getElementById('crTabFamilia').classList.toggle('active', t==='familia');
+  show('crPaneCliente', t==='cliente'); show('crPaneFamilia', t==='familia');
+  document.getElementById('crSaveBtn').textContent = t==='cliente' ? '✓ Crear cliente' : '✓ Guardar marca y familias';
+  setTimeout(() => document.getElementById(t==='cliente' ? 'crCliNombre' : 'crMarca').focus(), 50);
+}
+function crearGuardar() { return crTab==='cliente' ? crearGuardarCliente() : crearGuardarFamilia(); }
+
+// ── Cliente ──
+function crearCliTipo() { return document.querySelector('input[name="crCliTipo"]:checked').value; }
+function crearCliTipoTexto(t) { return t==='ambas' ? 'mecánica y carrocería' : t==='mec' ? 'solo mecánica' : 'solo carrocería'; }
+function crearCliResumen() {
+  const tipo = crearCliTipo();
+  [['ambas','crOptAmbas'],['mec','crOptMec'],['car','crOptCar']].forEach(([v,id]) => document.getElementById(id).classList.toggle('sel', v===tipo));
+  const nombre = document.getElementById('crCliNombre').value.trim().toUpperCase();
+  const codigoRaw = document.getElementById('crCliCodigo').value.trim();
+  const codigo = codigoRaw ? normCode(codigoRaw) : '';
+  let h = nombre
+    ? `Se creará <strong>${crEsc(nombre)}</strong> en Puntos con puntos de <strong>${crearCliTipoTexto(tipo)}</strong>.`
+    : 'Escribe el nombre del cliente para ver el resumen.';
+  if (codigo) {
+    const dup = db.clientes.find(c => c.codigo_erp && normCode(c.codigo_erp)===codigo);
+    if (dup) h += `<br><span class="cr-warn">⚠ El código ${crEsc(codigo)} ya pertenece a ${crEsc(dup.nombre)}.</span>`;
+  } else if (nombre) {
+    h += `<br><span class="cr-warn">⚠ Sin código ERP: la importación mensual no reconocerá a este cliente hasta que se lo pongas.</span>`;
+  }
+  document.getElementById('crCliResumen').innerHTML = h;
+}
+async function crearGuardarCliente() {
+  const nombre = document.getElementById('crCliNombre').value.trim().toUpperCase();
+  const codigoRaw = document.getElementById('crCliCodigo').value.trim();
+  const codigo = codigoRaw ? normCode(codigoRaw) : null;
+  const tipo = crearCliTipo();
+  const mec = tipo !== 'car', car = tipo !== 'mec';
+  if (!nombre) { alert('Introduce el nombre del cliente'); return; }
+
+  // ¿Ya existe? Por código ERP (certeza) o por nombre igual/parecido (se pregunta, nunca se fusiona solo).
+  let match = null;
+  const porCodigo = codigo ? db.clientes.find(c => c.codigo_erp && normCode(c.codigo_erp)===codigo) : null;
+  if (porCodigo) {
+    if (porCodigo.en_puntos) { alert(`El código ERP ${codigo} ya pertenece a "${porCodigo.nombre}", que ya está en Puntos.\n\nBúscalo en la lista; si no es el mismo cliente, revisa el código.`); return; }
+    if (!confirm(`El código ERP ${codigo} ya pertenece a "${porCodigo.nombre}", que existe pero no está en Puntos.\n\n¿Añadirlo a Puntos con puntos de ${crearCliTipoTexto(tipo)}?`)) return;
+    match = porCodigo;
+  } else {
+    const parecido = fuzzyMatchCliente(nombre);
+    if (parecido) {
+      const exacto = normalizeClienteNombre(parecido.nombre) === normalizeClienteNombre(nombre);
+      if (exacto && parecido.en_puntos) { alert(`"${parecido.nombre}" ya existe en Puntos.\n\nBúscalo en la lista.`); return; }
+      if (confirm(`Ya existe un cliente ${exacto ? 'con ese nombre' : 'parecido'}: "${parecido.nombre}"${parecido.en_puntos ? ' (ya está en Puntos)' : ''}.\n\n¿Es el mismo cliente?\n\nAceptar = usar "${parecido.nombre}" y aplicarle estos datos (${crearCliTipoTexto(tipo)}${codigo ? ', código ' + codigo : ''})\nCancelar = crear "${nombre}" como cliente nuevo y separado`)) match = parecido;
+    }
+  }
+
+  setSaving();
+  let cli, creado = false;
+  const avisos = [];
+  if (match) {
+    const upd = { en_puntos:true, puntos_mecanica:mec, puntos_carroceria:car };
+    if (codigo && !match.codigo_erp) upd.codigo_erp = codigo;
+    else if (codigo && match.codigo_erp && normCode(match.codigo_erp)!==codigo) avisos.push(`Ya tenía el código ${crEsc(match.codigo_erp)}; no se ha cambiado.`);
+    const { data, error } = await sb.from('clientes').update(upd).eq('id', match.id).select();
+    if (error) { alert('Error: '+error.message); setError(); return; }
+    cli = data[0];
+  } else {
+    const { data, error } = await sb.from('clientes').insert({ nombre, codigo_erp:codigo, notas:'', en_puntos:true, puntos_mecanica:mec, puntos_carroceria:car }).select();
+    if (error) { alert('Error: '+error.message); setError(); return; }
+    cli = data[0]; creado = true;
+  }
+  const i = db.clientes.findIndex(c => c.id===cli.id);
+  if (i>=0) db.clientes[i] = { ...db.clientes[i], ...cli }; else db.clientes.push(cli);
+  db.clientes.sort((a,b) => a.nombre.localeCompare(b.nombre));
+  const p = db.puntos.find(x => x.id===cli.id);
+  if (p) Object.assign(p, cli); else db.puntos.push({ ...cli, movimientos:[] });
+  db.puntos.sort((a,b) => a.nombre.localeCompare(b.nombre));
+  [db.rapels, db.bonus].forEach(arr => { const o = arr.find(x => x.id===cli.id); if (o) Object.assign(o, cli); });
+  setSynced(); renderAll(); populateClientesDatalist();
+
+  let msg = `✓ <strong>${crEsc(cli.nombre)}</strong> ${creado ? 'creado' : 'añadido'} en Puntos con puntos de <strong>${crearCliTipoTexto(tipo)}</strong>.`;
+  if (cli.codigo_erp) msg += `<br>Código ERP: ${crEsc(cli.codigo_erp)}. Recibirá puntos en la próxima importación mensual.`;
+  else msg += `<br><span class="cr-warn">⚠ Sin código ERP: no recibirá puntos de la importación mensual hasta que se lo pongas (o créalo con su código desde "Importar → Clasificación Millennium").</span>`;
+  avisos.forEach(a => msg += `<br><span class="cr-warn">${a}</span>`);
+  crearMostrarHecho(msg);
+}
+function crearMostrarHecho(html) {
+  document.getElementById('crDoneMsg').innerHTML = html;
+  show('crPaneCliente', false); show('crPaneFamilia', false);
+  show('crDone', true); show('crActions', false); show('crActionsDone', true);
+}
+
+// ── Marca / Familia ──
+function crearMarcaCheck() {
+  const hint = document.getElementById('crMarcaHint');
+  const marca = normCode(document.getElementById('crMarca').value);
+  if (!marca) { hint.innerHTML = 'El prefijo es el código que el ERP (Skrit) da a la marca. Ejemplo: <strong>FIG</strong> para FIGORIG.'; return; }
+  const ex = db.baremo.filter(b => normCode(b.marca)===marca);
+  if (!ex.length) { hint.innerHTML = `Marca nueva: ninguna familia con prefijo <strong>${crEsc(marca)}</strong> en el baremo todavía.`; return; }
+  const desc = (ex.find(b => b.desc_marca) || {}).desc_marca;
+  const inp = document.getElementById('crMarcaDesc');
+  if (desc && !inp.value) inp.value = desc;
+  hint.innerHTML = `<span class="cr-warn">Esa marca ya existe${desc ? ' ('+crEsc(desc)+')' : ''}</span> con ${ex.length} familia${ex.length>1?'s':''}: ${ex.map(b => crEsc(normCode(b.familia))+' → '+b.categoria).join(', ')}. Lo que añadas se suma; si repites una familia, se cambia su categoría.`;
+}
+function crearAddFamilia() {
+  const row = document.createElement('div');
+  row.className = 'cr-fam-row';
+  row.innerHTML = `<input class="crf-cod" placeholder="FRE" style="text-transform:uppercase" autocomplete="off">
+    <input class="crf-desc" placeholder="Ej: PASTILLAS DE FRENO" style="text-transform:uppercase" autocomplete="off">
+    <select class="crf-cat"><option value="">— Elegir —</option>${CR_CATEGORIAS.map(c => `<option value="${c.v}">${c.t}</option>`).join('')}</select>
+    <button type="button" class="cr-del" title="Quitar esta familia" onclick="crearQuitarFamilia(this)">✕</button>`;
+  document.getElementById('crFamRows').appendChild(row);
+}
+function crearQuitarFamilia(btn) {
+  btn.closest('.cr-fam-row').remove();
+  if (!document.querySelector('#crFamRows .cr-fam-row')) crearAddFamilia();
+}
+async function crearGuardarFamilia() {
+  const marca = normCode(document.getElementById('crMarca').value);
+  if (!marca) { alert('Introduce el prefijo de la marca'); return; }
+  const descMarca = document.getElementById('crMarcaDesc').value.trim().toUpperCase() || null;
+  const filas = [...document.querySelectorAll('#crFamRows .cr-fam-row')].map(r => ({
+    familia: normCode(r.querySelector('.crf-cod').value),
+    desc_familia: r.querySelector('.crf-desc').value.trim().toUpperCase() || null,
+    categoria: r.querySelector('.crf-cat').value
+  })).filter(r => r.familia || r.desc_familia || r.categoria);
+  if (!filas.length) { alert('Añade al menos una familia'); return; }
+  if (filas.some(r => !r.familia || !r.categoria)) { alert('Cada familia necesita su código y su categoría de puntos'); return; }
+  const codigos = filas.map(r => r.familia);
+  if (new Set(codigos).size !== codigos.length) { alert('Hay un código de familia repetido en la lista'); return; }
+
+  const exDescMarca = (db.baremo.find(b => normCode(b.marca)===marca && b.desc_marca) || {}).desc_marca || null;
+  const aGuardar = [], cambios = [], iguales = [];
+  filas.forEach(r => {
+    const ex = db.baremo.find(b => baremoKey(b.marca, b.familia)===baremoKey(marca, r.familia));
+    if (ex && ex.categoria===r.categoria) { iguales.push(r.familia); return; }
+    if (ex) cambios.push(`${marca}/${r.familia}: ${ex.categoria} → ${r.categoria}`);
+    // Si ya existe, se reutiliza su clave tal cual está guardada para actualizar esa fila y no crear otra
+    aGuardar.push({ marca: ex ? ex.marca : marca, familia: ex ? ex.familia : r.familia, desc_marca: descMarca || exDescMarca, desc_familia: r.desc_familia || (ex && ex.desc_familia) || null, categoria: r.categoria });
+  });
+  if (!aGuardar.length) { alert('Esas familias ya estaban dadas de alta con esa misma categoría: no hay nada que cambiar.'); return; }
+  if (cambios.length && !confirm(`Estas familias ya existían con otra categoría y se van a cambiar:\n\n${cambios.join('\n')}\n\n¿Continuar?`)) return;
+
+  setSaving();
+  const { error } = await sb.from('baremo_puntos').upsert(aGuardar, { onConflict:'marca,familia' });
+  if (error) { alert('Error: '+error.message); setError(); return; }
+  await reloadBaremo();
+  setSynced();
+  const lista = aGuardar.map(r => `<br>• <strong>${crEsc(normCode(r.marca))}/${crEsc(normCode(r.familia))}</strong>${r.desc_familia ? ' ('+crEsc(r.desc_familia)+')' : ''} → ${crEsc(crCatLabel(r.categoria))}`).join('');
+  let msg = `✓ Marca <strong>${crEsc(marca)}</strong>${descMarca||exDescMarca ? ' ('+crEsc(descMarca||exDescMarca)+')' : ''}: ${aGuardar.length} familia${aGuardar.length>1?'s':''} guardada${aGuardar.length>1?'s':''}.${lista}`;
+  if (iguales.length) msg += `<br><span class="cr-hint">Sin cambios (ya estaban así): ${iguales.map(crEsc).join(', ')}.</span>`;
+  msg += `<br><br><span class="cr-warn">Puntúan desde la próxima importación. Los meses ya importados no se recalculan: si hace falta, reimporta ese periodo.</span>`;
+  crearMostrarHecho(msg);
 }
 
 // El maestro Millennium es la fuente de verdad de cada cliente (código, nombre y derechos de
