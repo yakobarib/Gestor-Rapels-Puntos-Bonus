@@ -1019,6 +1019,15 @@
       <div class="help-ver">
         <div class="help-ver-item">
           <div class="help-ver-head">
+            <span class="help-ver-num">v4.35</span>
+            <span class="help-ver-date">Noviembre 2026</span>
+          </div>
+          <ul class="help-ver-list">
+            <li>Corregido en Crear → Cliente: las tarjetas "Solo mecánica" / "Solo carrocería" no se marcaban ni cambiaban el resumen, y el cliente se creaba siempre con mecánica y carrocería</li>
+          </ul>
+        </div>
+        <div class="help-ver-item">
+          <div class="help-ver-head">
             <span class="help-ver-num">v4.34</span>
             <span class="help-ver-date">Noviembre 2026</span>
           </div>
@@ -2213,7 +2222,7 @@ async function initAuth() {
   });
 }
 
-const APP_VERSION = 'v4.34';
+const APP_VERSION = 'v4.35';
 function renderAppVersion() {
   document.querySelectorAll('.app-version-badge').forEach(el => el.textContent = APP_VERSION);
   const about = document.getElementById('appVersionAbout');
@@ -2230,7 +2239,8 @@ let editMovMode = null; // { sistema:'puntos'|'bonus', movId, clienteId }
 // Forzar mayúsculas en todos los inputs de texto y textareas
 document.addEventListener('input', function(e) {
   const t = e.target;
-  if (t.tagName === 'INPUT' && (t.type === 'email' || t.type === 'password')) return;
+  // email/contraseña no se tocan; radio/checkbox tampoco: su value es un identificador interno (ej. 'car'), no texto del usuario
+  if (t.tagName === 'INPUT' && (t.type === 'email' || t.type === 'password' || t.type === 'radio' || t.type === 'checkbox')) return;
   if ((t.tagName === 'INPUT' && t.type !== 'number' && t.type !== 'date') || t.tagName === 'TEXTAREA') {
     const s = t.selectionStart, end = t.selectionEnd;
     t.value = t.value.toUpperCase();
@@ -4535,8 +4545,8 @@ function crearTab(t) {
 function crearGuardar() { return crTab==='cliente' ? crearGuardarCliente() : crearGuardarFamilia(); }
 
 // ── Cliente ──
-function crearCliTipo() { return document.querySelector('input[name="crCliTipo"]:checked').value; }
-function crearCliTipoTexto(t) { return t==='ambas' ? 'mecánica y carrocería' : t==='mec' ? 'solo mecánica' : 'solo carrocería'; }
+function crearCliTipo() { return document.querySelector('input[name="crCliTipo"]:checked').value.toLowerCase(); }
+function crearCliTipoTexto(t) { return t==='ambas' ? 'mecánica y carrocería' : t==='mec' ? 'solo mecánica' : t==='car' ? 'solo carrocería' : '?'; }
 function crearCliResumen() {
   const tipo = crearCliTipo();
   [['ambas','crOptAmbas'],['mec','crOptMec'],['car','crOptCar']].forEach(([v,id]) => document.getElementById(id).classList.toggle('sel', v===tipo));
